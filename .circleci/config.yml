@@ -3,14 +3,14 @@ jobs:
   build:
     docker:
       - image: fpco/stack-build:latest
-    working_directory: /home/stackage
+    working_directory: /work
     steps:
       - checkout
       - restore_cache:
-          key: cache
+          key: package-cache--{{ checksum "package.yaml" }}
       - run: stack test
       - save_cache:
-          key: cache
+          key: package-cache--{{ checksum "package.yaml" }}
           paths:
-            - ~/.stack
-            
+              - ~/.stack
+              - /work/.stack-work
