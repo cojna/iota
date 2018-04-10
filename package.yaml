@@ -18,7 +18,7 @@ description:         Please see the README on Github at <https://github.com/cojn
 
 dependencies:
 - array
-- base == 4.8.2.0
+- base
 - bytestring
 - containers
 - deepseq
