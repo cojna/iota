@@ -28,6 +28,21 @@ intMod x = Mod $ fromIntegral $ mod x MOD
 instance Show IntMod where
     show (Mod x) = show x
 
+instance Bounded IntMod where
+    minBound = Mod 0
+    maxBound = Mod $ modulus - 1
+
+instance Enum IntMod where
+    toEnum x = Mod $ mod (fromIntegral x) modulus
+    fromEnum = fromIntegral . unMod
+
+instance Real IntMod where
+    toRational (Mod x) = fromIntegral x % 1
+
+instance Integral IntMod where
+    quotRem x y = (x / y, x - x / y * y)
+    toInteger (Mod x) = fromIntegral x
+
 instance Num IntMod where
     (Mod x) + (Mod y) = Mod $ (x + y) `rem` MOD
     (Mod x) - (Mod y) = Mod $ (x - y) `mod` MOD
