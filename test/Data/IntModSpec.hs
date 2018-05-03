@@ -61,7 +61,7 @@ prop_subClosed :: IntMod -> IntMod -> Bool
 prop_subClosed x y = intModValidate $ x - y
 
 prop_subInverse :: IntMod -> Bool
-prop_subInverse x = x - x == intMod 0
+prop_subInverse x = x - x == 0
 
 prop_nagateClosed :: IntMod -> Bool
 prop_nagateClosed x = intModValidate $ negate x
@@ -70,7 +70,7 @@ prop_mulClosed :: IntMod -> IntMod -> Bool
 prop_mulClosed x y = intModValidate $ x * y
 
 prop_mulUnit :: IntMod -> Bool
-prop_mulUnit x = x * intMod 1 == x && intMod 1 * x == x
+prop_mulUnit x = x * 1 == x && 1 * x == x
 
 prop_mulAssociative :: IntMod -> IntMod -> IntMod -> Bool
 prop_mulAssociative x y z = (x * y) * z == x * (y * z)
@@ -82,7 +82,7 @@ prop_divClosed :: IntMod -> IntMod -> Bool
 prop_divClosed x y = intModValidate $ x / y
 
 prop_divInverse :: IntMod -> Bool
-prop_divInverse x = x * recip x == intMod 1
+prop_divInverse x = x * recip x == 1
 
 prop_recipClosed :: IntMod -> Bool
 prop_recipClosed x = intModValidate $ recip x
@@ -115,5 +115,5 @@ prop_powMul
     = x ^ n * y ^ n == (x * y) ^ n
 
 prop_zeroPow :: IntMod -> Bool
-prop_zeroPow x = x ^ 0 == intMod 1
+prop_zeroPow x = x ^ 0 == 1
 
