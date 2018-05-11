@@ -33,5 +33,5 @@ prop_recipMod :: Positive Integer -> Prime Integer -> Bool
 prop_recipMod
     (getPositive -> x)
     (getPrime -> m)
-    = x * recipMod x m `mod` m == 1
+    = x `mod` m == 0 || x * recipMod x m `mod` m == 1
 
