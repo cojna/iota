@@ -27,6 +27,13 @@ numSpec proxy = do
     describe "^" $
         prop "x ^ 0 == 1" $ lift1 proxy prop_zeroPow
 
+additiveAbelianGroupSpec :: (Arbitrary a, Num a, Show a, Eq a) => Proxy a -> Spec
+additiveAbelianGroupSpec proxy = do
+    describe "+" $ do
+        prop "x + 0 == 0 + x == x" $ lift1 proxy prop_addUnit
+        prop "(x + y) + z == x + (y + z)" $ lift3 proxy prop_addAssociative
+        prop "x + y == y + x" $ lift2 proxy prop_addCommutative
+
 prop_addUnit :: (Num a, Eq a) => a -> Bool
 prop_addUnit x = x + 0 == x && 0 + x == x
 
