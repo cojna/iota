@@ -7,9 +7,12 @@ import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
 import           Util.NumProp
+import           Util.VectorSpaceProp
 
 spec :: Spec
-spec = numSpec (Proxy :: Proxy (Vec2 Int))
+spec = do
+    numSpec (Proxy :: Proxy (Vec2 Int))
+    scalarSpec ((*:) :: Int -> Vec2 Int -> Vec2 Int)
 
 instance Arbitrary a => Arbitrary (Vec2 a) where
     arbitrary = V2 <$> arbitrary <*> arbitrary

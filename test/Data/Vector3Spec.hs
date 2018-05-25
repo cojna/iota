@@ -7,9 +7,12 @@ import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
 import           Util.NumProp
+import           Util.VectorSpaceProp
 
 spec :: Spec
-spec = additiveAbelianGroupSpec (Proxy :: Proxy (Vec3 Int))
+spec = do
+    additiveAbelianGroupSpec (Proxy :: Proxy (Vec3 Int))
+    scalarSpec ((*:) :: Int -> Vec3 Int -> Vec3 Int)
 
 instance Arbitrary a => Arbitrary (Vec3 a) where
     arbitrary = V3 <$> arbitrary <*> arbitrary <*> arbitrary
