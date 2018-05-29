@@ -27,7 +27,7 @@ spec = do
         prop "x * y == y * x" prop_mulCommutative
     describe "/" $ do
         prop "closed" prop_divClosed
-        prop "x * (1 / x) == 1" prop_divClosed
+        prop "x * (1 / x) == 1" prop_divInverse
     describe "recip" $
         prop "closed" prop_recipClosed
     describe "+, *" $ do
@@ -81,8 +81,8 @@ prop_mulCommutative x y = x * y == y * x
 prop_divClosed :: IntMod -> IntMod -> Bool
 prop_divClosed x y = intModValidate $ x / y
 
-prop_divInverse :: IntMod -> Bool
-prop_divInverse x = x * recip x == 1
+prop_divInverse :: NonZero IntMod -> Bool
+prop_divInverse (getNonZero -> x) = x * recip x == 1
 
 prop_recipClosed :: IntMod -> Bool
 prop_recipClosed x = intModValidate $ recip x
