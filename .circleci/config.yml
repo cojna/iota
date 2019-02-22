@@ -19,7 +19,7 @@ jobs:
             - image: fpco/stack-build:latest
         working_directory: /work
         environment:
-            - SRC_DIR: doc
+            - SRC_DIR: .stack-work/dist/x86_64-linux/Cabal-1.22.5.0/doc/html/iota
             - TARGET_BRANCH: gh-pages
         steps:
             - checkout
@@ -28,7 +28,7 @@ jobs:
             - run:
                 name: Build documents
                 command: |
-                    stack haddock --haddock-arguments --odir=${SRC_DIR}
+                    stack haddock
             - add-ssh-keys:
                 fingerprints:
                     - 43:ad:28:48:c3:86:23:f6:90:21:09:ba:6d:66:89:74
