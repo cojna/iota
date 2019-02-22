@@ -14,3 +14,46 @@ jobs:
           paths:
               - ~/.stack
               - /work/.stack-work
+  deploy:
+        docker:
+            - image: fpco/stack-build:latest
+        working_directory: /work
+        environment:
+            - SRC_DIR: .stack-work/dist/x86_64-linux/Cabal-1.22.5.0/doc/html/iota
+            - TARGET_BRANCH: gh-pages
+        steps:
+            - checkout
+            - restore_cache:
+                key: package-cache--{{ checksum "package.yaml" }}
+            - run:
+                name: Build documents
+                command: |
+                    stack haddock
+            - add-ssh-keys:
+                fingerprints:
+                    - 43:ad:28:48:c3:86:23:f6:90:21:09:ba:6d:66:89:74
+            - run:
+                name: Deploy to GitHub Pages
+                command: |
+                    git config --global user.name $GIT_USER_NAME
+                    git config --global user.email $GIT_USER_EMAIL
+                    git clone --depth 1 $CIRCLE_REPOSITORY_URL public
+                    cd public
+                    git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
+                    git rm -rfq .
+                    cp -a "../${SRC_DIR}/." .
+                    git add --all
+                    git commit -m "Deploy to GitHub Pages: ${CIRCLE_SHA1} [ci skip]"
+                    git push --force --quiet origin $TARGET_BRANCH
+
+workflows:
+    version: 2
+    test_and_deploy:
+        jobs:
+            - build
+            - deploy:
+                requires:
+                    - build
+                filters:
+                    branches:
+                        only: master
