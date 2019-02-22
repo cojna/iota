@@ -24,7 +24,7 @@ jobs:
         steps:
             - checkout
             - restore_cache:
-                key: cargo-cache--{{ checksum "package.yaml" }}
+                key: package-cache--{{ checksum "package.yaml" }}
             - run:
                 name: Build documents
                 command: |
