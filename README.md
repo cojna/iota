@@ -1,5 +1,5 @@
-# algorithm-haskell
-[![CircleCI](https://circleci.com/gh/cojna/algorithm-haskell.svg?style=svg&circle-token=1cf96b5aee7f1aceb1fa285e904ea008a23f2a7c)](https://circleci.com/gh/cojna/algorithm-haskell)
+# iota
+[![CircleCI](https://circleci.com/gh/cojna/iota.svg?style=svg&circle-token=1cf96b5aee7f1aceb1fa285e904ea008a23f2a7c)](https://circleci.com/gh/cojna/iota)
 
 library for competitive programming
 
