@@ -1,20 +1,36 @@
 version: 2
 jobs:
-  build:
-    docker:
-      - image: fpco/stack-build:latest
-    working_directory: /work
-    steps:
-      - checkout
-      - restore_cache:
-          key: package-cache--{{ checksum "package.yaml" }}
-      - run: stack test
-      - save_cache:
-          key: package-cache--{{ checksum "package.yaml" }}
-          paths:
-              - ~/.stack
-              - /work/.stack-work
-  deploy:
+    build:
+      docker:
+          - image: fpco/stack-build:latest
+      working_directory: /work
+      steps:
+          - checkout
+          - restore_cache:
+              key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
+          - run: stack test
+          - save_cache:
+              key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
+              paths:
+                  - ~/.stack
+                  - /work/.stack-work
+    build_atcoder:
+        docker:
+            - image: fpco/stack-build:latest
+        working_directory: /work
+        environment:
+            - STACK_YAML: atcoder.yaml
+        steps:
+            - checkout
+            - restore_cache:
+                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
+            - run: stack test
+            - save_cache:
+                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
+                paths:
+                    - ~/.stack
+                    - /work/.stack-work
+    deploy:
         docker:
             - image: fpco/stack-build:latest
         working_directory: /work
@@ -51,9 +67,11 @@ workflows:
     test_and_deploy:
         jobs:
             - build
+            - build_atcoder
             - deploy:
                 requires:
                     - build
+                    - build_atcoder
                 filters:
                     branches:
                         only: master
