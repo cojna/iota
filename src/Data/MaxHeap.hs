@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.MaxHeap where
@@ -5,6 +6,9 @@ module Data.MaxHeap where
 import           Data.Function
 import qualified Data.List     as L
 import           Data.Monoid
+#if MIN_VERSION_base(4,9,0)
+import           Data.Semigroup as Semigroup
+#endif
 import           GHC.Exts
 
 data MaxHeap a = MaxFork !a [MaxHeap a] | MaxEmpty
@@ -69,10 +73,23 @@ instance Ord a => IsList (MaxHeap a) where
 instance (Show a, Ord a) => Show (MaxHeap a) where
     show = show . toList
 
+#if MIN_VERSION_base(4,9,0)
+instance Ord a => Semigroup.Semigroup (MaxHeap a) where
+  (<>) = _HHmerge
+#endif
+
 instance Ord a => Monoid (MaxHeap a) where
     mempty = _HHempty
     {-# INLINE mempty #-}
-    mappend = _HHmerge
-    {-# INLINE mappend #-}
     mconcat = _HHmergePairs
     {-# INLINE mconcat #-}
+#if MIN_VERSION_base(4,11,0)
+#elif MIN_VERSION_base(4,9,0)
+    mappend = (Semigtoup.<>)
+    {-# INLINE mappend #-}
+#else // base < 4.9
+    mappend = _HHmerge
+    {-# INLINE mappend #-}
+#endif
+
+
