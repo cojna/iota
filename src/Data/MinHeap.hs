@@ -88,7 +88,7 @@ instance Ord a => Monoid (MinHeap a) where
 #elif MIN_VERSION_base(4,9,0)
     mappend = (Semigtoup.<>)
     {-# INLINE mappend #-}
-#else // base < 4.9
+#else
     mappend = _Hmerge
     {-# INLINE mappend #-}
 #endif
