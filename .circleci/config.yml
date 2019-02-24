@@ -71,6 +71,6 @@ workflows:
                 requires:
                     - build
                     - build_atcoder
-                # filters:
-                #     branches:
-                #         only: master
+                filters:
+                    branches:
+                        only: master
