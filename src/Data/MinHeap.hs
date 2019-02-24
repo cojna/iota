@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.MinHeap where
@@ -5,6 +6,9 @@ module Data.MinHeap where
 import           Data.Function
 import qualified Data.List     as L
 import           Data.Monoid
+#if MIN_VERSION_base(4,9,0)
+import           Data.Semigroup as Semigroup
+#endif
 import           GHC.Exts
 
 data MinHeap a = MinFork !a [MinHeap a] | MinEmpty
@@ -69,10 +73,22 @@ instance Ord a => IsList (MinHeap a) where
 instance (Show a, Ord a) => Show (MinHeap a) where
     show = show . toList
 
+
+#if MIN_VERSION_base(4,9,0)
+instance Ord a => Semigroup.Semigroup (MinHeap a) where
+  (<>) = _Hmerge
+#endif
+
 instance Ord a => Monoid (MinHeap a) where
     mempty = _Hempty
     {-# INLINE mempty #-}
-    mappend = _Hmerge
-    {-# INLINE mappend #-}
     mconcat = _HmergePairs
     {-# INLINE mconcat #-}
+#if MIN_VERSION_base(4,11,0)
+#elif MIN_VERSION_base(4,9,0)
+    mappend = (Semigtoup.<>)
+    {-# INLINE mappend #-}
+#else // base < 4.9
+    mappend = _Hmerge
+    {-# INLINE mappend #-}
+#endif
