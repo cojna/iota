@@ -1,6 +1,6 @@
 version: 2
 jobs:
-    build:
+    build_latest:
       docker:
           - image: fpco/stack-build:latest
       working_directory: /work
@@ -65,11 +65,14 @@ workflows:
     version: 2
     test_and_deploy:
         jobs:
-            - build
             - build_atcoder
+            - build_latest:
+                filters:
+                    branches:
+                        only: master
             - deploy:
                 requires:
-                    - build
+                    - build_latest
                     - build_atcoder
                 filters:
                     branches:
