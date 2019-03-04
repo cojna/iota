@@ -16,14 +16,15 @@ newUnionFind n = UF <$> UM.replicate n (-1)
 {-# INLINE newUnionFind #-}
 
 findM :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
-findM uf@UF{..} x = do
-    px <- UM.unsafeRead parent x
-    if px < 0
-    then return x
-    else do
-        ppx <- findM uf px
-        UM.unsafeWrite parent x ppx
-        return ppx
+findM uf x = go x return
+  where
+    go !x k = do
+        px <- UM.unsafeRead (parent uf) x
+        if px < 0
+        then k x
+        else go px $ \ppx -> do
+            UM.unsafeWrite (parent uf) x ppx
+            k ppx
 {-# INLINE findM #-}
 
 sizeM :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
