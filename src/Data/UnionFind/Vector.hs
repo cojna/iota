@@ -1,5 +1,5 @@
-{-# LANGUAGE CPP             #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 
 module Data.UnionFind.Vector where
 
@@ -28,29 +28,29 @@ findM uf x = go x return
 {-# INLINE findM #-}
 
 sizeM :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
-sizeM uf@UF{..} = fix $ \loop x -> do
-    px <- UM.unsafeRead parent x
+sizeM uf = fix $ \loop x -> do
+    px <- UM.unsafeRead (parent uf) x
     if px < 0
     then return $! negate px
     else loop px
 {-# INLINE sizeM #-}
 
 uniteM :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
-uniteM uf@UF{..} x y = do
+uniteM uf x y = do
     px <- findM uf x
     py <- findM uf y
     if px == py
     then return False
     else do
-        rx <- UM.unsafeRead parent px
-        ry <- UM.unsafeRead parent py
+        rx <- UM.unsafeRead (parent uf) px
+        ry <- UM.unsafeRead (parent uf) py
         if rx < ry
         then do
-            UM.unsafeModify parent (+ry) px
-            UM.unsafeWrite parent py px
+            UM.unsafeModify (parent uf) (+ry) px
+            UM.unsafeWrite (parent uf) py px
         else do
-            UM.unsafeModify parent (+rx) py
-            UM.unsafeWrite parent px py
+            UM.unsafeModify (parent uf) (+rx) py
+            UM.unsafeWrite (parent uf) px py
         return True
 {-# INLINE uniteM #-}
 
@@ -60,5 +60,5 @@ equivM uf x y = (==) `liftM` findM uf x `ap` findM uf y
 
 -- | O(n)
 countGroupM :: PrimMonad m => UnionFind (PrimState m) -> m Int
-countGroupM UF{..} = U.length . U.filter (<0) <$> U.unsafeFreeze parent
+countGroupM uf = U.length . U.filter (<0) <$> U.unsafeFreeze (parent uf)
 {-# INLINE countGroupM #-}
