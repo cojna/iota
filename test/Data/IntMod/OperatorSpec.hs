@@ -12,14 +12,17 @@ import           Test.QuickCheck.Arbitrary
 spec :: Spec
 spec = do
     describe "+%" $ do
+        prop "naive" prop_addNaive
         prop "closed" prop_addClosed
         prop "x + 0 == 0 + x == x" prop_addUnit
         prop "(x + y) + z == x + (y + z)" prop_addAssociative
         prop "x + y == y + x" prop_addCommutative
     describe "-%" $ do
+        prop "naive" prop_subNaive
         prop "closed" prop_subClosed
         prop "x + (0 - x) == 0" prop_subInverse
     describe "*%" $ do
+        prop "naive" prop_mulNaive
         prop "closed" prop_mulClosed
         prop "x * 1 == 1 * x == x" prop_mulUnit
         prop "(x * y) * z == x * (y * z)" prop_mulAssociative
