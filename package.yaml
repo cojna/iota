@@ -45,3 +45,15 @@ tests:
     - iota
     - hspec
     - QuickCheck
+
+benchmarks:
+    iota-benchmark:
+        main:            Bench.hs
+        source-dirs:     benchmark
+        ghc-options:
+        - -O2
+        dependencies:
+        - iota
+        - criterion
+        - vector
+
