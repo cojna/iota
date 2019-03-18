@@ -26,11 +26,13 @@ intModValidate :: Int -> Bool
 intModValidate x = 0 <= x && x < MOD
 
 (+%) :: IntMod -> IntMod -> IntMod
-(I# x#) +% (I# y#) = I# ((x# +# y#) `remInt#` MOD#)
+(I# x#) +% (I# y#) = case x# +# y# of
+    r# -> I# (r# -# ((r# >=# MOD#) *# MOD#))
 {-# INLINE (+%) #-}
 
 (-%) :: IntMod -> IntMod -> IntMod
-(I# x#) -% (I# y#) = I# ((x# -# y# +# MOD#) `remInt#` MOD#)
+(I# x#) -% (I# y#) = case x# -# y# of
+    r# -> I# (r# +# ((r# <# 0#) *# MOD#))
 {-# INLINE (-%) #-}
 
 (*%) :: IntMod -> IntMod -> IntMod
