@@ -59,4 +59,4 @@ spec =
                     , SegQuery 3 4
                     , SegQuery 4 5
                     ]
-            in res `shouldBe` V.fromList [1 :: Int,5,1,2,4,1,5,0,0,4,0,4,0]
+            in res `shouldBe` U.fromList [1 :: Int,5,1,2,4,1,5,0,0,4,0,4,0]

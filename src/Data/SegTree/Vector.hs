@@ -32,13 +32,19 @@ data SegTreeQuery a
 
 runSegTree
     :: (Monoid a, U.Unbox a)
-    => U.Vector a -> V.Vector (SegTreeQuery a) -> V.Vector a
-runSegTree vec queries = runST $ do
+    => U.Vector a -> V.Vector (SegTreeQuery a) -> U.Vector a
+runSegTree vec queries = U.create $ do
     seg <- _SEGfromVector vec
-    results <- V.forM queries $ \case
-        SegUpdate k v -> Nothing <$ _SEGupdate k v seg
-        SegQuery l r -> Just <$> _SEGquery l r seg
-    return $ V.mapMaybe id results
+    res <- UM.replicate (V.length queries) mempty
+    size <- V.foldM' (\acc -> \case
+            SegUpdate k v -> do
+                _SEGupdate k v seg
+                return acc
+            SegQuery l r -> do
+                _SEGquery l r seg >>= UM.unsafeWrite res acc
+                return $ acc + 1
+        ) 0 queries
+    return $ UM.take size res
 
 -- | O(n)
 _SEGfromVector
