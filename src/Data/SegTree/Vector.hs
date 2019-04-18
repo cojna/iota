@@ -26,26 +26,6 @@ extendToPowerOfTwo x
 
 newtype SegTree m a = SegTree { unSegTree :: UM.MVector m a }
 
-data SegTreeQuery a
-    = SegUpdate !Int !a
-    | SegQuery !Int !Int
-
-runSegTree
-    :: (Monoid a, U.Unbox a)
-    => U.Vector a -> V.Vector (SegTreeQuery a) -> U.Vector a
-runSegTree vec queries = U.create $ do
-    seg <- _SEGfromVector vec
-    res <- UM.replicate (V.length queries) mempty
-    size <- V.foldM' (\acc -> \case
-            SegUpdate k v -> do
-                _SEGupdate k v seg
-                return acc
-            SegQuery l r -> do
-                _SEGquery l r seg >>= UM.unsafeWrite res acc
-                return $ acc + 1
-        ) 0 queries
-    return $ UM.take size res
-
 -- | O(n)
 _SEGfromVector
     :: (Monoid a, U.Unbox a, PrimMonad m)
@@ -122,3 +102,22 @@ _SEGquery l r segtree = do
     (.>>.) = unsafeShiftR
     {-# INLINE (.>>.) #-}
 
+data SegTreeQuery a
+    = SegUpdate !Int !a
+    | SegQuery !Int !Int
+
+runSegTree
+    :: (Monoid a, U.Unbox a)
+    => U.Vector a -> V.Vector (SegTreeQuery a) -> U.Vector a
+runSegTree vec queries = U.create $ do
+    seg <- _SEGfromVector vec
+    res <- UM.replicate (V.length queries) mempty
+    size <- V.foldM' (\acc -> \case
+            SegUpdate k v -> do
+                _SEGupdate k v seg
+                return acc
+            SegQuery l r -> do
+                _SEGquery l r seg >>= UM.unsafeWrite res acc
+                return $ acc + 1
+        ) 0 queries
+    return $ UM.take size res
