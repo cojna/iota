@@ -45,6 +45,7 @@ tests:
     - iota
     - hspec
     - QuickCheck
+    - vector
 
 benchmarks:
     iota-benchmark:
