@@ -7,11 +7,15 @@ import qualified System.IO      as IO
 import           System.Process
 
 runGCJ :: IO () -> IO ()
-runGCJ main_ = do
+#ifdef DEBUG
+runGCJ = id
+#else
+runGCJ action = do
     t <- readLn
     forM_ [1..t] $ \i -> do
         putStr $ "Case #" ++ shows i ": "
-        main_
+        action
+#endif
 
 runInteractive :: (IO.Handle -> IO.Handle -> IO ()) -> IO ()
 runInteractive action = do
