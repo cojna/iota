@@ -17,14 +17,17 @@ extra-source-files:
 description:         Please see the README on Github at <https://github.com/cojna/iota#readme>
 
 dependencies:
+# core
 - array
 - base
 - bytestring
 - containers
 - deepseq
-- time
-- hashable
 - mtl
+- process
+- time
+# full
+- hashable
 - primitive
 - split
 - unordered-containers
