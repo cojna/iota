@@ -1,10 +1,7 @@
 module Data.Graph.Grid where
 
 import qualified Data.ByteString.Char8    as C
-import qualified Data.ByteString.Internal as B
-import qualified Data.Vector.Storable     as SV
 import qualified Data.Vector.Unboxed      as U
-import           Data.Word
 
 inGrid :: Int -> Int -> Int -> Int -> Bool
 inGrid h w x y = 0 <= x && x < h && 0 <= y && y < w
