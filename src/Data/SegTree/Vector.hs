@@ -14,6 +14,8 @@ import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
+--
+import           Data.Bits.Utils
 
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
@@ -44,10 +46,6 @@ _SEGfromVector vec = do
     rev :: (Monad m) => Int -> (Int -> m ()) -> m ()
     rev n = U.forM_ $ U.iterateN n (subtract 1) (n - 1)
     {-# INLINE rev #-}
-    infixl 8 .<<.
-    (.<<.) :: Int -> Int -> Int
-    (.<<.) = unsafeShiftL
-    {-# INLINE (.<<.) #-}
 
 -- | O(log n)
 _SEGupdate
@@ -64,15 +62,6 @@ _SEGupdate k v segtree = do
                 <*> UM.unsafeRead tree (i .^. 1)
             UM.unsafeWrite tree (i .>>. 1) x
             loop $ unsafeShiftR i 1
-  where
-    infixl 8 .>>.
-    (.>>.) :: Int -> Int -> Int
-    (.>>.) = unsafeShiftR
-    {-# INLINE (.>>.) #-}
-    infixl 6 .^.
-    (.^.) :: Int -> Int -> Int
-    (.^.) = xor
-    {-# INLINE (.^.) #-}
 
 -- | mappend [l..r) O(log n)
 _SEGquery
@@ -96,11 +85,6 @@ _SEGquery l r segtree = do
                 $ stepL l >=> (stepR r >=> k)
             | otherwise = k
     go (n + l) (n + r) return mempty
-  where
-    infixl 8 .>>.
-    (.>>.) :: Int -> Int -> Int
-    (.>>.) = unsafeShiftR
-    {-# INLINE (.>>.) #-}
 
 data SegTreeQuery a
     = SegUpdate !Int !a
