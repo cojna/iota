@@ -39,6 +39,9 @@ intModValidate x = 0 <= x && x < MOD
 (I# x#) *% (I# y#) = I# ((x# *# y#) `remInt#` MOD#)
 {-# INLINE (*%) #-}
 
+-- |
+-- >>> 1 /% 0
+-- 0
 (/%) :: IntMod -> IntMod -> IntMod
 (I# x#) /% (I# y#) = go# y# MOD# 1# 0#
   where

@@ -30,6 +30,7 @@ spec = do
     describe "/%" $ do
         prop "closed" prop_divClosed
         prop "x * (1 / x) == 1" prop_divClosed
+        prop "x /% 0 == 0" prop_zeroDiv
     describe "+%, *%" $ do
         prop "x * (y + z) == x * y + x * z" prop_leftDistributive
         prop "(x + y) * z == x * z + y * z" prop_rightDistributive
@@ -88,6 +89,9 @@ prop_mulCommutative (intMod -> x) (intMod -> y) = x *% y == y *% x
 
 prop_divClosed :: Int -> Int -> Bool
 prop_divClosed (intMod -> x) (intMod -> y) = intModValidate $ x /% y
+
+prop_zeroDiv :: Int -> Bool
+prop_zeroDiv (intMod -> x) = x /% 0 == 0
 
 prop_divInverse :: Int -> Bool
 prop_divInverse (intMod -> x) = x *% (1 /% x) == 1
