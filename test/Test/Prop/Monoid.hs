@@ -1,6 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Util.MonoidProp where
+module Test.Prop.Monoid where
 
 import           Data.Monoid
 import           Data.Proxy

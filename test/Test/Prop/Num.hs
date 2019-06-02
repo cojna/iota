@@ -1,13 +1,12 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Util.NumProp where
+module Test.Prop.Num where
 
 import           Data.Proxy
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
-
 
 numSpec :: (Arbitrary a, Num a, Show a, Eq a) => Proxy a -> Spec
 numSpec proxy = do

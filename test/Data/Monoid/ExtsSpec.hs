@@ -9,7 +9,7 @@ import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
-import           Util.MonoidProp
+import           Test.Prop.Monoid
 
 spec :: Spec
 spec = do

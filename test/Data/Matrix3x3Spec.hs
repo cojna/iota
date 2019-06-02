@@ -6,7 +6,7 @@ import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
-import           Util.NumProp
+import           Test.Prop.Num
 
 spec :: Spec
 spec = numSpec (Proxy :: Proxy (Mat3x3 Int))

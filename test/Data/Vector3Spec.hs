@@ -6,8 +6,8 @@ import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
-import           Util.NumProp
-import           Util.VectorSpaceProp
+import           Test.Prop.Num
+import           Test.Prop.VectorSpace
 
 spec :: Spec
 spec = do

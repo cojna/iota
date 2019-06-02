@@ -1,4 +1,4 @@
-module Util.VectorSpaceProp where
+module Test.Prop.VectorSpace where
 
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
