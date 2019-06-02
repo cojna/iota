@@ -15,8 +15,8 @@ spec :: Spec
 spec = do
     describe "GCD Word" $
         monoidSpec (Proxy :: Proxy (GCD Word))
-    describe "LCM Integer" $
-        monoidSpec (Proxy :: Proxy (LCM Integer))
+    describe "LCM (Small Word)" $
+        monoidSpec (Proxy :: Proxy (LCM (Small Word)))
     describe "BitAnd Int" $
         monoidSpec (Proxy :: Proxy (BitAnd Int))
     describe "BitOr Int" $
