@@ -1,6 +1,5 @@
-module Util.VectorSpaceProp where
-import           Data.Proxy
-import           Data.Proxy.Util
+module Test.Prop.VectorSpace where
+
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
 import           Test.QuickCheck
