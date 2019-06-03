@@ -66,5 +66,5 @@ instance Word64Encode (Int, Int, Int) where
     unsafeDecode64 xyz = unsafeCoerce (x, y, z)
       where
         !x = unsafeShiftR xyz 42
-        !y = unsafeShiftR xyz 21 .&. 0xfffff
-        !z = xyz .&. 0xfffff
+        !y = unsafeShiftR xyz 21 .&. 0x1fffff
+        !z = xyz .&. 0x1fffff
