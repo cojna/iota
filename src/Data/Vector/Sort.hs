@@ -63,5 +63,8 @@ radixSort = U.map decode64 . radixSort64 . U.map encode64
 radixSortNonNegative
     :: (U.Unbox a, Word64Encode a)
     => U.Vector a -> U.Vector a
-radixSortNonNegative = U.map unsafeDecode64 . radixSort64 . U.map unsafeEncode64
+radixSortNonNegative
+    = U.map decodeNonNegative64
+    . radixSort64
+    . U.map encodeNonNegative64
 {-# INLINE radixSortNonNegative #-}
