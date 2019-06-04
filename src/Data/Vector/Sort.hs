@@ -7,6 +7,8 @@ import qualified Data.Foldable               as F
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
+--
+import           Data.Word64
 
 bucketSort :: Int -> U.Vector Int -> U.Vector Int
 bucketSort bucketSize
@@ -51,3 +53,18 @@ radixSort64 v = F.foldl' step v [0, 16, 32, 48]
             UM.unsafeWrite res i x
         return res
 {-# INLINE radixSort64 #-}
+
+radixSort
+    :: (U.Unbox a, Word64Encode a)
+    => U.Vector a -> U.Vector a
+radixSort = U.map decode64 . radixSort64 . U.map encode64
+{-# INLINE radixSort #-}
+
+radixSortNonNegative
+    :: (U.Unbox a, Word64Encode a)
+    => U.Vector a -> U.Vector a
+radixSortNonNegative
+    = U.map decodeNonNegative64
+    . radixSort64
+    . U.map encodeNonNegative64
+{-# INLINE radixSortNonNegative #-}
