@@ -4,6 +4,7 @@
 module Data.IntMod.Vector where
 
 import           Control.Monad
+import           Data.Coerce
 import           Data.IntMod
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -33,11 +34,11 @@ instance GM.MVector UM.MVector IntMod where
     basicOverlaps (MV_IntMod v1) (MV_IntMod v2) = GM.basicOverlaps v1 v2
     basicUnsafeNew n = MV_IntMod `liftM` GM.basicUnsafeNew n
     basicInitialize (MV_IntMod v) = GM.basicInitialize v
-    basicUnsafeReplicate n x = MV_IntMod `liftM` GM.basicUnsafeReplicate n (unMod x)
-    basicUnsafeRead (MV_IntMod v) i = Mod `liftM` GM.basicUnsafeRead v i
-    basicUnsafeWrite (MV_IntMod v) i x = GM.basicUnsafeWrite v i (unMod x)
+    basicUnsafeReplicate n x = MV_IntMod `liftM` GM.basicUnsafeReplicate n (coerce x)
+    basicUnsafeRead (MV_IntMod v) i = coerce `liftM` GM.basicUnsafeRead v i
+    basicUnsafeWrite (MV_IntMod v) i x = GM.basicUnsafeWrite v i (coerce x)
     basicClear (MV_IntMod v) = GM.basicClear v
-    basicSet (MV_IntMod v) x = GM.basicSet v (unMod x)
+    basicSet (MV_IntMod v) x = GM.basicSet v (coerce x)
     basicUnsafeCopy (MV_IntMod v1) (MV_IntMod v2) = GM.basicUnsafeCopy v1 v2
     basicUnsafeMove (MV_IntMod v1) (MV_IntMod v2) = GM.basicUnsafeMove v1 v2
     basicUnsafeGrow (MV_IntMod v) n = MV_IntMod `liftM` GM.basicUnsafeGrow v n
@@ -53,6 +54,6 @@ instance G.Vector U.Vector IntMod where
     basicUnsafeThaw (V_IntMod v) = MV_IntMod `liftM` G.basicUnsafeThaw v
     basicLength (V_IntMod v) = G.basicLength v
     basicUnsafeSlice i n (V_IntMod v) = V_IntMod $ G.basicUnsafeSlice i n v
-    basicUnsafeIndexM (V_IntMod v) i = Mod `liftM` G.basicUnsafeIndexM v i
+    basicUnsafeIndexM (V_IntMod v) i = coerce `liftM` G.basicUnsafeIndexM v i
     basicUnsafeCopy (MV_IntMod mv) (V_IntMod v) = G.basicUnsafeCopy mv v
     elemseq _ = seq

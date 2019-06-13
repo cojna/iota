@@ -1,63 +1,98 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP          #-}
-{-# LANGUAGE Safe         #-}
+{-# LANGUAGE MagicHash    #-}
+{-# LANGUAGE Unsafe       #-}
 
 module Data.IntMod where
 
-import           Data.Int
+import           Data.Bits
+import           Data.Coerce
 import           Data.Ratio
-
-#include "MachDeps.h"
+import           GHC.Exts
 
 #define MOD 1000000007
 
-#if WORD_SIZE_IN_BITS == 64
-newtype IntMod = Mod{unMod :: Int} deriving (Eq, Ord)
-modulus :: Int
+modulus :: (Num a) => a
 modulus = MOD
-#else
-newtype IntMod = Mod{unMod :: Int64} deriving (Eq, Ord)
-modulus :: Int64
-modulus = MOD
-#endif
+{-# INLINE modulus #-}
+
+infixr 8 ^%
+infixl 7 *%, /%
+infixl 6 +%, -%
+
+(+%) :: Int -> Int -> Int
+(I# x#) +% (I# y#) = case x# +# y# of
+    r# -> I# (r# -# ((r# >=# MOD#) *# MOD#))
+{-# INLINE (+%) #-}
+
+(-%) :: Int -> Int -> Int
+(I# x#) -% (I# y#) = case x# -# y# of
+    r# -> I# (r# +# ((r# <# 0#) *# MOD#))
+{-# INLINE (-%) #-}
+
+(*%) :: Int -> Int -> Int
+(I# x#) *% (I# y#) = I# ((x# *# y#) `remInt#` MOD#)
+{-# INLINE (*%) #-}
+
+-- |
+-- >>> 1 /% 0
+-- 0
+(/%) :: Int -> Int -> Int
+(I# x#) /% (I# y#) = go# y# MOD# 1# 0#
+  where
+    go# a# b# u# v#
+        | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
+            q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
+        | otherwise = I# ((x# *# (u# +# MOD#)) `remInt#` MOD#)
+{-# INLINE (/%) #-}
+
+(^%) :: Int -> Int -> Int
+x ^% n
+    | n > 0 = go 1 x n
+    | n == 0 = 1
+    | otherwise = go 1 (1 /% x) (-n)
+  where
+    go !acc !y !m
+        | m .&. 1 == 0 = go acc (y *% y) (unsafeShiftR m 1)
+        | m == 1 = acc *% y
+        | otherwise = go (acc *% y) (y *% y) (unsafeShiftR (m - 1) 1)
+
+newtype IntMod = IntMod{unIntMod :: Int} deriving (Eq, Ord)
 
 intMod :: (Integral a) => a -> IntMod
-intMod x = Mod $ fromIntegral $ mod x MOD
+intMod x = fromIntegral $ mod (fromIntegral x) MOD
 {-# INLINE intMod #-}
 
+intModValidate :: IntMod -> Bool
+intModValidate (IntMod x) = 0 <= x && x < MOD
+{-# INLINE intModValidate #-}
+
 instance Show IntMod where
-    show (Mod x) = show x
+    show (IntMod x) = show x
 
 instance Bounded IntMod where
-    minBound = Mod 0
-    maxBound = Mod $ modulus - 1
+    minBound = IntMod 0
+    maxBound = IntMod $ modulus - 1
 
 instance Enum IntMod where
-    toEnum x = Mod $ mod (fromIntegral x) modulus
-    fromEnum = fromIntegral . unMod
+    toEnum = intMod
+    fromEnum = coerce
 
 instance Real IntMod where
-    toRational (Mod x) = fromIntegral x % 1
+    toRational = coerce (toRational :: Int -> Rational)
 
 instance Integral IntMod where
     quotRem x y = (x / y, x - x / y * y)
-    toInteger (Mod x) = fromIntegral x
+    toInteger = coerce (toInteger :: Int -> Integer)
 
 instance Num IntMod where
-    (Mod x) + (Mod y) = Mod $ (x + y) `rem` MOD
-    (Mod x) - (Mod y) = Mod $ (x - y) `mod` MOD
-    (Mod x) * (Mod y) = Mod $ x * y `rem` MOD
-    negate (Mod x) = Mod $ negate x `mod` MOD
-    abs x = x
-    signum x = Mod 1
-    fromInteger = intMod
+    (+) = coerce (+%)
+    (-) = coerce (-%)
+    (*) = coerce (*%)
+    abs = id
+    signum = const (IntMod 1)
+    fromInteger x = (coerce :: Int -> IntMod) . fromInteger $ mod x modulus
 
 instance Fractional IntMod where
-    recip (Mod x) = go x MOD 1 0
-      where
-        go !a !b !u !v
-            | b > 0 = case a `quot` b of
-                q -> go b (a - (q * b)) v (u - (q * v))
-            | otherwise = Mod (u `mod` MOD)
-    fromRational q = intMod (numerator q) / intMod (denominator q)
-
+    (/) = coerce (/%)
+    fromRational q = fromInteger (numerator q) / fromInteger (denominator q)
