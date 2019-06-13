@@ -15,8 +15,8 @@ instance (Num a) => Num (Vec2 a) where
     (V2 x0 y0) - (V2 x1 y1) = V2 (x0 - x1) (y0 - y1)
     (V2 x0 y0) * (V2 x1 y1) = V2 (x0 * x1 - y0 * y1) (x0 * y1 + x1 * y0)
     negate = fmap negate
-    abs = fmap abs
-    signum = fmap signum
+    abs = id
+    signum = const 1
     fromInteger n = V2 (fromInteger n) 0
 
 instance (Fractional a) => Fractional (Vec2 a) where

@@ -23,15 +23,15 @@ instance IArray UArray IntMod where
     unsafeArray lu ies = case runST (unsafeArrayUArray lu (coerce ies) (0 :: Int)) of
         (UArray l u n arr) -> UArray l u n arr
     {-# INLINE unsafeAt #-}
-    unsafeAt (UArray _ _ _ arr#) (I# i#) = Mod $ I# (indexIntArray# arr# i#)
+    unsafeAt (UArray _ _ _ arr#) (I# i#) = coerce $ I# (indexIntArray# arr# i#)
     {-# INLINE unsafeReplace #-}
     unsafeReplace (UArray l u n arr) ies = case runST (unsafeReplaceUArray (UArray l u n arr) (coerce ies :: [(Int, Int)])) of
         (UArray l u n arr) -> UArray l u n arr
     {-# INLINE unsafeAccum #-}
-    unsafeAccum f (UArray l u n arr) ies =  case runST (unsafeAccumUArray ((unMod.).f.coerce) (UArray l u n arr) $ coerce ies) of
+    unsafeAccum f (UArray l u n arr) ies =  case runST (unsafeAccumUArray ((unIntMod.).f.coerce) (UArray l u n arr) $ coerce ies) of
          (UArray l u n arr) -> UArray l u n arr
     {-# INLINE unsafeAccumArray #-}
-    unsafeAccumArray f initialValue lu ies = case runST (unsafeAccumArrayUArray ((unMod.).f.coerce) (coerce initialValue) lu $ coerce ies) of
+    unsafeAccumArray f initialValue lu ies = case runST (unsafeAccumArrayUArray ((unIntMod.).f.coerce) (coerce initialValue) lu $ coerce ies) of
         (UArray l u n arr) -> UArray l u n arr
 
 instance MArray (STUArray s) IntMod (ST s) where
@@ -52,7 +52,7 @@ instance MArray (STUArray s) IntMod (ST s) where
         case readIntArray# marr# i# s1# of { (# s2#, e# #) ->
         (# s2#, I# e# #) }
     {-# INLINE unsafeWrite #-}
-    unsafeWrite (STUArray _ _ _ marr#) (I# i#) (Mod (I# e#)) = ST $ \s1# ->
+    unsafeWrite (STUArray _ _ _ marr#) (I# i#) (IntMod (I# e#)) = ST $ \s1# ->
         case writeIntArray# marr# i# e# s1# of { s2# ->
         (# s2#, () #) }
 

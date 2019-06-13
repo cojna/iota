@@ -2,7 +2,7 @@
 
 module Math.CombinatricsSpec where
 
-import           Data.IntMod.Operator
+import           Data.IntMod
 import qualified Data.Vector.Unboxed       as U
 import           Math.Combinatrics
 import           Test.Hspec
@@ -31,7 +31,7 @@ spec = do
         prop "comb n k = comb n (n - k)" prop_combSym
     describe "fact/recipFact cache" $ do
         it "fact * recipFact = 1" $
-            U.zipWith (*%) factCache recipFactCache
+            U.zipWith (*) factCache recipFactCache
                 `shouldSatisfy` U.all (== 1)
 
 normalize :: Int -> Int
@@ -50,7 +50,7 @@ prop_constructPascal'sTriangle
 prop_constructPascal'sTriangle
     (normalize.getPositive -> x)
     (normalize.getPositive -> y)
-    = not (n - 1 >= k) || comb n k == comb (n - 1) (k - 1) +% comb (n - 1) k
+    = not (n - 1 >= k) || comb n k == comb (n - 1) (k - 1) + comb (n - 1) k
   where
     n = max 1 $ max x y
     k = max 1 $ min x y
