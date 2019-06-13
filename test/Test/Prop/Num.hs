@@ -28,6 +28,9 @@ numSpec proxy = do
         prop "x ^ (n + m) == (x ^ n) * (x ^ m)" $ prop_addPow proxy
         prop "x ^ (n * m) == (x ^ n) ^ m" $ prop_mulPow proxy
         prop "x ^ 0 == 1" $ prop_zeroPow proxy
+    describe "abs/signum" $ do
+        prop "abs x * signum x == x" $ prop_absSignum proxy
+
 
 additiveAbelianGroupSpec :: (Arbitrary a, Num a, Show a, Eq a) => Proxy a -> Spec
 additiveAbelianGroupSpec proxy = do
@@ -70,6 +73,9 @@ prop_leftDistributive _ x y z = x * (y + z)  == x * y + x * z
 
 prop_rightDistributive :: (Num a, Eq a) => Proxy a -> a -> a -> a -> Bool
 prop_rightDistributive _ x y z = (x + y) * z  == x * z + y * z
+
+prop_absSignum :: (Num a, Eq a) => Proxy a -> a -> Bool
+prop_absSignum _ x = abs x * signum x == x
 
 prop_addPow
     :: (Num a, Eq a)
