@@ -5,7 +5,6 @@ module Math.Combinatrics where
 import           Control.Exception
 import           Data.Coerce
 import           Data.IntMod
-import           Data.IntMod.Vector
 import qualified Data.Vector.Unboxed  as U
 
 #define FACT_CACHE_SIZE 100100
