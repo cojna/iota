@@ -1,6 +1,8 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Test.Prop.Num where
+module Test.Prop.Num
+  ( numSpec, additiveAbelianGroupSpec, numClosedSpec
+  )where
 
 import           Data.Proxy
 import           Test.Hspec
@@ -22,7 +24,9 @@ numSpec proxy = do
     describe "+, *" $ do
         prop "x * (y + z) == x * y + x * z" $ prop_leftDistributive proxy
         prop "(x + y) * z == x * z + y * z" $ prop_rightDistributive proxy
-    describe "^" $
+    describe "^" $ do
+        prop "x ^ (n + m) == (x ^ n) * (x ^ m)" $ prop_addPow proxy
+        prop "x ^ (n * m) == (x ^ n) ^ m" $ prop_mulPow proxy
         prop "x ^ 0 == 1" $ prop_zeroPow proxy
 
 additiveAbelianGroupSpec :: (Arbitrary a, Num a, Show a, Eq a) => Proxy a -> Spec
@@ -31,6 +35,14 @@ additiveAbelianGroupSpec proxy = do
         prop "x + 0 == 0 + x == x" $ prop_addUnit proxy
         prop "(x + y) + z == x + (y + z)" $ prop_addAssociative proxy
         prop "x + y == y + x" $ prop_addCommutative proxy
+
+numClosedSpec :: (Arbitrary a, Num a, Show a, Eq a) => (a -> Bool) -> Spec
+numClosedSpec validate = do
+  describe "closed" $ do
+    prop "+" $ \x y -> validate (x + y)
+    prop "-" $ \x y -> validate (x - y)
+    prop "*" $ \x y -> validate (x * y)
+    prop "negate" $ \x -> validate (negate x)
 
 prop_addUnit :: (Num a, Eq a) => Proxy a -> a -> Bool
 prop_addUnit _ x = x + 0 == x && 0 + x == x
@@ -70,13 +82,13 @@ prop_addPow _
 
 prop_mulPow
     :: (Num a, Eq a)
-    => Proxy a -> NonZero a -> NonNegative Int -> NonNegative Int -> Bool
-prop_mulPow _
-    (getNonZero -> x)
+    => Proxy a -> a -> NonNegative Int -> NonNegative Int -> Bool
+prop_mulPow _ x
     (getNonNegative -> n)
     (getNonNegative -> m)
     = x ^ (n * m) == (x ^ n) ^ m
 
+-- need (*) commutativity
 prop_powMul
     :: (Num a, Eq a)
     => Proxy a -> NonZero a -> NonZero a -> NonNegative Int -> Bool
