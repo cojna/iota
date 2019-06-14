@@ -1,23 +1,26 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Math.ModulusSpec where
 
 import           Data.Int
+import           Data.IntMod
 import qualified Data.List                 as L
 import           Data.Word
 import           Math.Modulus
-import           Math.Prime.Arbitrary
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do
-    describe "powMod" $
+    describe "powMod:" $
         prop "same to naive" prop_powModSameToNaive
-    describe "recipMod" $
+    describe "recipMod:" $
         prop "x * recip x == 1" prop_recipMod
+    describe "logMod:" $ do
+        prop "a ^ logMod a (a ^ x) == a ^ x" prop_logMod
 
 naivePowMod :: Integer -> Int -> Integer -> Integer
 naivePowMod x n m = L.foldl' (\acc x -> acc * x `mod` m) 1 $ replicate n x
@@ -35,3 +38,10 @@ prop_recipMod
     (getPrime -> m)
     = x `mod` m == 0 || x * recipMod x m `mod` m == 1
 
+prop_logMod :: Int -> NonNegative Int -> Prime Int -> Bool
+prop_logMod a0 (getNonNegative -> x) (getPrime -> modulus)
+    | Just x' <- logMod (mod a modulus) ax modulus = powMod a x' modulus == ax
+    | otherwise = False
+  where
+    a = mod a0 modulus
+    !ax = powMod a x modulus
