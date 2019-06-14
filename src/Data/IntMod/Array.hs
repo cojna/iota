@@ -28,10 +28,10 @@ instance IArray UArray IntMod where
     unsafeReplace (UArray l u n arr) ies = case runST (unsafeReplaceUArray (UArray l u n arr) (coerce ies :: [(Int, Int)])) of
         (UArray l u n arr) -> UArray l u n arr
     {-# INLINE unsafeAccum #-}
-    unsafeAccum f (UArray l u n arr) ies =  case runST (unsafeAccumUArray ((unIntMod.).f.coerce) (UArray l u n arr) $ coerce ies) of
+    unsafeAccum f (UArray l u n arr) ies =  case runST (unsafeAccumUArray ((getIntMod.).f.coerce) (UArray l u n arr) $ coerce ies) of
          (UArray l u n arr) -> UArray l u n arr
     {-# INLINE unsafeAccumArray #-}
-    unsafeAccumArray f initialValue lu ies = case runST (unsafeAccumArrayUArray ((unIntMod.).f.coerce) (coerce initialValue) lu $ coerce ies) of
+    unsafeAccumArray f initialValue lu ies = case runST (unsafeAccumArrayUArray ((getIntMod.).f.coerce) (coerce initialValue) lu $ coerce ies) of
         (UArray l u n arr) -> UArray l u n arr
 
 instance MArray (STUArray s) IntMod (ST s) where
