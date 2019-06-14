@@ -5,6 +5,7 @@ module Math.Modulus where
 
 import           Data.Bits
 import           Data.Int
+import qualified Data.IntMap.Strict as IM
 
 powMod :: (Integral a, Integral b, Bits b) => a -> b -> a -> a
 powMod x n m
@@ -26,3 +27,24 @@ recipMod x m = go x m 1 0
             q -> go b (a - (q * b)) v (u - (q * v))
         | otherwise = u `mod` m
 {-# INLINE recipMod #-}
+
+-- |
+-- Baby-step Giant-step
+-- @a^x = b (mod p)@　p is prime
+-- @O(sqrt P * P)@
+logMod :: Int -> Int -> Int -> Maybe Int
+logMod a b p = go 0 b
+  where
+    !sqrtP = ceiling . sqrt $ fromIntegral p
+    !g = powMod a sqrtP p
+    babyStep x = a * x `rem` p
+    giantStep x = g * x `rem` p
+
+    table :: IM.IntMap Int
+    !table = IM.fromList $ zip (L.iterate babyStep 1) [0..sqrtP]
+
+    go !i !x
+        | i <= sqrtP = case IM.lookup x table of
+            Just j -> Just $! i + j
+            Nothing -> go (i + sqrtP) $ giantStep x
+        | otherwise = Nothing
