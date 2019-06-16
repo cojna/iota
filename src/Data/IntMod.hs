@@ -65,7 +65,7 @@ x ^% n
         | m == 1 = acc *% y
         | otherwise = go (acc *% y) (y *% y) (unsafeShiftR (m - 1) 1)
 
-newtype IntMod = IntMod{unIntMod :: Int} deriving (Eq, Ord)
+newtype IntMod = IntMod{getIntMod :: Int} deriving (Eq, Ord)
 
 intMod :: (Integral a) => a -> IntMod
 intMod x = fromIntegral $ mod (fromIntegral x) MOD
