@@ -1,14 +1,16 @@
 
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Data.ByteString.ManacherSpec (main, spec) where
 
-import qualified Data.ByteString            as B
-import qualified Data.ByteString.Char8      as C
-import qualified Data.ByteString.Unsafe     as B
+import qualified Data.ByteString          as B
+import qualified Data.ByteString.Char8    as C
 import           Data.ByteString.Manacher
-import qualified Data.Vector.Unboxed        as U
+import qualified Data.ByteString.Unsafe   as B
+import qualified Data.Vector.Unboxed      as U
 import           Test.Prelude
 
 main :: IO ()
@@ -25,12 +27,9 @@ spec = do
         it "manacher \"a$b$b$a\" = [1,1,2,4,2,1,1]" $ do
             manacher "a$b$b$a" `shouldBe` U.fromList [1,1,2,4,2,1,1]
 
-prop_naive :: [Bool] -> Bool
-prop_naive bs = manacher s == naiveManacher s
-  where
-    !s = C.pack $ map f bs
-    f True  = 'a'
-    f False = 'b'
+prop_naive :: ByteStringOf "ab" -> Bool
+prop_naive (getByteStringOf -> s)
+    = manacher s == naiveManacher s
 
 naiveManacher :: B.ByteString -> U.Vector Int
 naiveManacher bs = U.generate n $ naiveRadius bs
