@@ -19,28 +19,31 @@ import           Foreign.Storable            (sizeOf)
 -- >>> zAlgorithm "abc$xabcxx"
 -- [10,0,0,0,0,3,0,0,0,0]
 zAlgorithm :: B.ByteString -> U.Vector Int
-zAlgorithm bs = U.create $ do
-    let n = B.length bs
-    z <- UM.replicate n 0
-    zbox <- newZBox
-    U.forM_ (U.tail $ U.generate n id) $ \i -> do
-        r <- readR zbox
-        if i > r
-        then do
-            writeL zbox i
-            writeR zbox i
-            extendR bs zbox >>= UM.unsafeWrite z i
-        else do
-            l <- readL zbox
-            let k = i - l
-            zk <- UM.unsafeRead z k
-            if zk < r - i + 1
+zAlgorithm bs
+    | B.null bs = U.empty
+    | otherwise = U.create $ do
+        let n = B.length bs
+        z <- UM.replicate n 0
+        UM.write z 0 n
+        zbox <- newZBox
+        U.forM_ (U.tail $ U.generate n id) $ \i -> do
+            r <- readR zbox
+            if i > r
             then do
-                UM.unsafeWrite z i zk
-            else do
                 writeL zbox i
+                writeR zbox i
                 extendR bs zbox >>= UM.unsafeWrite z i
-    return z
+            else do
+                l <- readL zbox
+                let k = i - l
+                zk <- UM.unsafeRead z k
+                if zk < r - i + 1
+                then do
+                    UM.unsafeWrite z i zk
+                else do
+                    writeL zbox i
+                    extendR bs zbox >>= UM.unsafeWrite z i
+        return z
 
 extendR :: (PrimMonad m) => B.ByteString -> ZBox (PrimState m) -> m Int
 extendR bs zbox = do
