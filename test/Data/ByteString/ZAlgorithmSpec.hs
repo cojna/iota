@@ -1,14 +1,16 @@
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Data.ByteString.ZAlgorithmSpec (main, spec) where
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Unsafe as B
-import Data.ByteString.ZAlgorithm
-import qualified Data.Vector.Unboxed as U
-import Test.Prelude
+import qualified Data.ByteString            as B
+import qualified Data.ByteString.Char8      as C
+import qualified Data.ByteString.Unsafe     as B
+import           Data.ByteString.ZAlgorithm
+import qualified Data.Vector.Unboxed        as U
+import           Test.Prelude
 
 main :: IO ()
 main = hspec spec
@@ -22,12 +24,9 @@ spec = do
         it "zAlgorithm \"abc$xabcxx\" = [10,0,0,0,0,3,0,0,0,0]" $ do
             zAlgorithm "abc$xabcxx" `shouldBe` U.fromList [10,0,0,0,0,3,0,0,0,0]
 
-prop_naive :: [Bool] -> Bool
-prop_naive bs = zAlgorithm s == naiveZAlgorithm s
-  where
-    !s = C.pack $ map f bs
-    f True = 'a'
-    f False = 'b'
+prop_naive :: ByteStringOf "ab" -> Bool
+prop_naive (getByteStringOf -> s)
+    = zAlgorithm s == naiveZAlgorithm s
 
 naiveZAlgorithm :: B.ByteString -> U.Vector Int
 naiveZAlgorithm bs = U.generate n (\i -> naiveLCP bs $ B.drop i bs)
