@@ -1,14 +1,22 @@
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE KindSignatures      #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Test.Prelude
     ( module Test.Hspec
     , module Test.Hspec.QuickCheck
     , module Test.QuickCheck
     , module Test.QuickCheck.Arbitrary
     , Prime(..)
+    , ByteStringOf(..)
     ) where
 
+import qualified Data.ByteString.Char8     as C
 import           Data.Coerce
 import           Data.IntMod
-import           Math.Prime (smallPrimes)
+import           Data.Proxy
+import           GHC.TypeLits
+import           Math.Prime                (smallPrimes)
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
@@ -22,3 +30,16 @@ instance (Integral a) => Arbitrary (Prime a) where
 
 instance Arbitrary IntMod where
     arbitrary = coerce . intMod <$> (arbitrary :: Gen Int)
+
+newtype ByteStringOf (s :: Symbol)
+    = ByteStringOf { getByteStringOf :: C.ByteString }
+
+instance Show (ByteStringOf s) where
+    show = show . getByteStringOf
+
+instance KnownSymbol s => Arbitrary (ByteStringOf s) where
+    arbitrary = coerce
+        . fmap C.pack
+        . listOf
+        . elements
+        $ symbolVal (Proxy :: Proxy s)
