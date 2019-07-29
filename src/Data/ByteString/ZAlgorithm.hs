@@ -66,12 +66,16 @@ newZBox = do
 
 readL :: (PrimMonad m) => ZBox (PrimState m) -> m Int
 readL zbox = BA.readByteArray (coerce zbox) 0
+{-# INLINE readL #-}
 
 readR:: (PrimMonad m) => ZBox (PrimState m) -> m Int
 readR zbox = BA.readByteArray (coerce zbox) 1
+{-# INLINE readR #-}
 
 writeL :: (PrimMonad m) => ZBox (PrimState m) -> Int -> m ()
 writeL zbox = BA.writeByteArray (coerce zbox) 0
+{-# INLINE writeL #-}
 
 writeR :: (PrimMonad m) => ZBox (PrimState m) -> Int -> m ()
 writeR zbox = BA.writeByteArray (coerce zbox) 1
+{-# INLINE writeR #-}
