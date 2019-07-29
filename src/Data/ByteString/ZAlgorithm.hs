@@ -12,6 +12,12 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Foreign.Storable            (sizeOf)
 
+-- | z[i] = lcp s $ drop i s
+-- time complexity: O(n)
+-- >>> zAlgorithm "ababab"
+-- [6,0,4,0,2,0]
+-- >>> zAlgorithm "abc$xabcxx"
+-- [10,0,0,0,0,3,0,0,0,0]
 zAlgorithm :: B.ByteString -> U.Vector Int
 zAlgorithm bs = U.create $ do
     let n = B.length bs
