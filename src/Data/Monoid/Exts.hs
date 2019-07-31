@@ -46,7 +46,7 @@ instance (Num a, Integral a) => Monoid (GCD a) where
 -- LCM {getLCM = 0}
 -- >>> LCM (-2) <> LCM 3
 -- LCM {getLCM = 6}
--- LCM (-1) <> mempty
+-- >>> LCM (-1) <> mempty
 -- LCM {getLCM = 1}
 newtype LCM a = LCM { getLCM :: a } deriving (Eq, Show, Num)
 

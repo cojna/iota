@@ -30,7 +30,9 @@ recipMod x m = go x m 1 0
 
 -- |
 -- Baby-step Giant-step
+--
 -- @a^x = b (mod p)@　p is prime
+--
 -- @O(sqrt P * log P)@
 logMod :: Int -> Int -> Int -> Maybe Int
 logMod a b p = go 0 b

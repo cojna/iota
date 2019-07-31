@@ -12,6 +12,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 -- |
 -- O(n)
+-- 
 -- >>> manacher "a"
 -- [1]
 -- >>> manacher "aba"
