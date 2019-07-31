@@ -12,8 +12,10 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Foreign.Storable            (sizeOf)
 
--- | z[i] = lcp s $ drop i s
+-- | @z[i] = lcp s $ drop i s@
+--
 -- time complexity: O(n)
+--
 -- >>> zAlgorithm "ababab"
 -- [6,0,4,0,2,0]
 -- >>> zAlgorithm "abc$xabcxx"

@@ -63,7 +63,9 @@ _SEGupdate k v segtree = do
             UM.unsafeWrite tree (i .>>. 1) x
             loop $ unsafeShiftR i 1
 
--- | mappend [l..r) O(log n)
+-- | mappend [l..r)
+--
+-- O(log n)
 _SEGquery
     :: (Monoid a, U.Unbox a, PrimMonad m)
     => Int -> Int -> SegTree (PrimState m) a -> m a
