@@ -10,6 +10,14 @@ data VecQueue s a = VecQueue
     , queueData :: !(UM.MVector s a)
     }
 
+getEnqueueCount :: (PrimMonad m) => VecQueue (PrimState m) a -> m Int
+getEnqueueCount (VecQueue info _) = UM.unsafeRead info 1
+{-# INLINE getEnqueueCount #-}
+
+getDequeueCount :: (PrimMonad m) => VecQueue (PrimState m) a -> m Int
+getDequeueCount (VecQueue info _) = UM.unsafeRead info 0
+{-# INLINE getDequeueCount #-}
+
 withCapacityQ
     :: (PrimMonad m, UM.Unbox a)
     => Int -> m (VecQueue (PrimState m) a)
@@ -22,18 +30,18 @@ newQueue = withCapacityQ (1024 * 1024)
 freezeQueueData
     :: (PrimMonad m, UM.Unbox a)
     => VecQueue (PrimState m) a -> m (U.Vector a)
-freezeQueueData (VecQueue info q) = do
-    len <- UM.unsafeRead info 1
+freezeQueueData vq@(VecQueue info q) = do
+    len <- getEnqueueCount vq
     U.unsafeFreeze $ UM.take len q
 
 lengthQ :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m Int
-lengthQ (VecQueue info q)
-    = (-) <$> UM.unsafeRead info 1 <*> UM.unsafeRead info 0
+lengthQ vq
+    = (-) <$> getEnqueueCount vq <*> getDequeueCount vq
 
 dequeue :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m (Maybe a)
-dequeue (VecQueue info q) = do
-    h <- UM.unsafeRead info 0
-    t <- UM.unsafeRead info 1
+dequeue vq@(VecQueue info q) = do
+    h <- getDequeueCount vq
+    t <- getEnqueueCount vq
     if h < t
     then do
         UM.unsafeWrite info 0 (h + 1)
@@ -42,15 +50,15 @@ dequeue (VecQueue info q) = do
 {-# INLINE dequeue #-}
 
 dequeueAll :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m (U.Vector a)
-dequeueAll (VecQueue info q) = do
-    h <- UM.unsafeRead info 0
-    t <- UM.unsafeRead info 1
+dequeueAll vq@(VecQueue info q) = do
+    h <- getDequeueCount vq
+    t <- getEnqueueCount vq
     U.unsafeFreeze $ UM.unsafeSlice h (t - h) q
 {-# INLINE dequeueAll #-}
 
 enqueue :: (PrimMonad m, UM.Unbox a) => a -> VecQueue (PrimState m) a -> m ()
-enqueue x (VecQueue info q) = do
-    t <- UM.unsafeRead info 1
+enqueue x vq@(VecQueue info q) = do
+    t <- getEnqueueCount vq
     UM.unsafeWrite q t x
     UM.unsafeWrite info 1 (t + 1)
 {-# INLINE enqueue #-}
