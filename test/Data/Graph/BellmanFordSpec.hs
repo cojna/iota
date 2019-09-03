@@ -17,8 +17,8 @@ spec = do
         it "negative self loop" $ do
             bellmanFord 1 0 [(0, 0, -1)] `shouldBe` [minBound]
         it "small negative cycle" $ do
-            bellmanFord 2 0 [(0, 0, -1), (0, 1, -100000000)]
-                `shouldBe` [minBound, minBound]
+            bellmanFord 3 0 [(0, 1, 0), (1, 1, -1), (1, 2, 0), (0, 2, -100000000)]
+                `shouldBe` [0, minBound, minBound]
         it "large negative cycle" $ do
             bellmanFord 10 0 (U.generate 10 $ \i -> (i, rem (i + 1) 10, -1))
                 `shouldBe` U.replicate 10 minBound
