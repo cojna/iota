@@ -35,6 +35,7 @@ jobs:
             - image: fpco/stack-build:latest
         working_directory: /work
         environment:
+            - GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
             - TARGET_BRANCH: gh-pages
         steps:
             - checkout
