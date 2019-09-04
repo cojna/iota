@@ -1,6 +1,8 @@
 .stack-work/
 iota.cabal
 *~
+stack.yaml.lock
+
 # Created by https://www.gitignore.io/api/haskell,osx
 
 ### Haskell ###
