@@ -32,7 +32,7 @@ jobs:
                     - /work/.stack-work
     deploy:
         docker:
-            - image: fpco/stack-build:lts-13.24
+            - image: fpco/stack-build:latest
         working_directory: /work
         environment:
             - TARGET_BRANCH: gh-pages
