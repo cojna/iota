@@ -69,11 +69,15 @@ workflows:
             - build_latest:
                 filters:
                     branches:
-                        only: master
+                        only:
+                          - master
+                          - fix-doc-deploy
             - deploy:
                 requires:
                     - build_latest
                     - build_atcoder
                 filters:
                     branches:
-                        only: master
+                        only:
+                          - master
+                          - fix-doc-deploy
