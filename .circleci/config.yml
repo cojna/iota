@@ -44,7 +44,7 @@ jobs:
             - run:
                 name: Build documents
                 command: |
-                    stack haddock
+                    stack haddock --haddock-arguments --odir=doc
             - run:
                 name: Install ssh
                 command: which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )
@@ -60,9 +60,7 @@ jobs:
                     cd public
                     git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
                     git rm -rfq .
-                    cd ..
-                    cp -a "$(stack path --local-doc-root)/." public
-                    cd public
+                    cp -a "../doc/." .
                     git add --all
                     git commit -m "Deploy to GitHub Pages: ${CIRCLE_SHA1} [ci skip]"
                     git push --force --quiet origin $TARGET_BRANCH
