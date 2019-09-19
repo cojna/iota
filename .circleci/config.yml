@@ -16,7 +16,7 @@ jobs:
                   - /work/.stack-work
     build_atcoder:
         docker:
-            - image: fpco/stack-build:latest
+            - image: fpco/stack-build:lts-6.30
         working_directory: /work
         environment:
             - STACK_YAML: atcoder.yaml
