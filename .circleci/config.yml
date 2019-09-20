@@ -28,6 +28,7 @@ jobs:
                 key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
             - run: stack --version
             - run: stack ghc -- --version
+            - run: stack clean
             - run: stack test
             - save_cache:
                 key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
