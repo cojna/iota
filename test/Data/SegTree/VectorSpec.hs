@@ -7,7 +7,7 @@ module Data.SegTree.VectorSpec (main, spec) where
 
 import           Data.Bits
 import           Data.SegTree.Vector
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 import           Data.Semigroup              as Semigroup
 #endif
 import qualified Data.Vector                 as V
@@ -53,7 +53,7 @@ spec = do
         prop "x <= f x" $ prop_greaterThanOrEqual
         prop "popCount (f x / 2) /= 1 || f x / 2 < x" $ prop_least
 
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 instance Semigroup.Semigroup Int where
   (<>) = min
 #endif
@@ -61,8 +61,8 @@ instance Semigroup.Semigroup Int where
 instance Monoid Int where
     mempty = maxBound
     {-# INLINE mempty #-}
-#if MIN_VERSION_base(4,11,0)
-#elif MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
+#elif MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
     mappend = (Semigtoup.<>)
     {-# INLINE mappend #-}
 #else
