@@ -8,6 +8,8 @@ jobs:
           - checkout
           - restore_cache:
               key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
+          - run: stack --version
+          - run: stack ghc -- --version
           - run: stack test
           - save_cache:
               key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
@@ -24,6 +26,8 @@ jobs:
             - checkout
             - restore_cache:
                 key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
+            - run: stack --version
+            - run: stack ghc -- --version
             - run: stack test
             - save_cache:
                 key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
