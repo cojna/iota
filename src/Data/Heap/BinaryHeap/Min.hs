@@ -21,8 +21,8 @@ getBinaryHeapSize :: (PrimMonad m) => BinaryHeap (PrimState m) a -> m Int
 getBinaryHeapSize (BinaryHeap ref _) = readMutVar ref
 {-# INLINE getBinaryHeapSize #-}
 
-siftUp :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> Int -> m ()
-siftUp vec k = do
+siftUp :: (PrimMonad m, U.Unbox a, Ord a) => Int -> UM.MVector (PrimState m) a -> m ()
+siftUp k vec = do
     x <- UM.unsafeRead vec k
     flip fix k $ \loop !i ->
         if i > 0
@@ -37,8 +37,8 @@ siftUp vec k = do
         else UM.unsafeWrite vec 0 x
 {-# INLINE siftUp #-}
 
-siftDown :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> Int -> m ()
-siftDown vec k = do
+siftDown :: (PrimMonad m, U.Unbox a, Ord a) => Int -> UM.MVector (PrimState m) a -> m ()
+siftDown k vec = do
     x <- UM.unsafeRead vec k
     let n = UM.length vec
     flip fix k $ \loop !i -> do
@@ -65,7 +65,7 @@ siftDown vec k = do
 heapify :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> m ()
 heapify vec = do
     rev (UM.length vec `quot` 2) $ \i -> do
-        siftDown vec i
+        siftDown i vec
 {-# INLINE heapify #-}
 
 buildBinaryHeap :: (PrimMonad m, U.Unbox a, Ord a)
@@ -96,7 +96,7 @@ insertMinBH x bh@(BinaryHeap info vec) = do
     size <- getBinaryHeapSize bh
     modifyMutVar' info (+1)
     UM.unsafeWrite vec size x
-    siftUp vec size
+    siftUp size vec
 {-# INLINE insertMinBH #-}
 
 unsafeDeleteMinBH :: (PrimMonad m, U.Unbox a, Ord a)
@@ -105,7 +105,7 @@ unsafeDeleteMinBH bh@(BinaryHeap info vec) = do
     size <- getBinaryHeapSize bh
     modifyMutVar' info (subtract 1)
     UM.unsafeSwap vec 0 (size - 1)
-    siftDown (UM.unsafeTake (size - 1) vec) 0
+    siftDown 0 (UM.unsafeTake (size - 1) vec)
 {-# INLINE unsafeDeleteMinBH #-}
 
 modifyMinBH :: (PrimMonad m, U.Unbox a, Ord a)
@@ -113,7 +113,7 @@ modifyMinBH :: (PrimMonad m, U.Unbox a, Ord a)
 modifyMinBH bh@(BinaryHeap _ vec) f = do
     UM.unsafeModify vec f 0
     size <- getBinaryHeapSize bh
-    siftDown (UM.unsafeTake size vec) 0
+    siftDown 0 (UM.unsafeTake size vec)
 {-# INLINE modifyMinBH #-}
 
 deleteFindMinBH :: (PrimMonad m, U.Unbox a, Ord a)

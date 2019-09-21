@@ -1,9 +1,12 @@
+{-# LANGUAGE OverloadedLists #-}
+
 module Data.Heap.BinaryHeap.MinSpec where
 
 import           Control.Monad
 import           Data.Function
 import           Data.Heap.BinaryHeap.Min
 import qualified Data.List                as L
+import           Data.Maybe
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed      as U
 import           GHC.Exts
@@ -13,26 +16,46 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
 spec :: Spec
-spec =
-    describe "MinHeapM" $ do
-        prop "heap sort naive" prop_heapSortNaive
+spec = do
+    describe "siftUp" $ do
+        it "siftUp [0, 1, 2] 1 == [0, 1, 2]" $ do
+            U.modify (siftUp 1) [0 :: Int, 1, 2]
+             `shouldBe` [0 :: Int, 1, 2]
+        it "siftUp [0, 1, 2] 2 == [0, 1, 2]" $ do
+            U.modify (siftUp 2) [0 :: Int, 1, 2]
+             `shouldBe` [0 :: Int, 1, 2]
+        it "siftUp [2, 1, 0] 1 == [1, 2, 0]" $ do
+            U.modify (siftUp 1) [2 :: Int, 1, 0]
+             `shouldBe` [1 :: Int, 2, 0]
+        it "siftUp [2, 1, 0] 2 == [0, 1, 2]" $ do
+            U.modify (siftUp 2) [2 :: Int, 1, 0]
+             `shouldBe` [0 :: Int, 1, 2]
+    describe "siftDown" $ do
+        it "siftDown [0, 1, 2] 0 == [0, 1, 2]" $ do
+            U.modify (siftDown 0) [0 :: Int, 1, 2]
+             `shouldBe` [0 :: Int, 1, 2]
+        it "siftDown [0, 2, 1] 0 == [0, 1, 2]" $ do
+            U.modify (siftDown 0) [2 :: Int, 1, 0]
+             `shouldBe` [0 :: Int, 1, 2]
+        it "siftDown [1, 0, 2] 0 == [0, 1, 2]" $ do
+            U.modify (siftDown 0) [0 :: Int, 1, 2]
+             `shouldBe` [0 :: Int, 1, 2]
+        it "siftDown [1, 2, 0] 0 == [0, 2, 1]" $ do
+            U.modify (siftDown 0) [1 :: Int, 2, 0]
+             `shouldBe` [0 :: Int, 2, 1]
+        it "siftDoen [2, 0, 1] 0 == [0, 2, 1]" $ do
+            U.modify (siftDown 0) [2 :: Int, 0, 1]
+             `shouldBe` [0 :: Int, 2, 1]
+        it "siftDoen [2, 1, 0] 0 == [0, 1, 2]" $ do
+            U.modify (siftDown 0) [2 :: Int, 1, 0]
+             `shouldBe` [0 :: Int, 1, 2]
+    prop "heap sort naive" prop_heapSortNaive
 
 prop_heapSortNaive :: [Int] -> Property
 prop_heapSortNaive xs = monadicIO $ do
     sorted <- run $ do
-        h <- fromListM xs
-        toListM h
+        h <- buildBinaryHeap $ U.fromList xs
+        U.toList <$> U.replicateM (length xs)
+            (fromJust <$> deleteFindMinBH h)
     assert $ L.sort xs == sorted
-  where
-    fromListM xs = do
-        h <- newBinaryHeap (length xs)
-        forM_ xs $ \x ->
-            insertMinBH x h
-        return h
-    toListM h =
-        flip fix [] $ \loop buf -> do
-            top <- deleteFindMinBH h
-            case top of
-                Just x  -> loop (x:buf)
-                Nothing -> return $ reverse buf
 
