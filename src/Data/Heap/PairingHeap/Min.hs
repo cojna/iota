@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP          #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Data.MinHeap where
+module Data.Heap.PairingHeap.Min where
 
 import           Data.Function
 import qualified Data.List     as L

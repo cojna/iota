@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP          #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Data.MaxHeap where
+module Data.Heap.PairingHeap.Max where
 
 import           Data.Function
 import qualified Data.List     as L

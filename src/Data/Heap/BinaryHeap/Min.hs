@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP          #-}
 
-module Data.MinHeapM where
+module Data.Heap.BinaryHeap.Min where
 
 import           Control.Monad
 import           Control.Monad.Primitive

@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP          #-}
 
-module Data.MaxHeapM where
+module Data.Heap.BinaryHeap.Max where
 
 import           Control.Monad
 import           Control.Monad.Primitive
