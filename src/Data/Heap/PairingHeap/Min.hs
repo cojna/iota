@@ -18,16 +18,16 @@ _Hempty = MinEmpty
 {-# INLINE _Hempty #-}
 
 _Hsingleton :: a -> MinHeap a
-_Hsingleton x = MinFork x []
+_Hsingleton = flip MinFork []
 {-# INLINE _Hsingleton #-}
 
 _Hnull :: MinHeap a -> Bool
-_Hnull MinEmpty      = True
 _Hnull (MinFork _ _) = False
+_Hnull MinEmpty      = True
 {-# INLINE _Hnull #-}
 
 _Hinsert :: Ord a => a -> MinHeap a -> MinHeap a
-_Hinsert x = _Hmerge (MinFork x [])
+_Hinsert = _Hmerge . _Hsingleton
 {-# INLINE _Hinsert #-}
 
 _HminElem :: MinHeap a -> Maybe a
@@ -36,12 +36,13 @@ _HminElem MinEmpty      = Nothing
 {-# INLINE _HminElem #-}
 
 _HdeleteMin :: Ord a => MinHeap a -> Maybe (MinHeap a)
-_HdeleteMin (MinFork _ hs) = Just $ _HmergePairs hs
+_HdeleteMin (MinFork _ hs) = Just $! _HmergePairs hs
 _HdeleteMin MinEmpty       = Nothing
 {-# INLINE _HdeleteMin #-}
 
 _HdeleteFindMin :: Ord a => MinHeap a -> Maybe (a, MinHeap a)
-_HdeleteFindMin (MinFork x hs) = Just (x, _HmergePairs hs)
+_HdeleteFindMin (MinFork x hs) = case _HmergePairs hs of
+    merged -> Just $! (x, merged)
 _HdeleteFindMin MinEmpty       = Nothing
 {-# INLINE _HdeleteFindMin #-}
 
@@ -50,13 +51,15 @@ _Hmerge hx@(MinFork x hxs) hy@(MinFork y hys)
   | x <= y    = MinFork x (hy:hxs)
   | otherwise = MinFork y (hx:hys)
 _Hmerge MinEmpty hy = hy
-_Hmerge hx _ = hx
+_Hmerge hx MinEmpty = hx
 {-# INLINE _Hmerge #-}
 
 _HmergePairs :: Ord a => [MinHeap a] -> MinHeap a
-_HmergePairs (x:y:hs) = (x <> y) <> _HmergePairs hs
-_HmergePairs [x]      = x
-_HmergePairs []       = MinEmpty
+_HmergePairs = mconcat . mergePairs
+  where
+    mergePairs (x:y:xs) = case x <> y of
+        merged -> merged : mergePairs xs
+    mergePairs xs = xs
 {-# INLINE _HmergePairs #-}
 
 instance Ord a => Eq (MinHeap a) where
@@ -82,8 +85,6 @@ instance Ord a => Semigroup.Semigroup (MinHeap a) where
 instance Ord a => Monoid (MinHeap a) where
     mempty = _Hempty
     {-# INLINE mempty #-}
-    mconcat = _HmergePairs
-    {-# INLINE mconcat #-}
 #if MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
 #elif MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
     mappend = (Semigtoup.<>)

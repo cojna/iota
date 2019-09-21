@@ -18,16 +18,16 @@ _HHempty = MaxEmpty
 {-# INLINE _HHempty #-}
 
 _HHsingleton :: a -> MaxHeap a
-_HHsingleton x = MaxFork x []
+_HHsingleton = flip MaxFork []
 {-# INLINE _HHsingleton #-}
 
 _HHnull :: MaxHeap a -> Bool
-_HHnull MaxEmpty      = True
 _HHnull (MaxFork _ _) = False
+_HHnull MaxEmpty      = True
 {-# INLINE _HHnull #-}
 
 _HHinsert :: Ord a => a -> MaxHeap a -> MaxHeap a
-_HHinsert x = _HHmerge (MaxFork x [])
+_HHinsert = _HHmerge . _HHsingleton
 {-# INLINE _HHinsert #-}
 
 _HHMaxElem :: MaxHeap a -> Maybe a
@@ -36,12 +36,13 @@ _HHMaxElem MaxEmpty      = Nothing
 {-# INLINE _HHMaxElem #-}
 
 _HHdeleteMax :: Ord a => MaxHeap a -> Maybe (MaxHeap a)
-_HHdeleteMax (MaxFork _ hs) = Just $ _HHmergePairs hs
+_HHdeleteMax (MaxFork _ hs) = Just $! _HHmergePairs hs
 _HHdeleteMax MaxEmpty       = Nothing
 {-# INLINE _HHdeleteMax #-}
 
 _HHdeleteFindMax :: Ord a => MaxHeap a -> Maybe (a, MaxHeap a)
-_HHdeleteFindMax (MaxFork x hs) = Just (x, _HHmergePairs hs)
+_HHdeleteFindMax (MaxFork x hs) = case _HHmergePairs hs of
+    merged -> Just $! (x, merged)
 _HHdeleteFindMax MaxEmpty       = Nothing
 {-# INLINE _HHdeleteFindMax #-}
 
@@ -50,13 +51,15 @@ _HHmerge hx@(MaxFork x hxs) hy@(MaxFork y hys)
   | y <= x    = MaxFork x (hy:hxs)
   | otherwise = MaxFork y (hx:hys)
 _HHmerge MaxEmpty hy = hy
-_HHmerge hx _ = hx
+_HHmerge hx MaxEmpty = hx
 {-# INLINE _HHmerge #-}
 
 _HHmergePairs :: Ord a => [MaxHeap a] -> MaxHeap a
-_HHmergePairs (x:y:hs) = (x <> y) <> _HHmergePairs hs
-_HHmergePairs [x]      = x
-_HHmergePairs []       = MaxEmpty
+_HHmergePairs = mconcat . mergePairs
+  where
+    mergePairs (x:y:xs) = case x <> y of
+        merged -> merged : mergePairs xs
+    mergePairs xs = xs
 {-# INLINE _HHmergePairs #-}
 
 instance Ord a => Eq (MaxHeap a) where
@@ -81,8 +84,6 @@ instance Ord a => Semigroup.Semigroup (MaxHeap a) where
 instance Ord a => Monoid (MaxHeap a) where
     mempty = _HHempty
     {-# INLINE mempty #-}
-    mconcat = _HHmergePairs
-    {-# INLINE mconcat #-}
 #if MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
 #elif MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
     mappend = (Semigtoup.<>)
