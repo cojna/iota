@@ -1,10 +1,9 @@
-{-# LANGUAGE CPP          #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP, TypeFamilies #-}
 
 module Data.Heap.PairingHeap.Min where
 
 import           Data.Function
-import qualified Data.List     as L
+import qualified Data.List      as L
 import           Data.Monoid
 #if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 import           Data.Semigroup as Semigroup
@@ -13,54 +12,54 @@ import           GHC.Exts
 
 data MinHeap a = MinFork !a [MinHeap a] | MinEmpty
 
-_Hempty :: MinHeap a
-_Hempty = MinEmpty
-{-# INLINE _Hempty #-}
+emptyMinPH :: MinHeap a
+emptyMinPH = MinEmpty
+{-# INLINE emptyMinPH #-}
 
-_Hsingleton :: a -> MinHeap a
-_Hsingleton = flip MinFork []
-{-# INLINE _Hsingleton #-}
+singletonMinPH :: a -> MinHeap a
+singletonMinPH = flip MinFork []
+{-# INLINE singletonMinPH #-}
 
-_Hnull :: MinHeap a -> Bool
-_Hnull (MinFork _ _) = False
-_Hnull MinEmpty      = True
-{-# INLINE _Hnull #-}
+nullMinPH :: MinHeap a -> Bool
+nullMinPH (MinFork _ _) = False
+nullMinPH MinEmpty      = True
+{-# INLINE nullMinPH #-}
 
-_Hinsert :: Ord a => a -> MinHeap a -> MinHeap a
-_Hinsert = _Hmerge . _Hsingleton
-{-# INLINE _Hinsert #-}
+insertMinPH :: Ord a => a -> MinHeap a -> MinHeap a
+insertMinPH = mergeMinPH . singletonMinPH
+{-# INLINE insertMinPH #-}
 
-_HminElem :: MinHeap a -> Maybe a
-_HminElem (MinFork x _) = Just x
-_HminElem MinEmpty      = Nothing
-{-# INLINE _HminElem #-}
+minElemPH :: MinHeap a -> Maybe a
+minElemPH (MinFork x _) = Just x
+minElemPH MinEmpty      = Nothing
+{-# INLINE minElemPH #-}
 
-_HdeleteMin :: Ord a => MinHeap a -> Maybe (MinHeap a)
-_HdeleteMin (MinFork _ hs) = Just $! _HmergePairs hs
-_HdeleteMin MinEmpty       = Nothing
-{-# INLINE _HdeleteMin #-}
+deleteMinPH :: Ord a => MinHeap a -> Maybe (MinHeap a)
+deleteMinPH (MinFork _ hs) = Just $! mergePairsMinPH hs
+deleteMinPH MinEmpty       = Nothing
+{-# INLINE deleteMinPH #-}
 
-_HdeleteFindMin :: Ord a => MinHeap a -> Maybe (a, MinHeap a)
-_HdeleteFindMin (MinFork x hs) = case _HmergePairs hs of
+deleteFindMinPH :: Ord a => MinHeap a -> Maybe (a, MinHeap a)
+deleteFindMinPH (MinFork x hs) = case mergePairsMinPH hs of
     merged -> Just $! (x, merged)
-_HdeleteFindMin MinEmpty       = Nothing
-{-# INLINE _HdeleteFindMin #-}
+deleteFindMinPH MinEmpty       = Nothing
+{-# INLINE deleteFindMinPH #-}
 
-_Hmerge :: Ord a => MinHeap a -> MinHeap a -> MinHeap a
-_Hmerge hx@(MinFork x hxs) hy@(MinFork y hys)
+mergeMinPH :: Ord a => MinHeap a -> MinHeap a -> MinHeap a
+mergeMinPH hx@(MinFork x hxs) hy@(MinFork y hys)
   | x <= y    = MinFork x (hy:hxs)
   | otherwise = MinFork y (hx:hys)
-_Hmerge MinEmpty hy = hy
-_Hmerge hx MinEmpty = hx
-{-# INLINE _Hmerge #-}
+mergeMinPH MinEmpty hy = hy
+mergeMinPH hx MinEmpty = hx
+{-# INLINE mergeMinPH #-}
 
-_HmergePairs :: Ord a => [MinHeap a] -> MinHeap a
-_HmergePairs = mconcat . mergePairs
+mergePairsMinPH :: Ord a => [MinHeap a] -> MinHeap a
+mergePairsMinPH = mconcat . mergePairs
   where
     mergePairs (x:y:xs) = case x <> y of
         merged -> merged : mergePairs xs
     mergePairs xs = xs
-{-# INLINE _HmergePairs #-}
+{-# INLINE mergePairsMinPH #-}
 
 instance Ord a => Eq (MinHeap a) where
     (==) = (==) `on` toList
@@ -70,8 +69,8 @@ instance Ord a => Ord (MinHeap a) where
 
 instance Ord a => IsList (MinHeap a) where
     type Item (MinHeap a) = a
-    fromList xs = _HmergePairs $ map _Hsingleton xs
-    toList = L.unfoldr _HdeleteFindMin
+    fromList = mergePairsMinPH . map singletonMinPH
+    toList = L.unfoldr deleteFindMinPH
 
 instance (Show a, Ord a) => Show (MinHeap a) where
     show = show . toList
@@ -79,17 +78,17 @@ instance (Show a, Ord a) => Show (MinHeap a) where
 
 #if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 instance Ord a => Semigroup.Semigroup (MinHeap a) where
-  (<>) = _Hmerge
+  (<>) = mergeMinPH
 #endif
 
 instance Ord a => Monoid (MinHeap a) where
-    mempty = _Hempty
+    mempty = emptyMinPH
     {-# INLINE mempty #-}
 #if MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
 #elif MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
     mappend = (Semigtoup.<>)
     {-# INLINE mappend #-}
 #else
-    mappend = _Hmerge
+    mappend = mergeMinPH
     {-# INLINE mappend #-}
 #endif

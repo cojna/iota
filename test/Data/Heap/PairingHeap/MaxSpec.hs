@@ -1,7 +1,7 @@
 module Data.Heap.PairingHeap.MaxSpec where
 
-import qualified Data.List                 as L
 import           Data.Heap.PairingHeap.Max
+import qualified Data.List                 as L
 import           GHC.Exts
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
@@ -16,4 +16,4 @@ spec =
 prop_priority :: [Int] -> Bool
 prop_priority xs = L.sortBy (flip compare) xs == toList h
   where
-    h = foldr _HHinsert _HHempty xs
+    h = foldr insertMaxPH emptyMaxPH xs

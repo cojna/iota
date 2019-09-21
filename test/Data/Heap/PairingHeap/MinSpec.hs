@@ -1,7 +1,7 @@
 module Data.Heap.PairingHeap.MinSpec where
 
-import qualified Data.List                 as L
 import           Data.Heap.PairingHeap.Min
+import qualified Data.List                 as L
 import           GHC.Exts
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
@@ -16,4 +16,4 @@ spec =
 prop_priority :: [Int] -> Bool
 prop_priority xs = L.sort xs == toList h
   where
-    h = foldr _Hinsert _Hempty xs
+    h = foldr insertMinPH emptyMinPH xs
