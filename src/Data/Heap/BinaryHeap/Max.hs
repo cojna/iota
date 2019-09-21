@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP          #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 
 module Data.Heap.BinaryHeap.Max where
 
@@ -10,25 +9,24 @@ import           Data.Function
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+--
+import           Utils
 
-data MaxHeapM m a = MaxHeapM (MutVar m Int) (UM.MVector m a)
+data BinaryHeap s a = BinaryHeap (MutVar s Int) (UM.MVector s a)
 
-_HHMnewHeap :: (PrimMonad m, U.Unbox a) => Int -> m (MaxHeapM (PrimState m) a)
-_HHMnewHeap limitSize = MaxHeapM `liftM` newMutVar 0 `ap` UM.new limitSize
+newBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> m (BinaryHeap (PrimState m) a)
+newBinaryHeap n = BinaryHeap <$> newMutVar 0 <*> UM.new n
 
-_HHMgetHeapSize :: (PrimMonad m) => MaxHeapM (PrimState m) a -> m Int
-_HHMgetHeapSize (MaxHeapM ref _) = readMutVar ref
-{-# INLINE _HHMgetHeapSize #-}
+getBinaryHeapSize :: (PrimMonad m) => BinaryHeap (PrimState m) a -> m Int
+getBinaryHeapSize (BinaryHeap ref _) = readMutVar ref
+{-# INLINE getBinaryHeapSize #-}
 
-_HHMinsertM :: (PrimMonad m, U.Unbox a, Ord a)
-    => a -> MaxHeapM (PrimState m) a -> m ()
-_HHMinsertM x heap@(MaxHeapM ref vec) = do
-    size <- _HHMgetHeapSize heap
-    modifyMutVar' ref (+1)
-    flip fix size $ \loop !i ->
-        if i == 0
-        then UM.unsafeWrite vec 0 x
-        else do
+siftUp :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> Int -> m ()
+siftUp vec k = do
+    x <- UM.unsafeRead vec k
+    flip fix k $ \loop !i ->
+        if i > 0
+        then do
             let !parent = (i - 1) `unsafeShiftR` 1
             p <- UM.unsafeRead vec parent
             if p >= x
@@ -36,23 +34,22 @@ _HHMinsertM x heap@(MaxHeapM ref vec) = do
             else do
                 UM.unsafeWrite vec i p
                 loop parent
-{-# INLINE _HHMinsertM #-}
+        else UM.unsafeWrite vec 0 x
+{-# INLINE siftUp #-}
 
-_HHMunsafeDeleteMaxM :: (PrimMonad m, U.Unbox a, Ord a)
-                 => MaxHeapM (PrimState m) a -> m ()
-_HHMunsafeDeleteMaxM (MaxHeapM ref vec) = do
-    modifyMutVar' ref (subtract 1)
-    size <- readMutVar ref
-    x <- UM.unsafeRead vec size
-    flip fix 0 $ \loop !i -> do
+siftDown :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> Int -> m ()
+siftDown vec k = do
+    x <- UM.unsafeRead vec k
+    let n = UM.length vec
+    flip fix k $ \loop !i -> do
         let !l = unsafeShiftL i 1 .|. 1
-        if size <= l
+        if n <= l
         then UM.unsafeWrite vec i x
         else do
             let !r = l + 1
             childL <- UM.unsafeRead vec l
             childR <- UM.unsafeRead vec r
-            if r < size && childR > childL
+            if r < n && childR > childL
             then if x >= childR
                  then UM.unsafeWrite vec i x
                  else do
@@ -63,29 +60,76 @@ _HHMunsafeDeleteMaxM (MaxHeapM ref vec) = do
                  else do
                      UM.unsafeWrite vec i childL
                      loop l
-{-# INLINE _HHMunsafeDeleteMaxM #-}
+{-# INLINE siftDown #-}
 
-_HHMunsafeMaxViewM :: (PrimMonad m, U.Unbox a) => MaxHeapM (PrimState m) a -> m a
-_HHMunsafeMaxViewM (MaxHeapM _ vec) = UM.unsafeRead vec 0
-{-# INLINE _HHMunsafeMaxViewM #-}
+heapify :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> m ()
+heapify vec = do
+    rev (UM.length vec `quot` 2) $ \i -> do
+        siftDown vec i
+{-# INLINE heapify #-}
 
-_HHMMaxViewM :: (PrimMonad m, U.Unbox a) => MaxHeapM (PrimState m) a -> m (Maybe a)
-_HHMMaxViewM heap = do
-    size <- _HHMgetHeapSize heap
+buildBinaryHeap :: (PrimMonad m, U.Unbox a, Ord a)
+    => U.Vector a -> m (BinaryHeap (PrimState m) a)
+buildBinaryHeap vec = do
+    ref <- newMutVar $ U.length vec
+    mvec <- U.unsafeThaw vec
+    heapify mvec
+    return $! BinaryHeap ref mvec
+{-# INLINE buildBinaryHeap #-}
+
+unsafeMaxViewBH :: (PrimMonad m, U.Unbox a) => BinaryHeap (PrimState m) a -> m a
+unsafeMaxViewBH (BinaryHeap _ vec) = UM.unsafeRead vec 0
+{-# INLINE unsafeMaxViewBH #-}
+
+maxViewBH :: (PrimMonad m, U.Unbox a)
+    => BinaryHeap (PrimState m) a -> m (Maybe a)
+maxViewBH bh = do
+    size <- getBinaryHeapSize bh
     if size > 0
-    then Just `liftM` _HHMunsafeMaxViewM heap
-    else return Nothing
-{-# INLINE _HHMMaxViewM #-}
+    then Just <$!> unsafeMaxViewBH bh
+    else return $! Nothing
+{-# INLINE maxViewBH #-}
 
-_HHMdeleteFindMaxM :: (PrimMonad m, U.Unbox a, Ord a)
-    => MaxHeapM (PrimState m) a -> m (Maybe a)
-_HHMdeleteFindMaxM heap = do
-    size <- _HHMgetHeapSize heap
+insertMaxBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => a -> BinaryHeap (PrimState m) a -> m ()
+insertMaxBH x bh@(BinaryHeap info vec) = do
+    size <- getBinaryHeapSize bh
+    modifyMutVar' info (+1)
+    UM.unsafeWrite vec size x
+    siftUp vec size
+{-# INLINE insertMaxBH #-}
+
+unsafeDeleteMaxBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => BinaryHeap (PrimState m) a -> m ()
+unsafeDeleteMaxBH bh@(BinaryHeap info vec) = do
+    size <- getBinaryHeapSize bh
+    modifyMutVar' info (subtract 1)
+    UM.unsafeSwap vec 0 (size - 1)
+    siftDown (UM.unsafeTake (size - 1) vec) 0
+{-# INLINE unsafeDeleteMaxBH #-}
+
+modifyMaxBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => BinaryHeap (PrimState m) a -> (a -> a) -> m ()
+modifyMaxBH bh@(BinaryHeap _ vec) f = do
+    UM.unsafeModify vec f 0
+    size <- getBinaryHeapSize bh
+    siftDown (UM.unsafeTake size vec) 0
+{-# INLINE modifyMaxBH #-}
+
+deleteFindMaxBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => BinaryHeap (PrimState m) a -> m (Maybe a)
+deleteFindMaxBH bh@(BinaryHeap _ vec) = do
+    size <- getBinaryHeapSize bh
     if size > 0
-    then liftM2 ((Just.).const) (_HHMunsafeMaxViewM heap) (_HHMunsafeDeleteMaxM heap)
-    else return Nothing
-{-# INLINE _HHMdeleteFindMaxM #-}
+    then Just <$!> unsafeMaxViewBH bh <* unsafeDeleteMaxBH bh
+    else return $! Nothing
+{-# INLINE deleteFindMaxBH #-}
 
-_HHMclearMaxHeapM :: (PrimMonad m) => MaxHeapM (PrimState m) a -> m ()
-_HHMclearMaxHeapM (MaxHeapM ref _) = writeMutVar ref 0
-{-# INLINE _HHMclearMaxHeapM #-}
+clearBH :: (PrimMonad m) => BinaryHeap (PrimState m) a -> m ()
+clearBH (BinaryHeap info _) = writeMutVar info 0
+
+freezeInternalBinaryHeapBH :: (PrimMonad m, U.Unbox a)
+    => BinaryHeap (PrimState m) a -> m (U.Vector a)
+freezeInternalBinaryHeapBH bh@(BinaryHeap _ vec) = do
+    size <- getBinaryHeapSize bh
+    U.unsafeFreeze (UM.unsafeTake size vec)

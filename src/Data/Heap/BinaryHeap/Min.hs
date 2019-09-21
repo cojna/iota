@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP          #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 
 module Data.Heap.BinaryHeap.Min where
 
@@ -10,25 +9,24 @@ import           Data.Function
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+--
+import           Utils
 
-data MinHeapM m a = MinHeapM (MutVar m Int) (UM.MVector m a)
+data BinaryHeap s a = BinaryHeap (MutVar s Int) (UM.MVector s a)
 
-_HMnewHeap :: (PrimMonad m, U.Unbox a) => Int -> m (MinHeapM (PrimState m) a)
-_HMnewHeap limitSize = MinHeapM `liftM` newMutVar 0 `ap` UM.new limitSize
+newBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> m (BinaryHeap (PrimState m) a)
+newBinaryHeap n = BinaryHeap <$> newMutVar 0 <*> UM.new n
 
-_HMgetHeapSize :: (PrimMonad m) => MinHeapM (PrimState m) a -> m Int
-_HMgetHeapSize (MinHeapM ref _) = readMutVar ref
-{-# INLINE _HMgetHeapSize #-}
+getBinaryHeapSize :: (PrimMonad m) => BinaryHeap (PrimState m) a -> m Int
+getBinaryHeapSize (BinaryHeap ref _) = readMutVar ref
+{-# INLINE getBinaryHeapSize #-}
 
-_HMinsertM :: (PrimMonad m, U.Unbox a, Ord a)
-    => a -> MinHeapM (PrimState m) a -> m ()
-_HMinsertM x heap@(MinHeapM ref vec) = do
-    size <- _HMgetHeapSize heap
-    modifyMutVar' ref (+1)
-    flip fix size $ \loop !i ->
-        if i == 0
-        then UM.unsafeWrite vec 0 x
-        else do
+siftUp :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> Int -> m ()
+siftUp vec k = do
+    x <- UM.unsafeRead vec k
+    flip fix k $ \loop !i ->
+        if i > 0
+        then do
             let !parent = (i - 1) `unsafeShiftR` 1
             p <- UM.unsafeRead vec parent
             if p <= x
@@ -36,23 +34,22 @@ _HMinsertM x heap@(MinHeapM ref vec) = do
             else do
                 UM.unsafeWrite vec i p
                 loop parent
-{-# INLINE _HMinsertM #-}
+        else UM.unsafeWrite vec 0 x
+{-# INLINE siftUp #-}
 
-_HMunsafeDeleteMinM :: (PrimMonad m, U.Unbox a, Ord a)
-                 => MinHeapM (PrimState m) a -> m ()
-_HMunsafeDeleteMinM (MinHeapM ref vec) = do
-    modifyMutVar' ref (subtract 1)
-    size <- readMutVar ref
-    x <- UM.unsafeRead vec size
-    flip fix 0 $ \loop !i -> do
+siftDown :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> Int -> m ()
+siftDown vec k = do
+    x <- UM.unsafeRead vec k
+    let n = UM.length vec
+    flip fix k $ \loop !i -> do
         let !l = unsafeShiftL i 1 .|. 1
-        if size <= l
+        if n <= l
         then UM.unsafeWrite vec i x
         else do
             let !r = l + 1
             childL <- UM.unsafeRead vec l
             childR <- UM.unsafeRead vec r
-            if r < size && childR < childL
+            if r < n && childR < childL
             then if x <= childR
                  then UM.unsafeWrite vec i x
                  else do
@@ -63,29 +60,76 @@ _HMunsafeDeleteMinM (MinHeapM ref vec) = do
                  else do
                      UM.unsafeWrite vec i childL
                      loop l
-{-# INLINE _HMunsafeDeleteMinM #-}
+{-# INLINE siftDown #-}
 
-_HMunsafeMinViewM :: (PrimMonad m, U.Unbox a) => MinHeapM (PrimState m) a -> m a
-_HMunsafeMinViewM (MinHeapM _ vec) = UM.unsafeRead vec 0
-{-# INLINE _HMunsafeMinViewM #-}
+heapify :: (PrimMonad m, U.Unbox a, Ord a) => UM.MVector (PrimState m) a -> m ()
+heapify vec = do
+    rev (UM.length vec `quot` 2) $ \i -> do
+        siftDown vec i
+{-# INLINE heapify #-}
 
-_HMminViewM :: (PrimMonad m, U.Unbox a) => MinHeapM (PrimState m) a -> m (Maybe a)
-_HMminViewM heap = do
-    size <- _HMgetHeapSize heap
+buildBinaryHeap :: (PrimMonad m, U.Unbox a, Ord a)
+    => U.Vector a -> m (BinaryHeap (PrimState m) a)
+buildBinaryHeap vec = do
+    ref <- newMutVar $ U.length vec
+    mvec <- U.unsafeThaw vec
+    heapify mvec
+    return $! BinaryHeap ref mvec
+{-# INLINE buildBinaryHeap #-}
+
+unsafeMinViewBH :: (PrimMonad m, U.Unbox a) => BinaryHeap (PrimState m) a -> m a
+unsafeMinViewBH (BinaryHeap _ vec) = UM.unsafeRead vec 0
+{-# INLINE unsafeMinViewBH #-}
+
+minViewBH :: (PrimMonad m, U.Unbox a)
+    => BinaryHeap (PrimState m) a -> m (Maybe a)
+minViewBH bh = do
+    size <- getBinaryHeapSize bh
     if size > 0
-    then Just `liftM` _HMunsafeMinViewM heap
-    else return Nothing
-{-# INLINE _HMminViewM #-}
+    then Just <$!> unsafeMinViewBH bh
+    else return $! Nothing
+{-# INLINE minViewBH #-}
 
-_HMdeleteFindMinM :: (PrimMonad m, U.Unbox a, Ord a)
-    => MinHeapM (PrimState m) a -> m (Maybe a)
-_HMdeleteFindMinM heap = do
-    size <- _HMgetHeapSize heap
+insertMinBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => a -> BinaryHeap (PrimState m) a -> m ()
+insertMinBH x bh@(BinaryHeap info vec) = do
+    size <- getBinaryHeapSize bh
+    modifyMutVar' info (+1)
+    UM.unsafeWrite vec size x
+    siftUp vec size
+{-# INLINE insertMinBH #-}
+
+unsafeDeleteMinBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => BinaryHeap (PrimState m) a -> m ()
+unsafeDeleteMinBH bh@(BinaryHeap info vec) = do
+    size <- getBinaryHeapSize bh
+    modifyMutVar' info (subtract 1)
+    UM.unsafeSwap vec 0 (size - 1)
+    siftDown (UM.unsafeTake (size - 1) vec) 0
+{-# INLINE unsafeDeleteMinBH #-}
+
+modifyMinBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => BinaryHeap (PrimState m) a -> (a -> a) -> m ()
+modifyMinBH bh@(BinaryHeap _ vec) f = do
+    UM.unsafeModify vec f 0
+    size <- getBinaryHeapSize bh
+    siftDown (UM.unsafeTake size vec) 0
+{-# INLINE modifyMinBH #-}
+
+deleteFindMinBH :: (PrimMonad m, U.Unbox a, Ord a)
+    => BinaryHeap (PrimState m) a -> m (Maybe a)
+deleteFindMinBH bh@(BinaryHeap _ vec) = do
+    size <- getBinaryHeapSize bh
     if size > 0
-    then liftM2 ((Just.).const) (_HMunsafeMinViewM heap) (_HMunsafeDeleteMinM heap)
-    else return Nothing
-{-# INLINE _HMdeleteFindMinM #-}
+    then Just <$!> unsafeMinViewBH bh <* unsafeDeleteMinBH bh
+    else return $! Nothing
+{-# INLINE deleteFindMinBH #-}
 
-_HMclearMinHeapM :: (PrimMonad m) => MinHeapM (PrimState m) a -> m ()
-_HMclearMinHeapM (MinHeapM ref _) = writeMutVar ref 0
-{-# INLINE _HMclearMinHeapM #-}
+clearBH :: (PrimMonad m) => BinaryHeap (PrimState m) a -> m ()
+clearBH (BinaryHeap info _) = writeMutVar info 0
+
+freezeInternalBinaryHeapBH :: (PrimMonad m, U.Unbox a)
+    => BinaryHeap (PrimState m) a -> m (U.Vector a)
+freezeInternalBinaryHeapBH bh@(BinaryHeap _ vec) = do
+    size <- getBinaryHeapSize bh
+    U.unsafeFreeze (UM.unsafeTake size vec)

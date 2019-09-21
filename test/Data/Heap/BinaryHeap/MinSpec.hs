@@ -3,12 +3,12 @@ module Data.Heap.BinaryHeap.MinSpec where
 import           Control.Monad
 import           Data.Function
 import           Data.Heap.BinaryHeap.Min
-import qualified Data.List               as L
+import qualified Data.List                as L
 import           Data.Primitive.MutVar
-import qualified Data.Vector.Unboxed     as U
+import qualified Data.Vector.Unboxed      as U
 import           GHC.Exts
 import           Test.Hspec
-import           Test.Hspec.QuickCheck   (prop)
+import           Test.Hspec.QuickCheck    (prop)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
@@ -25,13 +25,13 @@ prop_heapSortNaive xs = monadicIO $ do
     assert $ L.sort xs == sorted
   where
     fromListM xs = do
-        h <- _HMnewHeap (length xs)
+        h <- newBinaryHeap (length xs)
         forM_ xs $ \x ->
-            _HMinsertM x h
+            insertMinBH x h
         return h
     toListM h =
         flip fix [] $ \loop buf -> do
-            top <- _HMdeleteFindMinM h
+            top <- deleteFindMinBH h
             case top of
                 Just x  -> loop (x:buf)
                 Nothing -> return $ reverse buf
