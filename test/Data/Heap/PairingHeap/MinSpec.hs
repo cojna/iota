@@ -1,7 +1,7 @@
-module Data.MinHeapSpec where
+module Data.Heap.PairingHeap.MinSpec where
 
 import qualified Data.List                 as L
-import           Data.MinHeap
+import           Data.Heap.PairingHeap.Min
 import           GHC.Exts
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)

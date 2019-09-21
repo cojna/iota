@@ -1,7 +1,7 @@
-module Data.MaxHeapSpec where
+module Data.Heap.PairingHeap.MaxSpec where
 
 import qualified Data.List                 as L
-import           Data.MaxHeap
+import           Data.Heap.PairingHeap.Max
 import           GHC.Exts
 import           Test.Hspec
 import           Test.Hspec.QuickCheck     (prop)
