@@ -1,16 +1,16 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE KindSignatures      #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds, KindSignatures, ScopedTypeVariables #-}
 
 module Test.Prelude
     ( module Test.Hspec
     , module Test.Hspec.QuickCheck
     , module Test.QuickCheck
     , module Test.QuickCheck.Arbitrary
+    , evaluate
     , Prime(..)
     , ByteStringOf(..)
     ) where
 
+import           Control.Exception         (evaluate)
 import qualified Data.ByteString.Char8     as C
 import           Data.Coerce
 import           Data.IntMod
