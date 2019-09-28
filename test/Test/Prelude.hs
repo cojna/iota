@@ -5,6 +5,7 @@ module Test.Prelude
     , module Test.Hspec.QuickCheck
     , module Test.QuickCheck
     , module Test.QuickCheck.Arbitrary
+    , module Test.QuickCheck.Monadic
     , evaluate
     , Prime(..)
     , ByteStringOf(..)
@@ -21,6 +22,7 @@ import           Test.Hspec
 import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
+import           Test.QuickCheck.Monadic
 
 newtype Prime a = Prime {getPrime :: a}
     deriving (Eq, Ord, Show)
