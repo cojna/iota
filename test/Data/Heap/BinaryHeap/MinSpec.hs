@@ -43,10 +43,10 @@ spec = do
         it "siftDown [1, 2, 0] 0 == [0, 2, 1]" $ do
             U.modify (siftDown 0) [1 :: Int, 2, 0]
              `shouldBe` [0 :: Int, 2, 1]
-        it "siftDoen [2, 0, 1] 0 == [0, 2, 1]" $ do
+        it "siftDown [2, 0, 1] 0 == [0, 2, 1]" $ do
             U.modify (siftDown 0) [2 :: Int, 0, 1]
              `shouldBe` [0 :: Int, 2, 1]
-        it "siftDoen [2, 1, 0] 0 == [0, 1, 2]" $ do
+        it "siftDown [2, 1, 0] 0 == [0, 1, 2]" $ do
             U.modify (siftDown 0) [2 :: Int, 1, 0]
              `shouldBe` [0 :: Int, 1, 2]
     prop "heap sort naive" prop_heapSortNaive
