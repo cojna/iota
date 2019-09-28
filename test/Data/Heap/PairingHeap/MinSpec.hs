@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.Heap.PairingHeap.MinSpec where
+module Data.Heap.PairingHeap.MinSpec (main, spec) where
 
 import           Data.Heap.PairingHeap.Min
 import qualified Data.List                 as L
 import           GHC.Exts
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

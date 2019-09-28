@@ -1,18 +1,18 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Data.Vector.SortSpec where
+module Data.Vector.SortSpec (main, spec) where
 
 import qualified Data.List                 as L
 import           Data.Proxy
 import           Data.Vector.Sort
 import qualified Data.Vector.Unboxed       as U
 import           Data.Word
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
 --
 import           Data.Word64
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

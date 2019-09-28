@@ -1,11 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE BangPatterns, ViewPatterns #-}
 
-module Math.ModulusSpec where
+module Math.ModulusSpec (main, spec) where
 
 import           Data.Int
 import           Data.IntMod
-import qualified Data.List                 as L
+import qualified Data.List    as L
 import           Data.Word
 import           Math.Modulus
 import           Test.Prelude

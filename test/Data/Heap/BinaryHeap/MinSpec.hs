@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.Heap.BinaryHeap.MinSpec where
+module Data.Heap.BinaryHeap.MinSpec (main, spec) where
 
 import           Control.Monad
 import           Data.Function
@@ -10,10 +10,10 @@ import           Data.Maybe
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed      as U
 import           GHC.Exts
-import           Test.Hspec
-import           Test.Hspec.QuickCheck    (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Monadic
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do
@@ -43,10 +43,10 @@ spec = do
         it "siftDown [1, 2, 0] 0 == [0, 2, 1]" $ do
             U.modify (siftDown 0) [1 :: Int, 2, 0]
              `shouldBe` [0 :: Int, 2, 1]
-        it "siftDoen [2, 0, 1] 0 == [0, 2, 1]" $ do
+        it "siftDown [2, 0, 1] 0 == [0, 2, 1]" $ do
             U.modify (siftDown 0) [2 :: Int, 0, 1]
              `shouldBe` [0 :: Int, 2, 1]
-        it "siftDoen [2, 1, 0] 0 == [0, 1, 2]" $ do
+        it "siftDown [2, 1, 0] 0 == [0, 1, 2]" $ do
             U.modify (siftDown 0) [2 :: Int, 1, 0]
              `shouldBe` [0 :: Int, 1, 2]
     prop "heap sort naive" prop_heapSortNaive

@@ -1,13 +1,13 @@
-module Data.Vector3Spec where
+module Data.Vector3Spec (main, spec) where
 
 import           Data.Proxy
 import           Data.Vector3
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
 import           Test.Prop.Num
 import           Test.Prop.VectorSpace
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

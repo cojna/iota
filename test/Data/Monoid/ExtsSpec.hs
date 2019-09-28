@@ -1,15 +1,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Data.Monoid.ExtsSpec where
+module Data.Monoid.ExtsSpec (main, spec) where
 
 import           Data.Coerce
 import           Data.Proxy
 import           Data.Monoid.Exts
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
 import           Test.Prop.Monoid
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

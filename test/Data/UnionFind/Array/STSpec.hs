@@ -1,12 +1,11 @@
-module Data.UnionFind.Array.STSpec where
+module Data.UnionFind.Array.STSpec (main, spec) where
 
 import           Data.UnionFind.Array.ST
 import           GHC.Exts
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
-import           Test.QuickCheck.Monadic
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec =

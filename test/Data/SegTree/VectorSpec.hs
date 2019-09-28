@@ -1,8 +1,5 @@
-{-# LANGUAGE BangPatterns    #-}
-{-# LANGUAGE CPP             #-}
-{-# LANGUAGE LambdaCase      #-}
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE ViewPatterns    #-}
+{-# LANGUAGE BangPatterns, CPP, LambdaCase, OverloadedLists, ViewPatterns #-}
+
 module Data.SegTree.VectorSpec (main, spec) where
 
 import           Data.Bits
@@ -15,11 +12,7 @@ import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           GHC.Exts
-import           Test.Hspec
-import           Test.Hspec.QuickCheck       (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
-import           Test.QuickCheck.Monadic
+import           Test.Prelude
 
 main :: IO ()
 main = hspec spec

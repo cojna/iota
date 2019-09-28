@@ -1,9 +1,12 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.IntMultiSetSpec where
+module Data.IntMultiSetSpec (main, spec) where
 
 import Data.IntMultiSet
 import Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

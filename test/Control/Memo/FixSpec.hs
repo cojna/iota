@@ -1,7 +1,10 @@
-module Control.Memo.FixSpec where
+module Control.Memo.FixSpec (main, spec) where
 
-import Test.Hspec
 import Control.Memo.Fix
+import Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

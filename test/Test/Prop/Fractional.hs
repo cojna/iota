@@ -3,10 +3,7 @@
 module Test.Prop.Fractional (fractionalSpec, fractionalClosedSpec) where
 
 import           Data.Proxy
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
 
 fractionalSpec :: (Fractional a, Arbitrary a, Show a, Eq a) => Proxy a -> Spec
 fractionalSpec proxy = do
