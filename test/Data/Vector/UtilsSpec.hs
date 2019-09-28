@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.Vector.UtilsSpec where
+module Data.Vector.UtilsSpec (main, spec) where
 
 import qualified Data.Vector         as V
 import qualified Data.Vector.Unboxed as U

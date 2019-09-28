@@ -1,15 +1,15 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Data.Word64Spec where
+module Data.Word64Spec (main, spec) where
 
 import           Data.Int
 import           Data.Proxy
 import           Data.Word
 import           Data.Word64
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

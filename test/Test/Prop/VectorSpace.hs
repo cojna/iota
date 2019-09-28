@@ -1,9 +1,6 @@
 module Test.Prop.VectorSpace where
 
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
 
 
 scalarSpec ::

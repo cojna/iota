@@ -1,11 +1,11 @@
-module Data.QueueSpec where
+module Data.QueueSpec (main, spec) where
 
 import           Data.List
 import           Data.Queue
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec =

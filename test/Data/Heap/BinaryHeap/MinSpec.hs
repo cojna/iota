@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.Heap.BinaryHeap.MinSpec where
+module Data.Heap.BinaryHeap.MinSpec (main, spec) where
 
 import           Control.Monad
 import           Data.Function
@@ -10,10 +10,10 @@ import           Data.Maybe
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed      as U
 import           GHC.Exts
-import           Test.Hspec
-import           Test.Hspec.QuickCheck    (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Monadic
+import           Test.Prelude
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = do

@@ -1,12 +1,12 @@
-module Data.Matrix3x3Spec where
+module Data.Matrix3x3Spec (main, spec) where
 
 import           Data.Matrix3x3
 import           Data.Proxy
-import           Test.Hspec
-import           Test.Hspec.QuickCheck     (prop)
-import           Test.QuickCheck
-import           Test.QuickCheck.Arbitrary
+import           Test.Prelude
 import           Test.Prop.Num
+
+main :: IO ()
+main = hspec spec
 
 spec :: Spec
 spec = numSpec (Proxy :: Proxy (Mat3x3 Int))
