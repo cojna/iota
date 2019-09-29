@@ -135,6 +135,15 @@ newMinCostFlowBuilder n = MinCostFlowBuilder n
     <$> UM.replicate n 0
     <*> newMutVar []
 
+buildMinCostFlowBuilder :: (PrimMonad m)
+    => Int -> [(Vertex, Vertex, Cost, Capacity)]
+    -> m (MinCostFlowBuilder (PrimState m))
+buildMinCostFlowBuilder n edges = do
+    mcfb <- newMinCostFlowBuilder n
+    forM_ edges $ \(src, dst, cost, capacity) -> do
+        addEdgeMCFB src dst cost capacity mcfb
+    return mcfb
+
 addEdgeMCFB :: (PrimMonad m)
     => Vertex -> Vertex -> Cost -> Capacity
     -> MinCostFlowBuilder (PrimState m) -> m ()
@@ -143,7 +152,6 @@ addEdgeMCFB src dst cost capacity MinCostFlowBuilder{..}
         UM.unsafeModify inDegreeMCFB (+1) src
         UM.unsafeModify inDegreeMCFB (+1) dst
         modifyMutVar' edgesMCFB ((src, dst, cost, capacity):)
-
 
 buildMinCostFlow :: (PrimMonad m)
     => MinCostFlowBuilder (PrimState m) -> m (MinCostFlow (PrimState m))
