@@ -5,6 +5,7 @@ module Data.Graph.Dense.Dijkstra where
 import           Control.Monad               (when)
 import qualified Data.Foldable               as F
 import           Data.Function
+import           Data.Monoid
 import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
