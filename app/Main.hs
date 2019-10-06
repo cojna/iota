@@ -60,7 +60,11 @@ header name = unlines
     ]
 
 pretty :: H.Module l -> String
+#if MIN_VERSION_base(1,18,0)
 pretty (H.Module _ _ _ _ decls) = unlines
+#else
+pretty (H.Module _ _ _ _ _ _ decls) = unlines
+#endif
     $ map (H.prettyPrintWithMode pphsMode) decls
 
 removeDefineMacros :: String -> String
