@@ -42,10 +42,11 @@ executables:
     source-dirs: app
     ghc-options: []
     dependencies:
-      - cpphs
       - directory
       - haskell-src-exts
+      - process
       - template-haskell
+      - temporary
 
 tests:
   iota-test:

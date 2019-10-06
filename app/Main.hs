@@ -1,24 +1,39 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP, TemplateHaskell #-}
 
 module Main (main) where
 
-import qualified Language.Haskell.Exts       as H
-import           Language.Haskell.TH         (runIO)
-import qualified Language.Preprocessor.Cpphs as CPP
-import           System.Directory            (getCurrentDirectory)
-import           System.Environment          (getArgs)
+import qualified Data.List             as L
+import qualified Language.Haskell.Exts as H
+import           Language.Haskell.TH   (runIO)
+import           System.Directory      (getCurrentDirectory)
+import           System.Environment    (getArgs)
+import           System.IO.Temp        (withTempDirectory)
+import           System.Process        (rawSystem)
 
 main :: IO ()
 main = do
     (name:opts) <- getArgs
-    code <- readFile $ modulePath name
-    H.ParseOk ast <- H.parseModuleWithMode parseMode
-        <$> CPP.runCpphs cppOpt "/dev/null" code
-    case opts of
-        [] -> putStrLn $ pretty ast
-        [dst] -> do
-            appendFile dst $ header name
-            appendFile dst $ pretty ast
+    let path = modulePath name
+    code <- readFile path
+    processed <- withTempDirectory "." "iota-cpp" $ \tmpDir -> do
+        let originalPath = tmpDir ++ "/define-removed.hs"
+        let processedPath = tmpDir ++ "/cpp-processed.hs"
+        writeFile originalPath $ removeDefineMacros code
+        rawSystem "stack"
+            ["ghc", "--", "-E", originalPath , "-o", processedPath]
+        removeMacros <$> readFile processedPath
+    let Just (_, exts) = H.readExtensions processed
+    let parseOption = H.defaultParseMode
+            { H.parseFilename = path
+            , H.extensions = exts
+            }
+    case H.parseModuleWithMode parseOption processed of
+        H.ParseOk ast -> case opts of
+            [] -> putStrLn $ pretty ast
+            [dst] -> do
+                appendFile dst $ header name
+                appendFile dst $ pretty ast
+        failed -> print failed
 
 installPath :: FilePath
 installPath = $(do dir <- runIO getCurrentDirectory;[e|dir|])
@@ -48,26 +63,11 @@ pretty :: H.Module l -> String
 pretty (H.Module _ _ _ _ decls) = unlines
     $ map (H.prettyPrintWithMode pphsMode) decls
 
-cppOpt :: CPP.CpphsOptions
-cppOpt = CPP.defaultCpphsOptions
-    { CPP.boolopts = CPP.defaultBoolOptions
-        { CPP.macros = False
-        , CPP.locations = False
-        }
-    }
+removeDefineMacros :: String -> String
+removeDefineMacros = unlines . filter (not . L.isPrefixOf "#define") . lines
 
-parseMode :: H.ParseMode
-parseMode = H.defaultParseMode {
-    H.extensions =
-        [ H.EnableExtension H.BangPatterns
-        , H.EnableExtension H.CPP
-        , H.EnableExtension H.LambdaCase
-        , H.EnableExtension H.MagicHash
-        , H.EnableExtension H.MultiParamTypeClasses
-        , H.EnableExtension H.RecordWildCards
-        , H.EnableExtension H.TypeFamilies
-        ]
-    }
+removeMacros :: String -> String
+removeMacros = unlines . filter (not . L.isPrefixOf "#") . lines
 
 pphsMode :: H.PPHsMode
 pphsMode = H.defaultMode{ H.layout = H.PPNoLayout }
