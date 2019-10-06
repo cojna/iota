@@ -36,6 +36,18 @@ dependencies:
 library:
   source-dirs: src
 
+executables:
+  iota:
+    main: Main.hs
+    source-dirs: app
+    ghc-options: []
+    dependencies:
+      - directory
+      - haskell-src-exts
+      - process
+      - template-haskell
+      - temporary
+
 tests:
   iota-test:
     main:                Spec.hs
