@@ -13,7 +13,7 @@ import           Data.VecQueue
 topSort :: SparseGraph w -> Maybe (U.Vector Int)
 topSort gr = runST $ do
     let n = numVerticesCSR gr
-    q <- withCapacityQ n
+    q <- newVecQueue n
     let inDegree = U.unsafeAccumulate (+) (U.replicate n (0 :: Int))
             . U.map (flip (,) 1)
             $ adjacentCSR gr

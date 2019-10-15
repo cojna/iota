@@ -31,7 +31,7 @@ buildDirectedGraph numVerticesCSR edges = runST $ do
             . fst
             $ U.unzip edges
     moffset <- U.thaw offsetCSR
-    madj <- UM.new numEdgesCSR
+    madj <- UM.unsafeNew numEdgesCSR
     U.forM_ edges $ \(src, dst) -> do
         pos <- UM.unsafeRead moffset src
         UM.unsafeWrite moffset src (pos + 1)
@@ -40,8 +40,24 @@ buildDirectedGraph numVerticesCSR edges = runST $ do
     return CSR{edgeCtxCSR = U.replicate numEdgesCSR (), ..}
 
 buildUndirectedGraph :: Int -> U.Vector Edge -> SparseGraph ()
-buildUndirectedGraph n edges
-    = buildDirectedGraph n (edges U.++ U.map swap edges)
+buildUndirectedGraph numVerticesCSR edges = runST $ do
+    let numEdgesCSR = 2 * U.length edges
+    outDeg <- UM.replicate numVerticesCSR (0 :: Int)
+    U.forM_ edges $ \(x, y) -> do
+        UM.unsafeModify outDeg (+1) x
+        UM.unsafeModify outDeg (+1) y
+    offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDeg
+    moffset <- U.thaw offsetCSR
+    madj <- UM.unsafeNew numEdgesCSR
+    U.forM_ edges $ \(x, y) -> do
+        posX <- UM.unsafeRead moffset x
+        posY <- UM.unsafeRead moffset y
+        UM.unsafeWrite moffset x (posX + 1)
+        UM.unsafeWrite moffset y (posY + 1)
+        UM.unsafeWrite madj posX y
+        UM.unsafeWrite madj posY x
+    adjacentCSR <- U.unsafeFreeze madj
+    return CSR{edgeCtxCSR = U.replicate numEdgesCSR (), ..}
 
 buildDirectedGraphW :: (U.Unbox w)
     => Int -> U.Vector (EdgeWith w) -> SparseGraph w
@@ -53,13 +69,38 @@ buildDirectedGraphW numVerticesCSR edges = runST $ do
             . (\(x, _, _) -> x)
             $ U.unzip3 edges
     moffset <- U.thaw offsetCSR
-    madj <- UM.new numEdgesCSR
-    mectx <- UM.new numEdgesCSR
+    madj <- UM.unsafeNew numEdgesCSR
+    mectx <- UM.unsafeNew numEdgesCSR
     U.forM_ edges $ \(src, dst, w) -> do
         pos <- UM.unsafeRead moffset src
         UM.unsafeWrite moffset src (pos + 1)
         UM.unsafeWrite madj pos dst
         UM.unsafeWrite mectx pos w
+    adjacentCSR <- U.unsafeFreeze madj
+    edgeCtxCSR <- U.unsafeFreeze mectx
+    return CSR{..}
+
+buildUndirectedGraphW :: (U.Unbox w)
+    => Int -> U.Vector (EdgeWith w) -> SparseGraph w
+buildUndirectedGraphW numVerticesCSR edges = runST $ do
+    let numEdgesCSR = 2 * U.length edges
+    outDeg <- UM.replicate numVerticesCSR (0 :: Int)
+    U.forM_ edges $ \(x, y, _) -> do
+        UM.unsafeModify outDeg (+1) x
+        UM.unsafeModify outDeg (+1) y
+    offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDeg
+    moffset <- U.thaw offsetCSR
+    madj <- UM.unsafeNew numEdgesCSR
+    mectx <- UM.unsafeNew numEdgesCSR
+    U.forM_ edges $ \(x, y, w) -> do
+        posX <- UM.unsafeRead moffset x
+        posY <- UM.unsafeRead moffset y
+        UM.unsafeWrite moffset x (posX + 1)
+        UM.unsafeWrite moffset y (posY + 1)
+        UM.unsafeWrite madj posX y
+        UM.unsafeWrite madj posY x
+        UM.unsafeWrite mectx posX w
+        UM.unsafeWrite mectx posY w
     adjacentCSR <- U.unsafeFreeze madj
     edgeCtxCSR <- U.unsafeFreeze mectx
     return CSR{..}
@@ -71,6 +112,13 @@ adj CSR{..} v = U.unsafeSlice o (o' - o) adjacentCSR
     o' = U.unsafeIndex offsetCSR (v + 1)
 {-# INLINE adj #-}
 
+iadj :: SparseGraph w -> Vertex -> U.Vector (Int, Vertex)
+iadj CSR{..} v = U.imap ((,) . (+o)) $ U.unsafeSlice o (o' - o) adjacentCSR
+  where
+    o = U.unsafeIndex offsetCSR v
+    o' = U.unsafeIndex offsetCSR (v + 1)
+{-# INLINE iadj #-}
+
 adjW :: (U.Unbox w)
     => SparseGraph w -> Vertex -> U.Vector (Vertex, w)
 adjW CSR{..} v = U.zip
@@ -81,5 +129,20 @@ adjW CSR{..} v = U.zip
     o' = U.unsafeIndex offsetCSR (v + 1)
 {-# INLINE adjW #-}
 
+iadjW :: (U.Unbox w)
+    => SparseGraph w -> Vertex -> U.Vector (Int, Vertex, w)
+iadjW CSR{..} v = U.izipWith (\i u w -> (i + o, u, w))
+    (U.unsafeSlice o (o' - o) adjacentCSR)
+    (U.unsafeSlice o (o' - o) edgeCtxCSR)
+  where
+    o = U.unsafeIndex offsetCSR v
+    o' = U.unsafeIndex offsetCSR (v + 1)
+{-# INLINE iadjW #-}
 
+outEdges :: SparseGraph w -> Vertex -> U.Vector Int
+outEdges CSR{..} v = U.generate (o' - o) (+o)
+  where
+    o = U.unsafeIndex offsetCSR v
+    o' = U.unsafeIndex offsetCSR (v + 1)
+{-# INLINE outEdges #-}
 

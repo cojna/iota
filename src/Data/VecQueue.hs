@@ -18,14 +18,11 @@ getDequeueCount :: (PrimMonad m) => VecQueue (PrimState m) a -> m Int
 getDequeueCount (VecQueue info _) = UM.unsafeRead info 0
 {-# INLINE getDequeueCount #-}
 
-withCapacityQ
-    :: (PrimMonad m, UM.Unbox a)
-    => Int -> m (VecQueue (PrimState m) a)
-withCapacityQ n
-    = VecQueue <$> UM.replicate 2 0 <*> UM.unsafeNew n
+newVecQueue :: (PrimMonad m, UM.Unbox a) => Int -> m (VecQueue (PrimState m) a)
+newVecQueue n = VecQueue <$> UM.replicate 2 0 <*> UM.unsafeNew n
 
-newQueue :: (PrimMonad m, UM.Unbox a) => m (VecQueue (PrimState m) a)
-newQueue = withCapacityQ (1024 * 1024)
+defaultVecQueueSize :: Int
+defaultVecQueueSize = 1024 * 1024
 
 freezeQueueData
     :: (PrimMonad m, UM.Unbox a)

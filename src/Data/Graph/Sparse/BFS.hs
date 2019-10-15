@@ -16,7 +16,7 @@ import           Data.VecQueue
 bfsCSR :: Vertex -> SparseGraph w -> U.Vector Int
 bfsCSR source gr@CSR{..} = U.create $ do
     dist <- UM.replicate numVerticesCSR INF
-    que <- withCapacityQ numEdgesCSR
+    que <- newVecQueue numEdgesCSR
     UM.write dist source 0
     enqueue source que
     fix $ \loop -> do
