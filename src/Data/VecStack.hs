@@ -3,27 +3,30 @@ module Data.VecStack where
 import           Control.Monad.Primitive
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-data VecStack m a = VecStack
-    { stackInfo :: !(UM.MVector m Int)
-    , stackData :: !(UM.MVector m a)
+data VecStack s a = VecStack
+    { stackInfo :: !(UM.MVector s Int)
+    , stackData :: !(UM.MVector s a)
     }
 
-newStackM :: (PrimMonad m, UM.Unbox a) => m (VecStack (PrimState m) a)
-newStackM = VecStack <$> UM.replicate 1 0 <*> UM.unsafeNew (1024 * 1024)
+newVecStack :: (PrimMonad m, UM.Unbox a) => Int -> m (VecStack (PrimState m) a)
+newVecStack n = VecStack <$> UM.replicate 1 0 <*> UM.unsafeNew n
 
-popM :: (PrimMonad m, UM.Unbox a) => VecStack (PrimState m) a -> m (Maybe a)
-popM (VecStack info s) = do
+defaultVecStackSize :: Int
+defaultVecStackSize = 1024 * 1024
+
+pop :: (PrimMonad m, UM.Unbox a) => VecStack (PrimState m) a -> m (Maybe a)
+pop (VecStack info s) = do
     len <- UM.unsafeRead info 0
     if len > 0
     then do
         UM.unsafeWrite info 0 (len - 1)
         pure <$> UM.unsafeRead s (len - 1)
     else return Nothing
-{-# INLINE popM #-}
+{-# INLINE pop #-}
 
-pushM :: (PrimMonad m, UM.Unbox a) => a -> VecStack (PrimState m) a -> m ()
-pushM x (VecStack info s) = do
+push :: (PrimMonad m, UM.Unbox a) => a -> VecStack (PrimState m) a -> m ()
+push x (VecStack info s) = do
     len <- UM.unsafeRead info 0
     UM.unsafeWrite s len x
     UM.unsafeWrite info 0 (len + 1)
-{-# INLINE pushM #-}
+{-# INLINE push #-}

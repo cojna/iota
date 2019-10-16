@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedLists #-}
 
-module Data.Graph.SparseSpec (main, spec) where
+module Data.Graph.Sparse.TopSortSpec (main, spec) where
 
 import           Data.Graph.Sparse
+import           Data.Graph.Sparse.TopSort
 import           Test.Prelude
 
 main :: IO ()
