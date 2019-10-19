@@ -1,21 +1,19 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Safe #-}
 
-module Utils where
+module Utils.Safe where
 
 import           Control.Monad.State.Strict
 import qualified Data.ByteString            as B
 import qualified Data.ByteString.Char8      as C
 import           Data.Char
-import           Data.Coerce
-import qualified Data.Vector.Unboxed        as U
 import           Data.Word
 
 rep :: Monad m => Int -> (Int -> m ()) -> m ()
-rep !n = U.forM_ $ U.generate n id
+rep !n f = foldr ((>>).f) (return ()) [0..n-1]
 {-# INLINE rep #-}
 
 rev :: Monad m => Int -> (Int -> m ()) -> m ()
-rev !n = U.forM_ $ U.iterateN n (subtract 1) (n - 1)
+rev !n f = foldr ((>>).f.negate) (return ()) [1-n..0]
 {-# INLINE rev #-}
 
 type Parser a = StateT C.ByteString Maybe a
@@ -25,7 +23,7 @@ runParser = runStateT
 {-# INLINE runParser #-}
 
 int :: Parser Int
-int = coerce $ C.readInt . C.dropWhile isSpace
+int = StateT $ C.readInt . C.dropWhile isSpace
 {-# INLINE int #-}
 
 int1 :: Parser Int
@@ -33,9 +31,9 @@ int1 = fmap (subtract 1) int
 {-# INLINE int1 #-}
 
 char :: Parser Char
-char = coerce C.uncons
+char = StateT C.uncons
 {-# INLINE char #-}
 
 byte :: Parser Word8
-byte = coerce B.uncons
+byte = StateT B.uncons
 {-# INLINE byte #-}
