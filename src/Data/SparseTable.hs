@@ -10,7 +10,7 @@ import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Utils
+import           Math.Utils
 
 #if !MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 newtype Min a = Min {getMin :: a} deriving (Eq, Ord, Show)

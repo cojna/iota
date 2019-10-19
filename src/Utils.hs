@@ -2,10 +2,13 @@
 
 module Utils where
 
-import           Data.Bits
-import qualified Data.Vector.Unboxed as U
+import           Control.Monad.State.Strict
+import qualified Data.ByteString            as B
+import qualified Data.ByteString.Char8      as C
+import           Data.Char
+import           Data.Coerce
+import qualified Data.Vector.Unboxed        as U
 import           Data.Word
-import           Unsafe.Coerce
 
 rep :: Monad m => Int -> (Int -> m ()) -> m ()
 rep !n = U.forM_ $ U.generate n id
@@ -15,8 +18,24 @@ rev :: Monad m => Int -> (Int -> m ()) -> m ()
 rev !n = U.forM_ $ U.iterateN n (subtract 1) (n - 1)
 {-# INLINE rev #-}
 
-floorLog2 :: Int -> Int
-floorLog2 x = fromIntegral $ unsafeShiftR y 52 - 1023
-  where
-    y :: Word64
-    y = unsafeCoerce (fromIntegral x :: Double)
+type Parser a = StateT C.ByteString Maybe a
+
+runParser :: Parser a -> C.ByteString -> Maybe (a, C.ByteString)
+runParser = runStateT
+{-# INLINE runParser #-}
+
+int :: Parser Int
+int = coerce $ C.readInt . C.dropWhile isSpace
+{-# INLINE int #-}
+
+int1 :: Parser Int
+int1 = fmap (subtract 1) int
+{-# INLINE int1 #-}
+
+char :: Parser Char
+char = coerce C.uncons
+{-# INLINE char #-}
+
+byte :: Parser Word8
+byte = coerce B.uncons
+{-# INLINE byte #-}
