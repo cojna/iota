@@ -1,8 +1,8 @@
-module Search.BinarySearchSpec (main, spec) where
+module Algorithm.BinarySearchSpec (main, spec) where
 
 import           Data.Functor.Identity
 import           GHC.Exts
-import           Search.BinarySearch
+import           Algorithm.BinarySearch
 import           Test.Prelude
 
 main :: IO ()

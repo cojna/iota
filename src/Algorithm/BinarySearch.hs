@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Search.BinarySearch where
+module Algorithm.BinarySearch where
 
 import           Control.Exception
 
