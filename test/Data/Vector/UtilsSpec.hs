@@ -29,27 +29,36 @@ spec = do
         it "group [] == []" $ do
             group []
                 `shouldBe` ([] :: V.Vector (U.Vector Int))
-    describe "pairs" $ do
-        it "pairs [1,2,3,4] == [(1,2), (3,4)]" $ do
-            pairs [1,2,3,4]
+    describe "tuples2" $ do
+        it "tuples2 [1,2,3,4] == [(1,2), (3,4)]" $ do
+            tuples2 [1,2,3,4]
               `shouldBe` ([(1,2), (3,4)] :: U.Vector (Int, Int))
-    describe "pairs" $ do
-        it "pairs [1,2,3,4,5] == [(1,2), (3,4)]" $ do
-            pairs [1,2,3,4,5]
+        it "tuples2 [1,2,3,4,5] == [(1,2), (3,4)]" $ do
+            tuples2 [1,2,3,4,5]
               `shouldBe` ([(1,2), (3,4)] :: U.Vector (Int, Int))
-    describe "pairs" $ do
-        it "pairs [] == []" $ do
-            pairs []
+        it "tuples2 [] == []" $ do
+            tuples2 []
               `shouldBe` ([] :: U.Vector (Int, Int))
-    describe "triples" $ do
-        it "triples [1..6] == [(1,2,3), (4,5,6)]" $ do
-            triples [1..6]
+    describe "tuples2N" $ do
+        it "tuples2N 2 [1,2,3,4] == [(1,2), (3,4)]" $ do
+            tuples2N 2 [1,2,3,4]
+              `shouldBe` ([(1,2), (3,4)] :: U.Vector (Int, Int))
+        it "tuples2N 1 [1,2,3,4] == [(1,2)]" $ do
+            tuples2N 1 [1,2,3,4]
+              `shouldBe` ([(1,2)] :: U.Vector (Int, Int))
+        it "tuples2N 2 [1,2,3,4,5] == [(1,2), (3,4)]" $ do
+            tuples2N 2 [1,2,3,4,5]
+              `shouldBe` ([(1,2), (3,4)] :: U.Vector (Int, Int))
+        it "tuples2N 0 [] == []" $ do
+            tuples2N 0 []
+              `shouldBe` ([] :: U.Vector (Int, Int))
+    describe "tuples3" $ do
+        it "tuples3 [1..6] == [(1,2,3), (4,5,6)]" $ do
+            tuples3 [1..6]
               `shouldBe` ([(1,2,3), (4,5,6)] :: U.Vector (Int, Int, Int))
-    describe "triples" $ do
-        it "triples [1..7] == [(1,2,3), (4,5,6)]" $ do
-            triples [1..7]
+        it "tuples3 [1..7] == [(1,2,3), (4,5,6)]" $ do
+            tuples3 [1..7]
               `shouldBe` ([(1,2,3), (4,5,6)] :: U.Vector (Int, Int, Int))
-    describe "triples" $ do
-        it "triples [] == []" $ do
-            triples []
+        it "tuples3 [] == []" $ do
+            tuples3 []
               `shouldBe` ([] :: U.Vector (Int, Int, Int))
