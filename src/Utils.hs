@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, MagicHash #-}
 
 module Utils where
 
@@ -9,6 +9,7 @@ import           Data.Char
 import           Data.Coerce
 import qualified Data.Vector.Unboxed        as U
 import           Data.Word
+import           GHC.Exts
 
 rep :: Monad m => Int -> (Int -> m ()) -> m ()
 rep !n = U.forM_ $ U.generate n id
@@ -17,6 +18,12 @@ rep !n = U.forM_ $ U.generate n id
 rev :: Monad m => Int -> (Int -> m ()) -> m ()
 rev !n = U.forM_ $ U.iterateN n (subtract 1) (n - 1)
 {-# INLINE rev #-}
+
+infixl 8 `shiftRL`, `unsafeShiftRL`
+shiftRL = unsafeShiftRL
+{-# INLINE shiftRL #-}
+unsafeShiftRL (I# x#) (I# i#) = I# (uncheckedIShiftRL# x# i#)
+{-# INLINE unsafeShiftRL #-}
 
 type Parser a = StateT C.ByteString Maybe a
 
