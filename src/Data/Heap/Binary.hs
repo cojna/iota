@@ -1,7 +1,7 @@
 
 
-{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses, ScopedTypeVariables           #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses, RecordWildCards, ScopedTypeVariables #-}
 
 module Data.Heap.Binary where
 
@@ -15,48 +15,50 @@ import           Data.Ord
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 --
-import           Utils
+import           Utils                       (rev)
 
 data BinaryHeap (f :: * -> *) s a = BinaryHeap
     { priorityBH :: a -> f a
-    , intVarsBH :: !(UM.MVector s Int)
+    , intVarsBH  :: !(UM.MVector s Int)
     , internalVecBH :: !(UM.MVector s a)
     }
+
+_sizeBH :: Int
+_sizeBH = 0
+{-# INLINE _sizeBH #-}
 
 type MinBinaryHeap s a = BinaryHeap Identity s a
 type MaxBinaryHeap s a = BinaryHeap Down s a
 
-newBinaryHeap :: (PrimMonad m, U.Unbox a) => (a -> f a) -> Int -> m (BinaryHeap f (PrimState m) a)
+newBinaryHeap :: (U.Unbox a, PrimMonad m) => (a -> f a) -> Int -> m (BinaryHeap f (PrimState m) a)
 newBinaryHeap prio n = BinaryHeap prio <$> UM.replicate 1 0 <*> UM.unsafeNew n
 
-newMinBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> m (MinBinaryHeap (PrimState m) a)
-newMinBinaryHeap n = BinaryHeap Identity <$> UM.replicate 1 0 <*> UM.unsafeNew n
+newMinBinaryHeap :: (U.Unbox a, PrimMonad m) => Int -> m (MinBinaryHeap (PrimState m) a)
+newMinBinaryHeap = newBinaryHeap Identity
 
-newMaxBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> m (MaxBinaryHeap (PrimState m) a)
-newMaxBinaryHeap n = BinaryHeap Down <$> UM.replicate 1 0 <*> UM.unsafeNew n
+newMaxBinaryHeap :: (U.Unbox a, PrimMonad m) => Int -> m (MaxBinaryHeap (PrimState m) a)
+newMaxBinaryHeap = newBinaryHeap Down
 
 getBinaryHeapSize :: (PrimMonad m) => BinaryHeap f (PrimState m) a -> m Int
-getBinaryHeapSize (BinaryHeap _ vars _) = UM.unsafeRead vars 0
+getBinaryHeapSize BinaryHeap{..} = UM.unsafeRead intVarsBH _sizeBH
 {-# INLINE getBinaryHeapSize #-}
 
-siftUpBy :: (PrimMonad m, U.Unbox a)
+siftUpBy :: (U.Unbox a, PrimMonad m)
     => (a -> a -> Ordering) -> Int -> UM.MVector (PrimState m) a -> m ()
 siftUpBy cmp k vec = do
     x <- UM.unsafeRead vec k
     flip fix k $ \loop !i ->
         if i > 0
         then do
-            let !parent = (i - 1) `unsafeShiftR` 1
+            let parent = (i - 1) `unsafeShiftR` 1
             p <- UM.unsafeRead vec parent
             case cmp p x of
-                GT -> do
-                    UM.unsafeWrite vec i p
-                    loop parent
-                _ -> UM.unsafeWrite vec i x
+                GT -> UM.unsafeWrite vec i p >> loop parent
+                _  -> UM.unsafeWrite vec i x
         else UM.unsafeWrite vec 0 x
 {-# INLINE siftUpBy #-}
 
-siftDownBy :: (PrimMonad m, U.Unbox a)
+siftDownBy :: (U.Unbox a, PrimMonad m)
     => (a -> a -> Ordering) -> Int -> UM.MVector (PrimState m) a -> m ()
 siftDownBy cmp k vec = do
     x <- UM.unsafeRead vec k
@@ -83,7 +85,7 @@ siftDownBy cmp k vec = do
                 _  -> UM.unsafeWrite vec i x
 {-# INLINE siftDownBy #-}
 
-heapifyBy :: (PrimMonad m, U.Unbox a)
+heapifyBy :: (U.Unbox a, PrimMonad m)
     => (a -> a -> Ordering) -> UM.MVector (PrimState m) a -> m ()
 heapifyBy cmp vec = do
     rev (UM.length vec `quot` 2) $ \i -> do
@@ -101,31 +103,31 @@ instance (Ord a) => OrdVia Down a where
     compareVia _ = coerce (compare :: Down a -> Down a -> Ordering)
     {-# INLINE compareVia #-}
 
-buildBinaryHeapVia :: (PrimMonad m, U.Unbox a, OrdVia f a)
+buildBinaryHeapVia :: (OrdVia f a, U.Unbox a, PrimMonad m)
     => (a -> f a) -> U.Vector a -> m (BinaryHeap f (PrimState m) a)
-buildBinaryHeapVia ~f vec = do
-    vars <- UM.replicate 1 $ U.length vec
-    mvec <- U.unsafeThaw vec
-    heapifyBy (compareVia f) mvec
-    return $! BinaryHeap f vars mvec
+buildBinaryHeapVia ~priorityBH vec = do
+    intVarsBH <- UM.replicate 1 $ U.length vec
+    internalVecBH <- U.thaw vec
+    heapifyBy (compareVia priorityBH) internalVecBH
+    return $! BinaryHeap{..}
 {-# INLINE buildBinaryHeapVia #-}
 
-buildMinBinaryHeap :: (PrimMonad m, U.Unbox a, Ord a)
+buildMinBinaryHeap :: (Ord a, U.Unbox a, PrimMonad m)
     => U.Vector a -> m (BinaryHeap Identity (PrimState m) a)
 buildMinBinaryHeap = buildBinaryHeapVia Identity
 {-# INLINE buildMinBinaryHeap #-}
 
-buildMaxBinaryHeap :: (PrimMonad m, U.Unbox a, Ord a)
+buildMaxBinaryHeap :: (Ord a, U.Unbox a, PrimMonad m)
     => U.Vector a -> m (BinaryHeap Down (PrimState m) a)
 buildMaxBinaryHeap = buildBinaryHeapVia Down
 {-# INLINE buildMaxBinaryHeap #-}
 
-unsafeViewBH :: (PrimMonad m, U.Unbox a)
+unsafeViewBH :: (U.Unbox a, PrimMonad m)
     => BinaryHeap f (PrimState m) a -> m a
-unsafeViewBH (BinaryHeap _ _ vec) = UM.unsafeRead vec 0
+unsafeViewBH BinaryHeap{..} = UM.unsafeRead internalVecBH 0
 {-# INLINE unsafeViewBH #-}
 
-viewBH :: (PrimMonad m, U.Unbox a)
+viewBH :: (U.Unbox a, PrimMonad m)
     => BinaryHeap f (PrimState m) a -> m (Maybe a)
 viewBH bh = do
     size <- getBinaryHeapSize bh
@@ -134,35 +136,35 @@ viewBH bh = do
     else return $! Nothing
 {-# INLINE viewBH #-}
 
-insertBH :: (PrimMonad m, U.Unbox a, OrdVia f a)
+insertBH :: (OrdVia f a, U.Unbox a, PrimMonad m)
     => a -> BinaryHeap f (PrimState m) a -> m ()
-insertBH x bh@(BinaryHeap prio vars vec) = do
-    size <- getBinaryHeapSize bh
-    UM.unsafeWrite vars 0 (size + 1)
-    UM.unsafeWrite vec size x
-    siftUpBy (compareVia prio) size vec
+insertBH x BinaryHeap{..} = do
+    size <- UM.unsafeRead intVarsBH _sizeBH
+    UM.unsafeWrite intVarsBH _sizeBH (size + 1)
+    UM.unsafeWrite internalVecBH size x
+    siftUpBy (compareVia priorityBH) size internalVecBH
 {-# INLINE insertBH #-}
 
-unsafeDeleteBH :: (PrimMonad m, U.Unbox a, OrdVia f a)
+unsafeDeleteBH :: (OrdVia f a, U.Unbox a, PrimMonad m)
     => BinaryHeap f (PrimState m) a -> m ()
-unsafeDeleteBH bh@(BinaryHeap prio vars vec) = do
-    size' <- subtract 1 <$!> getBinaryHeapSize bh
-    UM.unsafeWrite vars 0 size'
-    UM.unsafeSwap vec 0 size'
-    siftDownBy (compareVia prio) 0 (UM.unsafeTake size' vec)
+unsafeDeleteBH  BinaryHeap{..} = do
+    size' <- subtract 1 <$!> UM.unsafeRead intVarsBH _sizeBH
+    UM.unsafeWrite intVarsBH _sizeBH size'
+    UM.unsafeSwap internalVecBH 0 size'
+    siftDownBy (compareVia priorityBH) 0 (UM.unsafeTake size' internalVecBH)
 {-# INLINE unsafeDeleteBH #-}
 
-modifyTopBH :: (PrimMonad m, U.Unbox a, OrdVia f a)
+modifyTopBH :: (OrdVia f a, U.Unbox a, PrimMonad m)
     => BinaryHeap f (PrimState m) a -> (a -> a) -> m ()
-modifyTopBH bh@(BinaryHeap prio _ vec) f = do
-    UM.unsafeModify vec f 0
+modifyTopBH bh@BinaryHeap{..} f = do
+    UM.unsafeModify internalVecBH f 0
     size <- getBinaryHeapSize bh
-    siftDownBy (compareVia prio) 0 (UM.unsafeTake size vec)
+    siftDownBy (compareVia priorityBH) 0 (UM.unsafeTake size internalVecBH)
 {-# INLINE modifyTopBH #-}
 
-deleteFindTopBH :: (PrimMonad m, U.Unbox a, Ord a)
+deleteFindTopBH :: (Ord a, U.Unbox a, PrimMonad m)
     => MinBinaryHeap (PrimState m) a -> m (Maybe a)
-deleteFindTopBH bh@(BinaryHeap _ _ vec) = do
+deleteFindTopBH bh = do
     size <- getBinaryHeapSize bh
     if size > 0
     then do
@@ -172,10 +174,10 @@ deleteFindTopBH bh@(BinaryHeap _ _ vec) = do
 {-# INLINE deleteFindTopBH #-}
 
 clearBH :: (PrimMonad m) => BinaryHeap f (PrimState m) a -> m ()
-clearBH (BinaryHeap _ vars _) = UM.unsafeWrite vars 0 0
+clearBH BinaryHeap{..} = UM.unsafeWrite intVarsBH 0 0
 
-freezeInternalBinaryHeapBH :: (PrimMonad m, U.Unbox a)
+freezeInternalVecBH :: (U.Unbox a, PrimMonad m)
     => BinaryHeap f (PrimState m) a -> m (U.Vector a)
-freezeInternalBinaryHeapBH bh@(BinaryHeap _ _ vec) = do
+freezeInternalVecBH bh@BinaryHeap{..} = do
     size <- getBinaryHeapSize bh
-    U.unsafeFreeze (UM.unsafeTake size vec)
+    U.unsafeFreeze (UM.unsafeTake size internalVecBH)
