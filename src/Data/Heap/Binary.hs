@@ -26,8 +26,14 @@ data BinaryHeap (f :: * -> *) s a = BinaryHeap
 type MinBinaryHeap s a = BinaryHeap Identity s a
 type MaxBinaryHeap s a = BinaryHeap Down s a
 
-newBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> (a -> f a) -> m (BinaryHeap f (PrimState m) a)
-newBinaryHeap n prio = BinaryHeap prio <$> UM.replicate 1 0 <*> UM.unsafeNew n
+newBinaryHeap :: (PrimMonad m, U.Unbox a) => (a -> f a) -> Int -> m (BinaryHeap f (PrimState m) a)
+newBinaryHeap prio n = BinaryHeap prio <$> UM.replicate 1 0 <*> UM.unsafeNew n
+
+newMinBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> m (MinBinaryHeap (PrimState m) a)
+newMinBinaryHeap n = BinaryHeap Identity <$> UM.replicate 1 0 <*> UM.unsafeNew n
+
+newMaxBinaryHeap :: (PrimMonad m, U.Unbox a) => Int -> m (MaxBinaryHeap (PrimState m) a)
+newMaxBinaryHeap n = BinaryHeap Down <$> UM.replicate 1 0 <*> UM.unsafeNew n
 
 getBinaryHeapSize :: (PrimMonad m) => BinaryHeap f (PrimState m) a -> m Int
 getBinaryHeapSize (BinaryHeap _ vars _) = UM.unsafeRead vars 0
