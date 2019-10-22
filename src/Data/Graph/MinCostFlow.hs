@@ -13,7 +13,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
 import           Unsafe.Coerce
 
-import           Data.Heap.BinaryHeap.Min
+import           Data.Heap.Binary
 import           Utils                       (rep)
 
 nothing :: Int
@@ -35,7 +35,7 @@ data MinCostFlow s = MinCostFlow
     , residualMCF    :: UM.MVector s Capacity
     , potentialMCF   :: UM.MVector s Cost
     , distMCF        :: UM.MVector s Cost
-    , heapMCF        :: BinaryHeap s Word64 -- (Cost, Vertex)
+    , heapMCF        :: MinBinaryHeap s Word64 -- (Cost, Vertex)
     , revEdgeMCF     :: U.Vector Int
     , prevVertexMCF  :: UM.MVector s Vertex
     , prevEdgeMCF    :: UM.MVector s Int
@@ -76,10 +76,10 @@ dijkstraMCF source sink MinCostFlow{..} = do
     UM.set distMCF inf
     UM.unsafeWrite distMCF source 0
     clearBH heapMCF
-    insertMinBH (encodeMCF 0 source) heapMCF
+    insertBH (encodeMCF 0 source) heapMCF
 
     fix $ \loop -> do
-        deleteFindMinBH heapMCF >>= \case
+        deleteFindTopBH heapMCF >>= \case
             Just cv -> do
                 let (c, v) = decodeMCF cv
                 dv <- UM.unsafeRead distMCF v
@@ -98,7 +98,7 @@ dijkstraMCF source sink MinCostFlow{..} = do
                             UM.unsafeWrite distMCF nv dnv
                             UM.unsafeWrite prevVertexMCF nv v
                             UM.unsafeWrite prevEdgeMCF nv e
-                            insertMinBH (encodeMCF dnv nv) heapMCF
+                            insertBH (encodeMCF dnv nv) heapMCF
                 loop
             Nothing -> do
                 cost <- UM.unsafeRead distMCF sink
@@ -185,7 +185,7 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
     costMCF <- U.unsafeFreeze mcostMCF
     potentialMCF <- UM.replicate numVerticesMCF 0
     distMCF <- UM.replicate numVerticesMCF 0
-    heapMCF <- newBinaryHeap numEdgesMCF
+    heapMCF <- newMinBinaryHeap numEdgesMCF
     revEdgeMCF <- U.unsafeFreeze mrevEdgeMCF
     prevVertexMCF <- UM.replicate numVerticesMCF nothing
     prevEdgeMCF <- UM.replicate numVerticesMCF nothing

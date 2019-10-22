@@ -9,7 +9,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.Graph.Sparse
-import           Data.Heap.BinaryHeap.Min
+import           Data.Heap.Binary
 
 #define INF 0x3f3f3f3f3f3f3f3f
 
@@ -17,11 +17,11 @@ dijkstraCSR :: (U.Unbox w, Num w, Ord w)
     => Vertex -> SparseGraph w -> U.Vector w
 dijkstraCSR source gr@CSR{..} = U.create $ do
     dist <- UM.replicate numVerticesCSR INF
-    heap <- newBinaryHeap numEdgesCSR
+    heap <- newMinBinaryHeap numEdgesCSR
     UM.write dist source 0
-    insertMinBH (0, source) heap
+    insertBH (0, source) heap
     fix $ \loop -> do
-        deleteFindMinBH heap >>= \case
+        deleteFindTopBH heap >>= \case
             Just (d, v) -> do
                 dv <- UM.unsafeRead dist v
                 when (dv == d) $ do
@@ -29,7 +29,7 @@ dijkstraCSR source gr@CSR{..} = U.create $ do
                         dv' <- UM.unsafeRead dist v'
                         when (dv + w' < dv') $ do
                             UM.unsafeWrite dist v' $ dv + w'
-                            insertMinBH (dv + w', v') heap
+                            insertBH (dv + w', v') heap
                 loop
             Nothing -> return ()
     return dist
