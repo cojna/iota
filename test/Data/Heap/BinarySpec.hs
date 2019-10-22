@@ -57,13 +57,13 @@ spec = do
             h <- newMinBinaryHeapInt 10
             insertBH 2 h
             insertBH 1 h
-            modifyTopBH h negate
+            modifyTopBH negate h
             viewBH h `shouldReturn` Just (-1)
         it "new; insert 2; insert 1; modify (+100); view; #=> Just 2" $ do
             h <- newMinBinaryHeapInt 10
             insertBH 2 h
             insertBH 1 h
-            modifyTopBH h (+100)
+            modifyTopBH (+100) h
             viewBH h `shouldReturn` Just 2
         it "new; insert 1; insert 2; clear; view #=> Nothing" $ do
             h <- newMinBinaryHeapInt 10
@@ -152,13 +152,13 @@ spec = do
             h <- newMaxBinaryHeapInt 10
             insertBH 2 h
             insertBH 1 h
-            modifyTopBH h negate
+            modifyTopBH negate h
             viewBH h `shouldReturn` Just 1
         it "new; insert 2; insert 1; modify (+100); view; #=> Just 102" $ do
             h <- newMaxBinaryHeapInt 10
             insertBH 2 h
             insertBH 1 h
-            modifyTopBH h (+100)
+            modifyTopBH (+100) h
             viewBH h `shouldReturn` Just 102
         it "new; insert 1; insert 2; clear; view #=> Nothing" $ do
             h <- newMaxBinaryHeapInt 10
