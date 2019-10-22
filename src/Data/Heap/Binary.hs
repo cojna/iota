@@ -155,8 +155,8 @@ unsafeDeleteBH  BinaryHeap{..} = do
 {-# INLINE unsafeDeleteBH #-}
 
 modifyTopBH :: (OrdVia f a, U.Unbox a, PrimMonad m)
-    => BinaryHeap f (PrimState m) a -> (a -> a) -> m ()
-modifyTopBH bh@BinaryHeap{..} f = do
+    => (a -> a) -> BinaryHeap f (PrimState m) a -> m ()
+modifyTopBH f bh@BinaryHeap{..} = do
     UM.unsafeModify internalVecBH f 0
     size <- getBinaryHeapSize bh
     siftDownBy (compareVia priorityBH) 0 (UM.unsafeTake size internalVecBH)
