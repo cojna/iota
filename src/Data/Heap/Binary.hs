@@ -1,5 +1,3 @@
-
-
 {-# LANGUAGE BangPatterns, CPP, FlexibleInstances, KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses, RecordWildCards, ScopedTypeVariables #-}
 
@@ -18,8 +16,8 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Utils                       (rev)
 
 data BinaryHeap (f :: * -> *) s a = BinaryHeap
-    { priorityBH :: a -> f a
-    , intVarsBH  :: !(UM.MVector s Int)
+    { priorityBH    :: a -> f a
+    , intVarsBH     :: !(UM.MVector s Int)
     , internalVecBH :: !(UM.MVector s a)
     }
 
@@ -156,9 +154,9 @@ unsafeDeleteBH  BinaryHeap{..} = do
 
 modifyTopBH :: (OrdVia f a, U.Unbox a, PrimMonad m)
     => (a -> a) -> BinaryHeap f (PrimState m) a -> m ()
-modifyTopBH f bh@BinaryHeap{..} = do
+modifyTopBH f BinaryHeap{..} = do
     UM.unsafeModify internalVecBH f 0
-    size <- getBinaryHeapSize bh
+    size <- UM.unsafeRead intVarsBH _sizeBH
     siftDownBy (compareVia priorityBH) 0 (UM.unsafeTake size internalVecBH)
 {-# INLINE modifyTopBH #-}
 
@@ -178,6 +176,6 @@ clearBH BinaryHeap{..} = UM.unsafeWrite intVarsBH 0 0
 
 freezeInternalVecBH :: (U.Unbox a, PrimMonad m)
     => BinaryHeap f (PrimState m) a -> m (U.Vector a)
-freezeInternalVecBH bh@BinaryHeap{..} = do
-    size <- getBinaryHeapSize bh
+freezeInternalVecBH BinaryHeap{..} = do
+    size <- UM.unsafeRead intVarsBH _sizeBH
     U.unsafeFreeze (UM.unsafeTake size internalVecBH)

@@ -6,8 +6,8 @@ import           Control.Monad.Primitive
 import           Data.Functor.Identity
 import           Data.Heap.Binary
 import           Data.Ord
-import qualified Data.Vector.Unboxed      as U
-import qualified Data.Vector.Unboxed.Mutable      as UM
+import qualified Data.Vector.Unboxed         as U
+import qualified Data.Vector.Unboxed.Mutable as UM
 import           Test.Prelude
 
 main :: IO ()
