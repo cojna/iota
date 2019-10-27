@@ -59,3 +59,8 @@ enqueue x vq@(VecQueue info q) = do
     UM.unsafeWrite q t x
     UM.unsafeWrite info 1 (t + 1)
 {-# INLINE enqueue #-}
+
+clearVQ :: (UM.Unbox a, PrimMonad m) => VecQueue (PrimState m) a -> m ()
+clearVQ (VecQueue info _) = do
+    UM.unsafeWrite info 0 0
+    UM.unsafeWrite info 1 0
