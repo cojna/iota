@@ -33,7 +33,7 @@ data MaxFlow s cap = MaxFlow
     }
 
 -- | Dinic O(V^2E)
-runMaxFlow :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m, Show cap)
+runMaxFlow :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m)
     => Vertex -> Vertex -> MaxFlow (PrimState m) cap -> m cap
 runMaxFlow src sink mf@MaxFlow{..} = do
     flip fix 0 $ \loopBFS !flow -> do
@@ -73,7 +73,7 @@ bfsMF src MaxFlow{..} = do
             Nothing -> return ()
 {-# INLINE bfsMF #-}
 
-dfsMF :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m, Show cap)
+dfsMF :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m)
     => Vertex -> Vertex -> cap -> MaxFlow (PrimState m) cap -> m cap
 dfsMF v0 sink flow0 MaxFlow{..} = dfs v0 flow0 return
   where
