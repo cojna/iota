@@ -16,13 +16,24 @@ spec = do
         it "fact 0 = 1" $ do
             fact 0 `shouldBe` 1
         it "fact 1 = 1" $ do
-            fact 0 `shouldBe` 1
+            fact 1 `shouldBe` 1
         it "fact 2 = 2" $ do
-            fact 0 `shouldBe` 1
+            fact 2 `shouldBe` 2
         it "fact 10 = 3628800" $ do
             fact 10 `shouldBe` 3628800
         it "fact 100 = 437918130 (mod 1000000007)" $ do
             fact 100 `shouldBe` 437918130
+    describe "perm" $ do
+        it "perm 10 0 == 3628800" $ do
+            perm 10 0 `shouldBe` 3628800
+        it "prem 10 1 == 3628800" $ do
+            perm 10 1 `shouldBe` 3628800
+        it "perm 10 2 == 1814400" $ do
+            perm 10 2 `shouldBe` 1814400
+        it "perm 10 9 == 10" $ do
+            perm 10 9 `shouldBe` 10
+        it "perm 10 10 == 1" $ do
+            perm 10 10 `shouldBe` 1
     describe "comb" $ do
         prop "comb n 0 = 1" prop_combN0
         prop "comb n n = 1" prop_combNN

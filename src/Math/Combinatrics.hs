@@ -17,6 +17,10 @@ recipFact :: Int -> IntMod
 recipFact = U.unsafeIndex recipFactCache
 {-# INLINE recipFact #-}
 
+perm :: Int -> Int -> IntMod
+perm n k = fact n * recipFact k
+{-# INLINE perm #-}
+
 comb :: Int -> Int -> IntMod
 comb n k = fact n * recipFact (n - k) * recipFact k
 {-# INLINE comb #-}
