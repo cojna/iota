@@ -16,9 +16,9 @@ spec = do
         it "fact 0 = 1" $ do
             fact 0 `shouldBe` 1
         it "fact 1 = 1" $ do
-            fact 0 `shouldBe` 1
+            fact 1 `shouldBe` 1
         it "fact 2 = 2" $ do
-            fact 0 `shouldBe` 1
+            fact 2 `shouldBe` 2
         it "fact 10 = 3628800" $ do
             fact 10 `shouldBe` 3628800
         it "fact 100 = 437918130 (mod 1000000007)" $ do
