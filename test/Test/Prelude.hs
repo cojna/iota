@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, DataKinds, KindSignatures, ScopedTypeVariables #-}
 
 module Test.Prelude
     ( module Test.Hspec
@@ -6,9 +6,11 @@ module Test.Prelude
     , module Test.QuickCheck
     , module Test.QuickCheck.Arbitrary
     , module Test.QuickCheck.Monadic
+    , Nat, Symbol
     , evaluate
     , withTLEmsec
     , Prime(..)
+    , Modulo(..)
     , ByteStringOf(..)
     ) where
 
@@ -42,6 +44,14 @@ newtype Prime a = Prime {getPrime :: a}
 
 instance (Integral a) => Arbitrary (Prime a) where
     arbitrary = Prime . fromIntegral <$> elements smallPrimes
+
+newtype Modulo (n :: Nat) a = Moddulo {getModulo :: a}
+    deriving (Eq, Ord, Show)
+
+instance (Integral a, Arbitrary a, KnownNat n) => Arbitrary (Modulo n a) where
+    arbitrary = coerce . flip mod m <$> (arbitrary :: Gen a)
+      where
+        !m = fromIntegral $ natVal (Proxy :: Proxy n)
 
 instance Arbitrary IntMod where
     arbitrary = coerce . intMod <$> (arbitrary :: Gen Int)
