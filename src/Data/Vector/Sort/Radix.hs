@@ -1,22 +1,18 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Data.Vector.Sort where
+module Data.Vector.Sort.Radix where
 
 import           Data.Bits
 import qualified Data.Foldable               as F
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
+import           Unsafe.Coerce
 --
 import           Data.Word64
 
-bucketSort :: Int -> U.Vector Int -> U.Vector Int
-bucketSort bucketSize
-    = U.concatMap (uncurry $ flip U.replicate)
-    . U.indexed
-    . U.unsafeAccumulate (+) (U.replicate bucketSize 0)
-    . U.map (flip (,) 1)
-{-# INLINE bucketSort #-}
+radixSortInt :: U.Vector Int -> U.Vector Int
+radixSortInt = unsafeCoerce.radixSort64.unsafeCoerce
 
 radixSort32 :: U.Vector Word32 -> U.Vector Word32
 radixSort32 v = F.foldl' step v [0, 16]
