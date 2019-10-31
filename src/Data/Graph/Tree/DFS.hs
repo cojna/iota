@@ -23,19 +23,19 @@ shortestPath gr root = U.create $ do
     parent <- UM.unsafeNew n
 
     U.forM_ (gr `iadjW` root) $ \(ei, v, d) -> do
-        push ei stack
+        pushVS ei stack
         UM.unsafeWrite parent v root
         UM.unsafeWrite dist v d
 
     fix $ \loop ->
-        pop stack >>= \case
+        popVS stack >>= \case
             Just ei -> do
                 let v = adjacentCSR gr `U.unsafeIndex` ei
                 pv <- UM.unsafeRead parent v
                 dv <- UM.unsafeRead dist v
                 U.forM_ (gr `iadjW` v) $ \(nei, nv, d) -> do
                     when (pv /= nv) $ do
-                        push nei stack
+                        pushVS nei stack
                         UM.unsafeWrite parent nv v
                         UM.unsafeWrite dist nv $ dv + d
                 loop
