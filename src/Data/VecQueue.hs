@@ -6,17 +6,17 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 data VecQueue s a = VecQueue
-    { queueInfo :: !(UM.MVector s Int)
-    , queueData :: !(UM.MVector s a)
+    { intVarsVQ        :: !(UM.MVector s Int)
+    , internalVecQueue :: !(UM.MVector s a)
     }
 
-getEnqueueCount :: (PrimMonad m) => VecQueue (PrimState m) a -> m Int
-getEnqueueCount (VecQueue info _) = UM.unsafeRead info 1
-{-# INLINE getEnqueueCount #-}
+_dequeueCount :: Int
+_dequeueCount = 0
+{-# INLINE _dequeueCount #-}
 
-getDequeueCount :: (PrimMonad m) => VecQueue (PrimState m) a -> m Int
-getDequeueCount (VecQueue info _) = UM.unsafeRead info 0
-{-# INLINE getDequeueCount #-}
+_enqueueCount :: Int
+_enqueueCount = 1
+{-# INLINE _enqueueCount #-}
 
 newVecQueue :: (PrimMonad m, UM.Unbox a) => Int -> m (VecQueue (PrimState m) a)
 newVecQueue n = VecQueue <$> UM.replicate 2 0 <*> UM.unsafeNew n
@@ -24,43 +24,47 @@ newVecQueue n = VecQueue <$> UM.replicate 2 0 <*> UM.unsafeNew n
 defaultVecQueueSize :: Int
 defaultVecQueueSize = 1024 * 1024
 
-freezeQueueData
-    :: (PrimMonad m, UM.Unbox a)
-    => VecQueue (PrimState m) a -> m (U.Vector a)
-freezeQueueData vq@(VecQueue info q) = do
-    len <- getEnqueueCount vq
-    U.unsafeFreeze $ UM.take len q
+lengthVQ :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m Int
+lengthVQ (VecQueue info _)
+    = (-) <$> UM.unsafeRead info _enqueueCount
+        <*> UM.unsafeRead info _dequeueCount
+{-# INLINE lengthVQ #-}
 
-lengthQ :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m Int
-lengthQ vq
-    = (-) <$> getEnqueueCount vq <*> getDequeueCount vq
-
-dequeue :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m (Maybe a)
-dequeue vq@(VecQueue info q) = do
-    h <- getDequeueCount vq
-    t <- getEnqueueCount vq
-    if h < t
+dequeueVQ :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m (Maybe a)
+dequeueVQ (VecQueue info q) = do
+    f <- UM.unsafeRead info _dequeueCount
+    r <- UM.unsafeRead info _enqueueCount
+    if f < r
     then do
-        UM.unsafeWrite info 0 (h + 1)
-        pure <$> UM.unsafeRead q h
+        UM.unsafeWrite info _dequeueCount (f + 1)
+        pure <$> UM.unsafeRead q f
     else return Nothing
-{-# INLINE dequeue #-}
+{-# INLINE dequeueVQ #-}
 
-dequeueAll :: (PrimMonad m, UM.Unbox a) => VecQueue (PrimState m) a -> m (U.Vector a)
-dequeueAll vq@(VecQueue info q) = do
-    h <- getDequeueCount vq
-    t <- getEnqueueCount vq
-    U.unsafeFreeze $ UM.unsafeSlice h (t - h) q
-{-# INLINE dequeueAll #-}
+enqueueVQ :: (PrimMonad m, UM.Unbox a) => a -> VecQueue (PrimState m) a -> m ()
+enqueueVQ x (VecQueue info q) = do
+    r <- UM.unsafeRead info _enqueueCount
+    UM.unsafeWrite q r x
+    UM.unsafeWrite info _enqueueCount (r + 1)
+{-# INLINE enqueueVQ #-}
 
-enqueue :: (PrimMonad m, UM.Unbox a) => a -> VecQueue (PrimState m) a -> m ()
-enqueue x vq@(VecQueue info q) = do
-    t <- getEnqueueCount vq
-    UM.unsafeWrite q t x
-    UM.unsafeWrite info 1 (t + 1)
-{-# INLINE enqueue #-}
+enqueuesVQ :: (PrimMonad m, UM.Unbox a)
+    => U.Vector a -> VecQueue (PrimState m) a -> m ()
+enqueuesVQ vec (VecQueue info q) = do
+    r <- UM.unsafeRead info _enqueueCount
+    UM.unsafeWrite info _enqueueCount (r + U.length vec)
+    U.unsafeCopy (UM.unsafeSlice r (U.length vec) q) vec
+{-# INLINE enqueuesVQ #-}
 
 clearVQ :: (UM.Unbox a, PrimMonad m) => VecQueue (PrimState m) a -> m ()
 clearVQ (VecQueue info _) = do
-    UM.unsafeWrite info 0 0
-    UM.unsafeWrite info 1 0
+    UM.unsafeWrite info _dequeueCount 0
+    UM.unsafeWrite info _enqueueCount 0
+
+freezeVecQueue
+    :: (PrimMonad m, UM.Unbox a)
+    => VecQueue (PrimState m) a -> m (U.Vector a)
+freezeVecQueue (VecQueue info q) = do
+    f <- UM.unsafeRead info _dequeueCount
+    r <- UM.unsafeRead info _enqueueCount
+    U.unsafeFreeze $ UM.unsafeSlice f (r - f) q
