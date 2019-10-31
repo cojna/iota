@@ -18,16 +18,16 @@ bfsCSR source gr@CSR{..} = U.create $ do
     dist <- UM.replicate numVerticesCSR INF
     que <- newVecQueue numEdgesCSR
     UM.write dist source 0
-    enqueue source que
+    enqueueVQ source que
     fix $ \loop -> do
-        dequeue que >>= \case
+        dequeueVQ que >>= \case
             Just v -> do
                 dv <- UM.unsafeRead dist v
                 U.forM_ (gr `adj` v) $ \v' -> do
                     visited <- (< INF) <$> UM.unsafeRead dist v'
                     unless visited $ do
                         UM.unsafeWrite dist v' $ dv + 1
-                        enqueue v' que
+                        enqueueVQ v' que
                 loop
             Nothing -> return ()
     return dist

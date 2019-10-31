@@ -56,9 +56,9 @@ bfsMF :: (Num cap, Ord cap, U.Unbox cap, PrimMonad m)
     => Vertex -> MaxFlow (PrimState m) cap -> m ()
 bfsMF src MaxFlow{..} = do
     UM.unsafeWrite levelMF src 0
-    enqueue src queueMF
+    enqueueVQ src queueMF
     fix $ \loop -> do
-        dequeue queueMF >>= \case
+        dequeueVQ queueMF >>= \case
             Just v -> do
                 let start = U.unsafeIndex offsetMF v
                 let end = U.unsafeIndex offsetMF (v + 1)
@@ -68,7 +68,7 @@ bfsMF src MaxFlow{..} = do
                     lnv <- UM.unsafeRead levelMF nv
                     when (res > 0 && lnv == nothing) $ do
                         UM.unsafeRead levelMF v >>= UM.unsafeWrite levelMF nv . (+1)
-                        enqueue nv queueMF
+                        enqueueVQ nv queueMF
                     loop
             Nothing -> return ()
 {-# INLINE bfsMF #-}

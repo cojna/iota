@@ -17,20 +17,20 @@ topSort gr = runST $ do
     let inDegree = U.unsafeAccumulate (+) (U.replicate n (0 :: Int))
             . U.map (flip (,) 1)
             $ adjacentCSR gr
-    U.mapM_ (flip enqueue q . fst)
+    U.mapM_ (flip enqueueVQ q . fst)
         . U.filter ((== 0) . snd)
         $ U.indexed inDegree
     inDeg <- U.unsafeThaw inDegree
     fix $ \loop -> do
-        dequeue q >>= \case
+        dequeueVQ q >>= \case
             Just v -> do
                 U.forM_ (gr `adj` v) $ \u -> do
                     UM.unsafeRead inDeg u >>= \case
-                        1 -> enqueue u q
+                        1 -> enqueueVQ u q
                         i -> UM.unsafeWrite inDeg u (i - 1)
                 loop
-            Nothing -> return()
-    res <- freezeQueueData q
-    if U.length res == n
-    then return $ Just res
+            Nothing -> return ()
+    enqueueCount <- UM.unsafeRead (intVarsVQ q) _enqueueCount
+    if enqueueCount == n
+    then Just <$> U.unsafeFreeze (internalVecQueue q)
     else return Nothing
