@@ -50,6 +50,10 @@ memberIMS x = IM.member x . (coerce :: IntMultiSet -> IM.IntMap Int)
 notMemberIMS :: Int -> IntMultiSet -> Bool
 notMemberIMS x = not . memberIMS x
 
+-- | /P(min(n, W))/
+countIMS :: Int -> IntMultiSet -> Int
+countIMS key = IM.findWithDefault 0 key . coerce
+
 -- | /O(log n)/
 lookupLTIMS :: Int -> IntMultiSet -> Maybe Int
 lookupLTIMS x = fmap fst . IM.lookupLT x
