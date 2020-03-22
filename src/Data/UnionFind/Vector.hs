@@ -11,15 +11,15 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 newtype UnionFind s = UF { internalUF :: UM.MVector s Int }
 
-runUnionFind :: PrimMonad m => UnionFind (PrimState m) -> m (U.Vector Int)
-runUnionFind = U.unsafeFreeze . internalUF
-
 newUnionFind :: PrimMonad m => Int -> m (UnionFind (PrimState m))
 newUnionFind n = UF <$> UM.replicate n (-1)
 {-# INLINE newUnionFind #-}
 
-findM :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
-findM uf x = go x return
+freezeUnionFind :: PrimMonad m => UnionFind (PrimState m) -> m (U.Vector Int)
+freezeUnionFind = U.unsafeFreeze . internalUF
+
+findUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
+findUF uf x = go x return
   where
     go !x k = do
         px <- UM.unsafeRead (internalUF uf) x
@@ -28,20 +28,20 @@ findM uf x = go x return
         else go px $ \ppx -> do
             UM.unsafeWrite (internalUF uf) x ppx
             k ppx
-{-# INLINE findM #-}
+{-# INLINE findUF #-}
 
-sizeM :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
-sizeM uf = fix $ \loop x -> do
+sizeUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
+sizeUF uf = fix $ \loop x -> do
     px <- UM.unsafeRead (internalUF uf) x
     if px < 0
     then return $! negate px
     else loop px
-{-# INLINE sizeM #-}
+{-# INLINE sizeUF #-}
 
-uniteM :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
-uniteM uf x y = do
-    px <- findM uf x
-    py <- findM uf y
+uniteUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
+uniteUF uf x y = do
+    px <- findUF uf x
+    py <- findUF uf y
     if px == py
     then return False
     else do
@@ -55,13 +55,13 @@ uniteM uf x y = do
             UM.unsafeModify (internalUF uf) (+rx) py
             UM.unsafeWrite  (internalUF uf) px py
         return True
-{-# INLINE uniteM #-}
+{-# INLINE uniteUF #-}
 
-equivM :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
-equivM uf x y = (==) `liftM` findM uf x `ap` findM uf y
-{-# INLINE equivM #-}
+equivUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
+equivUF uf x y = (==) `liftM` findUF uf x `ap` findUF uf y
+{-# INLINE equivUF #-}
 
 -- | O(n)
-countGroupM :: PrimMonad m => UnionFind (PrimState m) -> m Int
-countGroupM uf = U.length . U.filter (<0) <$> runUnionFind uf
-{-# INLINE countGroupM #-}
+countGroupUF :: PrimMonad m => UnionFind (PrimState m) -> m Int
+countGroupUF uf = U.length . U.filter (<0) <$> freezeUnionFind uf
+{-# INLINE countGroupUF #-}
