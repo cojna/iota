@@ -13,6 +13,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 type Vertex = Int
 type Edge = (Vertex, Vertex)
 type EdgeWith w = (Vertex, Vertex, w)
+type EdgeId = Int
 data SparseGraph w = CSR
     { numVerticesCSR :: !Int
     , numEdgesCSR    :: !Int
@@ -112,7 +113,7 @@ adj CSR{..} v = U.unsafeSlice o (o' - o) adjacentCSR
     o' = U.unsafeIndex offsetCSR (v + 1)
 {-# INLINE adj #-}
 
-iadj :: SparseGraph w -> Vertex -> U.Vector (Int, Vertex)
+iadj :: SparseGraph w -> Vertex -> U.Vector (EdgeId, Vertex)
 iadj CSR{..} v = U.imap ((,) . (+o)) $ U.unsafeSlice o (o' - o) adjacentCSR
   where
     o = U.unsafeIndex offsetCSR v
@@ -130,7 +131,7 @@ adjW CSR{..} v = U.zip
 {-# INLINE adjW #-}
 
 iadjW :: (U.Unbox w)
-    => SparseGraph w -> Vertex -> U.Vector (Int, Vertex, w)
+    => SparseGraph w -> Vertex -> U.Vector (EdgeId, Vertex, w)
 iadjW CSR{..} v = U.izipWith (\i u w -> (i + o, u, w))
     (U.unsafeSlice o (o' - o) adjacentCSR)
     (U.unsafeSlice o (o' - o) edgeCtxCSR)
@@ -139,10 +140,20 @@ iadjW CSR{..} v = U.izipWith (\i u w -> (i + o, u, w))
     o' = U.unsafeIndex offsetCSR (v + 1)
 {-# INLINE iadjW #-}
 
-outEdges :: SparseGraph w -> Vertex -> U.Vector Int
+
+outEdges :: SparseGraph w -> Vertex -> U.Vector EdgeId
 outEdges CSR{..} v = U.generate (o' - o) (+o)
   where
     o = U.unsafeIndex offsetCSR v
     o' = U.unsafeIndex offsetCSR (v + 1)
 {-# INLINE outEdges #-}
 
+outDegree :: SparseGraph w -> Vertex -> Int
+outDegree CSR{..} v
+    = U.unsafeIndex offsetCSR (v + 1)
+    - U.unsafeIndex offsetCSR v
+{-# INLINE outDegree #-}
+
+outDegrees :: SparseGraph w -> U.Vector Int
+outDegrees CSR{..} = U.zipWith (-) offsetCSR $ U.tail offsetCSR
+{-# INLINE outDegrees #-}
