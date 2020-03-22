@@ -63,6 +63,27 @@ instance Monoid Int where
     {-# INLINE mappend #-}
 #endif
 
+data SegTreeQuery a
+    = SegUpdate !Int !a
+    | SegQuery !Int !Int
+
+runSegTree
+    :: (Monoid a, U.Unbox a)
+    => U.Vector a -> V.Vector (SegTreeQuery a) -> U.Vector a
+runSegTree vec queries = U.create $ do
+    seg <- buildSegTree vec
+    res <- UM.replicate (V.length queries) mempty
+    size <- V.foldM' (\acc -> \case
+            SegUpdate k v -> do
+                writeSegTree seg k v
+                return acc
+            SegQuery l r -> do
+                mappendFromTo seg l r >>= UM.unsafeWrite res acc
+                return $ acc + 1
+        ) 0 queries
+    return $ UM.take size res
+
+
 runNaiveSegTree
     :: (Monoid a, U.Unbox a)
     => U.Vector a -> V.Vector (SegTreeQuery a) -> U.Vector a
