@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE LambdaCase   #-}
+{-# LANGUAGE BangPatterns, LambdaCase #-}
 
 module Data.SegTree.Vector where
 
@@ -16,6 +15,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
 --
 import           Data.Bits.Utils
+import           Utils                       (rev)
 
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
@@ -26,33 +26,29 @@ extendToPowerOfTwo x
     w :: Word
     w = fromIntegral x
 
-newtype SegTree m a = SegTree { unSegTree :: UM.MVector m a }
+newtype SegTree m a = SegTree { getSegTree :: UM.MVector m a }
 
 -- | O(n)
-_SEGfromVector
+buildSegTree
     :: (Monoid a, U.Unbox a, PrimMonad m)
     => U.Vector a -> m (SegTree (PrimState m) a)
-_SEGfromVector vec = do
+buildSegTree vec = do
     let n = extendToPowerOfTwo $ U.length vec
     tree <- UM.replicate (2 * n) mempty
-    U.imapM_ (UM.unsafeWrite tree . (+ n)) vec
+    U.unsafeCopy (UM.unsafeSlice n (U.length vec) tree) vec
     rev (n - 1) $ \i -> do
         x <- mappend
             <$> UM.unsafeRead tree (i .<<. 1)
             <*> UM.unsafeRead tree (i .<<. 1 .|. 1)
         UM.unsafeWrite tree i x
     return $ SegTree tree
-  where
-    rev :: (Monad m) => Int -> (Int -> m ()) -> m ()
-    rev n = U.forM_ $ U.iterateN n (subtract 1) (n - 1)
-    {-# INLINE rev #-}
 
 -- | O(log n)
-_SEGupdate
+writeSegTree
     :: (Monoid a, U.Unbox a, PrimMonad m)
-    => Int -> a -> SegTree (PrimState m) a -> m ()
-_SEGupdate k v segtree = do
-    let tree = unSegTree segtree
+    => SegTree (PrimState m) a -> Int -> a -> m ()
+writeSegTree segtree k v = do
+    let tree = getSegTree segtree
     let n = UM.length tree .>>. 1
     UM.unsafeWrite tree (k + n) v
     flip fix (k + n) $ \loop !i ->
@@ -66,11 +62,11 @@ _SEGupdate k v segtree = do
 -- | mappend [l..r)
 --
 -- O(log n)
-_SEGquery
+mappendFromTo
     :: (Monoid a, U.Unbox a, PrimMonad m)
-    => Int -> Int -> SegTree (PrimState m) a -> m a
-_SEGquery l r segtree = do
-    let tree = unSegTree segtree
+    => SegTree (PrimState m) a -> Int -> Int -> m a
+mappendFromTo segtree l r = do
+    let tree = getSegTree segtree
     let n = UM.length tree .>>. 1
     let stepL l
             | l .&. 1 == 1 = \acc ->
@@ -87,23 +83,3 @@ _SEGquery l r segtree = do
                 $ stepL l >=> (stepR r >=> k)
             | otherwise = k
     go (n + l) (n + r) return mempty
-
-data SegTreeQuery a
-    = SegUpdate !Int !a
-    | SegQuery !Int !Int
-
-runSegTree
-    :: (Monoid a, U.Unbox a)
-    => U.Vector a -> V.Vector (SegTreeQuery a) -> U.Vector a
-runSegTree vec queries = U.create $ do
-    seg <- _SEGfromVector vec
-    res <- UM.replicate (V.length queries) mempty
-    size <- V.foldM' (\acc -> \case
-            SegUpdate k v -> do
-                _SEGupdate k v seg
-                return acc
-            SegQuery l r -> do
-                _SEGquery l r seg >>= UM.unsafeWrite res acc
-                return $ acc + 1
-        ) 0 queries
-    return $ UM.take size res

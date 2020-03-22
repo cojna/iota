@@ -17,9 +17,9 @@ prop_unite :: Property
 prop_unite = monadicIO $ do
     (notEquiv, equiv) <- run $ do
         uf <- newUnionFind 5
-        ne <- equivM uf 0 1
-        uniteM uf 0 1
-        e <- equivM uf 0 1
+        ne <- equivUF uf 0 1
+        uniteUF uf 0 1
+        e <- equivUF uf 0 1
         return (ne, e)
     assert (not notEquiv && equiv)
 
@@ -27,9 +27,9 @@ prop_countGroup :: Property
 prop_countGroup = monadicIO $ do
     count <- run $ do
         uf <- newUnionFind 5
-        uniteM uf 0 1
-        uniteM uf 3 4
-        uniteM uf 2 1
-        countGroupM uf
+        uniteUF uf 0 1
+        uniteUF uf 3 4
+        uniteUF uf 2 1
+        countGroupUF uf
     assert (count == 2)
 
