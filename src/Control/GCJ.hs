@@ -1,5 +1,4 @@
 {-# LANGUAGE ConstraintKinds, ImplicitParams, LambdaCase, RankNTypes #-}
-{-# LANGUAGE TypeApplications                                        #-}
 
 module Control.GCJ where
 
