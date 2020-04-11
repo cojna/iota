@@ -1,33 +1,63 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds, ImplicitParams, LambdaCase, RankNTypes #-}
 
 module Control.GCJ where
 
 import           Control.Monad
-import qualified System.IO      as IO
+import           System.Environment
+import           System.IO
 import           System.Process
 
-runGCJ :: IO () -> IO ()
-#ifdef DEBUG
-runGCJ = id
-#else
-runGCJ action = do
-    t <- readLn
-    forM_ [1..t] $ \i -> do
-        putStr $ "Case #" ++ shows i ": "
-        action
-#endif
+formatGCJ :: Int -> String
+formatGCJ i = "Case #" <> shows i ": "
 
-runInteractive :: (IO.Handle -> IO.Handle -> IO ()) -> IO ()
-runInteractive action = do
-#ifdef DEBUG
-    (Just hout, Just hin, _, _) <- createProcess
-        (shell "python3 testing_tool.py 0")
-            { std_in = CreatePipe, std_out = CreatePipe}
-#else
-    let hin = IO.stdin
-    let hout = IO.stdout
-#endif
-    t:_ <- map read.words <$> IO.hGetLine hin :: IO [Int]
-    forM_ [1..t] $ \i -> do
-        IO.hPutStrLn IO.stderr $ "Case #" ++ shows i ":"
-        action hin hout
+withGCJ :: IO () -> IO ()
+withGCJ f = getArgs >>= \case
+    ["--debug"] -> f
+    [] -> do
+        t <- readLn
+        mapM_ ((*> f) . putStrLn . formatGCJ) [1..t]
+    args -> error $ show args
+
+data InteractiveJudge = InteractiveJudge
+    { hin :: Handle
+    , hout :: Handle
+    }
+
+type HasInteractiveJudge = (?interactiveJudge :: InteractiveJudge)
+
+withInteractiveJudge :: (HasInteractiveJudge => IO ()) -> IO ()
+withInteractiveJudge f = do
+    judge <- newInteractiveJudge
+    let ?interactiveJudge = judge
+    (t:_) <- map read.words <$> recvLine
+    mapM_ ((*> f) . hPutStrLn stderr . formatGCJ) [1..t]
+
+newInteractiveJudge :: IO InteractiveJudge
+newInteractiveJudge = getArgs >>= \case
+    [] -> return $ InteractiveJudge stdin stdout
+    args -> do
+        (Just i, Just o, _, _) <- createProcess
+            (shell . unwords $ "python3 local_testing_tool.py": args)
+                { std_in = CreatePipe
+                , std_out = CreatePipe
+                }
+        return $ InteractiveJudge o i
+
+send :: (Show a, HasInteractiveJudge) => a -> IO ()
+send = sendStrLn . show
+
+sendStr :: HasInteractiveJudge => String -> IO ()
+sendStr cs = do
+    hPutStr (hout ?interactiveJudge) cs
+    hFlush (hout ?interactiveJudge)
+
+sendStrLn :: HasInteractiveJudge => String -> IO ()
+sendStrLn cs = do
+    hPutStrLn (hout ?interactiveJudge) cs
+    hFlush (hout ?interactiveJudge)
+
+recvLine :: HasInteractiveJudge => IO String
+recvLine = hGetLine (hin ?interactiveJudge)
+
+recvLn :: (Read a, HasInteractiveJudge) => IO a
+recvLn = read <$> recvLine
