@@ -40,6 +40,7 @@ newtype NatOrd a = NatOrd {getNatOrd :: a}
 
 instance (Integral a, Ord a) => Poset (NatOrd a) where
     (.<.) = (<=)
+    {-# INLINE (.<.) #-}
     moebius (NatOrd x) (NatOrd y)
         | x == y = 1
         | x + 1 == y = -1
@@ -47,13 +48,16 @@ instance (Integral a, Ord a) => Poset (NatOrd a) where
 
 instance (Ord a) => Lattice (NatOrd a) where
     (/\) = coerce (min @a)
+    {-# INLINE (/\) #-}
     (\/) = coerce (max @a)
+    {-# INLINE (\/) #-}
 
 newtype DivOrd a = DivOrd {getDivOrd :: a}
     deriving (Eq, Show)
 
 instance (Integral a) => Poset (DivOrd a) where
     (.<.)  (DivOrd x) (DivOrd y) = rem y x == 0
+    {-# INLINE (.<.) #-}
     moebius (DivOrd x) (DivOrd y)
         | not $ DivOrd x .<. DivOrd y = 0
         | otherwise
@@ -66,7 +70,9 @@ instance (Integral a) => Poset (DivOrd a) where
 
 instance (Integral a) => Lattice (DivOrd a) where
     (/\) = coerce (gcd @a)
+    {-# INLINE (/\) #-}
     (\/) = coerce (lcm @a)
+    {-# INLINE (\/) #-}
 
 instance FastZetaMoebius DivOrd where
     type Dim DivOrd = U.Vector Int
@@ -79,6 +85,7 @@ instance FastZetaMoebius DivOrd where
                     c <- UM.unsafeRead g (p * i)
                     UM.unsafeModify g (+ c) i
             UM.write g 0 g0
+    {-# INLINE fastZeta #-}
 
     fastMoebius _ primes f = do
         let n = UM.length f
@@ -89,12 +96,14 @@ instance FastZetaMoebius DivOrd where
                     c <- UM.unsafeRead f (p * i)
                     UM.unsafeModify f (subtract c) i
             UM.write f 0 f0
+    {-# INLINE fastMoebius #-}
 
 newtype SetOrd a = SetOrd {getSetOrd :: a}
     deriving (Eq, Show)
 
 instance (Bits a) => Poset (SetOrd a) where
     (.<.) (SetOrd x) (SetOrd y) = x .&. y == x
+    {-# INLINE (.<.) #-}
     moebius (SetOrd x) (SetOrd y)
         | not $ (SetOrd x) .<. (SetOrd y) = 0
         | testBit (popCount $ complement x .&. y) 0 = -1
@@ -102,7 +111,9 @@ instance (Bits a) => Poset (SetOrd a) where
 
 instance (Bits a) => Lattice (SetOrd a) where
     (/\) = coerce ((.&.) @a)
+    {-# INLINE (/\) #-}
     (\/) = coerce ((.|.) @a)
+    {-# INLINE (\/) #-}
 
 instance FastZetaMoebius SetOrd where
     type Dim SetOrd = Int
@@ -112,11 +123,13 @@ instance FastZetaMoebius SetOrd where
                 unless (testBit j i) $ do
                     c <- UM.unsafeRead g (setBit j i)
                     UM.unsafeModify g (+ c) j
+    {-# INLINE fastZeta #-}
     fastMoebius _ n f = do
         rep n $ \i -> do
             rep (unsafeShiftL 1 n) $ \j -> do
                 unless (testBit j i) $ do
                     c <- UM.unsafeRead f (setBit j i)
                     UM.unsafeModify f (subtract c) j
+    {-# INLINE fastMoebius #-}
 
 
