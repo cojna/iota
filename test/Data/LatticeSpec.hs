@@ -17,11 +17,11 @@ main = hspec spec
 spec :: Spec
 spec = do
     describe "Poset" $ do
-        describe "SetOrd" $ posetSpec (Proxy @(NatOrd Int))
+        describe "NatOrd" $ posetSpec (Proxy @(NatOrd Int))
         describe "SetOrd" $ posetSpec (Proxy @(SetOrd Int))
         describe "DivOrd" $ posetSpec (Proxy @(DivOrd Int))
     describe "Lattice" $ do
-        describe "SetOrd" $ latticeSpec (Proxy @(NatOrd Int))
+        describe "NatOrd" $ latticeSpec (Proxy @(NatOrd Int))
         describe "SetOrd" $ latticeSpec (Proxy @(SetOrd Int))
         describe "DivOrd" $ latticeSpec (Proxy @(DivOrd Int))
     describe "fast zeta/moebius transform" $ do
