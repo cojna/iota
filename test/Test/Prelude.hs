@@ -1,17 +1,20 @@
 {-# LANGUAGE BangPatterns, DataKinds, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Test.Prelude
-    ( module Test.Hspec
+    ( module GHC.TypeLits
+    , module Data.Proxy
+    , module Test.Hspec
     , module Test.Hspec.QuickCheck
     , module Test.QuickCheck
     , module Test.QuickCheck.Arbitrary
     , module Test.QuickCheck.Monadic
-    , Nat, Symbol
     , evaluate
     , withTLEmsec
     , Prime(..)
     , Modulo(..)
     , ByteStringOf(..)
+    , Sized(..)
     ) where
 
 import           Control.Exception         (Exception (..), evaluate, throwIO)
@@ -68,3 +71,12 @@ instance KnownSymbol s => Arbitrary (ByteStringOf s) where
         . listOf
         . elements
         $ symbolVal (Proxy :: Proxy s)
+
+newtype Sized (n :: Nat) a = Sized{getSized :: [a]}
+    deriving (Eq, Ord, Show)
+
+instance (Arbitrary a, KnownNat n) => Arbitrary (Sized n a) where
+    arbitrary = Sized <$> vectorOf
+        (fromIntegral $ natVal (Proxy @n))
+        (arbitrary @a)
+
