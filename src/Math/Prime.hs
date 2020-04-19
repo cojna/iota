@@ -12,10 +12,11 @@ import           Data.Primitive
 import qualified Data.Vector.Unboxed as U
 import           Data.Word
 
-smallPrimes :: [Int]
+smallPrimes :: (Integral i) => [i]
 smallPrimes = 2 : [ n | n<-[3,5..46337], all ((>0).rem n) $ takeWhile (\x->x*x<=n) smallPrimes]
+{-# SPECIALIZE smallPrimes :: [Int] #-}
 
-primeFactors :: Int -> [Int]
+primeFactors :: (Integral i) => i -> [i]
 primeFactors n | n < 2 = []
 primeFactors n = go n smallPrimes
   where
@@ -26,9 +27,11 @@ primeFactors n = go n smallPrimes
       where
         (q, r) = quotRem n p
     go n [] = [n]
+{-# SPECIALIZE primeFactors :: Int -> [Int] #-}
 
-isPrime :: Int -> Bool
+isPrime :: Integral i => i -> Bool
 isPrime n = [n] == primeFactors n
+{-# SPECIALIZE isPrime :: Int -> Bool #-}
 
 totient :: Int -> Int
 totient n = n `quot` product ps * product (map (subtract 1) ps)
