@@ -1,4 +1,4 @@
-module Data.Matrix2x2 where
+module Math.Linear.Matrix2x2 where
 
 data Mat2x2 a = M22
     !a !a

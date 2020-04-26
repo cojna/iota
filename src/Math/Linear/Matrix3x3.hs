@@ -1,4 +1,4 @@
-module Data.Matrix3x3 where
+module Math.Linear.Matrix3x3 where
 
 data Mat3x3 a = M33
     !a !a !a

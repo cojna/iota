@@ -1,6 +1,6 @@
-module Data.Matrix3x3Spec (main, spec) where
+module Math.Linear.Matrix3x3Spec (main, spec) where
 
-import           Data.Matrix3x3
+import           Math.Linear.Matrix3x3
 import           Data.Proxy
 import           Test.Prelude
 import           Test.Prop.Num

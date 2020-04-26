@@ -1,7 +1,7 @@
-module Data.Vector2Spec (main, spec) where
+module Math.Linear.Vector2Spec (main, spec) where
 
 import           Data.Proxy
-import           Data.Vector2
+import           Math.Linear.Vector2
 import           Test.Prelude
 import           Test.Prop.Num
 import           Test.Prop.VectorSpace

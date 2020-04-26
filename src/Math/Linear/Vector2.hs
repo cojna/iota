@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Data.Vector2 where
+module Math.Linear.Vector2 where
 
 data Vec2 a = V2 !a !a deriving (Eq, Ord)
 
