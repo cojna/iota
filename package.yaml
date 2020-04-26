@@ -26,10 +26,7 @@ dependencies:
 - process
 - time
 # full
-- hashable
 - primitive
-- split
-- unordered-containers
 - vector
 
 library:
