@@ -7,43 +7,43 @@ import           GHC.Exts
 
 data Queue a = Q [a] [a]
 
-_Qempty :: Queue a
-_Qempty = Q [] []
-{-# INLINE _Qempty #-}
+emptyQ :: Queue a
+emptyQ = Q [] []
+{-# INLINE emptyQ #-}
 
-_Qnull :: Queue a -> Bool
-_Qnull (Q fs rs) = null fs && null rs
-{-# INLINE _Qnull #-}
+nullQ :: Queue a -> Bool
+nullQ (Q fs rs) = null fs && null rs
+{-# INLINE nullQ #-}
 
-_Qsingleton :: a -> Queue a
-_Qsingleton x = Q [x] []
-{-# INLINE _Qsingleton #-}
+singletonQ :: a -> Queue a
+singletonQ x = Q [x] []
+{-# INLINE singletonQ #-}
 
-_Qhead :: Queue a -> Maybe (a, Queue a)
-_Qhead (Q (f:fs) rs) = Just (f, Q fs rs)
-_Qhead (Q [] rs) = case reverse rs of
+headQ :: Queue a -> Maybe (a, Queue a)
+headQ (Q (f:fs) rs) = Just (f, Q fs rs)
+headQ (Q [] rs) = case reverse rs of
     (r:rs') -> Just (r, Q rs' [])
     []      -> Nothing
-{-# INLINE _Qhead #-}
+{-# INLINE headQ #-}
 
-_Qinsert :: a -> Queue a -> Queue a
-_Qinsert = flip _Qsnoc
-{-# INLINE _Qinsert #-}
+insertQ :: a -> Queue a -> Queue a
+insertQ = flip snocQ
+{-# INLINE insertQ #-}
 
-_Qsnoc :: Queue a -> a -> Queue a
-_Qsnoc (Q fs rs) x = Q fs (x:rs)
-{-# INLINE _Qsnoc #-}
+snocQ :: Queue a -> a -> Queue a
+snocQ (Q fs rs) x = Q fs (x:rs)
+{-# INLINE snocQ #-}
 
-_Qcons :: a -> Queue a -> Queue a
-_Qcons x (Q fs rs) = Q (x:fs) rs
-{-# INLINE _Qcons #-}
+consQ :: a -> Queue a -> Queue a
+consQ x (Q fs rs) = Q (x:fs) rs
+{-# INLINE consQ #-}
 
 (|>) :: Queue a -> a -> Queue a
-(|>) = _Qsnoc
+(|>) = snocQ
 {-# INLINE (|>) #-}
 
 (<|) :: a -> Queue a -> Queue a
-(<|) = _Qcons
+(<|) = consQ
 {-# INLINE (<|) #-}
 
 instance IsList (Queue a) where

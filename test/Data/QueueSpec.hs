@@ -13,6 +13,6 @@ spec =
         prop "First In First Out" prop_fifo
 
 prop_fifo :: [Int] -> Bool
-prop_fifo xs = xs == unfoldr _Qhead q
+prop_fifo xs = xs == unfoldr headQ q
   where
-    q = foldl _Qsnoc _Qempty xs
+    q = foldl snocQ emptyQ xs
