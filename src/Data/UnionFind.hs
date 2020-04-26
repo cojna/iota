@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP          #-}
 
-module Data.UnionFind.Vector where
+module Data.UnionFind where
 
 import           Control.Monad
 import           Control.Monad.Primitive

@@ -1,6 +1,6 @@
-module Data.UnionFind.VectorSpec (main, spec) where
+module Data.UnionFindSpec (main, spec) where
 
-import           Data.UnionFind.Vector
+import           Data.UnionFind
 import           GHC.Exts
 import           Test.Prelude
 

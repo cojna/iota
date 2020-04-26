@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, LambdaCase #-}
 
-module Data.SegTree.Vector where
+module Data.SegTree where
 
 import           Control.Monad
 import           Control.Monad.Primitive
