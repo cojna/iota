@@ -1,9 +1,9 @@
 {-# LANGUAGE BangPatterns, CPP, LambdaCase, OverloadedLists, ViewPatterns #-}
 
-module Data.SegTree.VectorSpec (main, spec) where
+module Data.SegTreeSpec (main, spec) where
 
 import           Data.Bits
-import           Data.SegTree.Vector
+import           Data.SegTree
 #if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 import           Data.Semigroup              as Semigroup
 #endif

@@ -1,6 +1,6 @@
-module Data.UnionFind.Array.STSpec (main, spec) where
+module Data.UnionFindSpec (main, spec) where
 
-import           Data.UnionFind.Array.ST
+import           Data.UnionFind
 import           GHC.Exts
 import           Test.Prelude
 
@@ -14,22 +14,22 @@ spec =
         prop "count group" prop_countGroup
 
 prop_unite :: Property
-prop_unite = monadicST $ do
+prop_unite = monadicIO $ do
     (notEquiv, equiv) <- run $ do
-        uf <- newUnionFindST 5
-        ne <- equivM uf 0 1
-        uniteM uf 0 1
-        e <- equivM uf 0 1
+        uf <- newUnionFind 5
+        ne <- equivUF uf 0 1
+        uniteUF uf 0 1
+        e <- equivUF uf 0 1
         return (ne, e)
     assert (not notEquiv && equiv)
 
 prop_countGroup :: Property
-prop_countGroup = monadicST $ do
+prop_countGroup = monadicIO $ do
     count <- run $ do
-        uf <- newUnionFindST 5
-        uniteM uf 0 1
-        uniteM uf 3 4
-        uniteM uf 2 1
-        countGroupM uf
+        uf <- newUnionFind 5
+        uniteUF uf 0 1
+        uniteUF uf 3 4
+        uniteUF uf 2 1
+        countGroupUF uf
     assert (count == 2)
 

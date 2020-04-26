@@ -4,10 +4,6 @@ module Data.Heap.PairingHeap.Min where
 
 import           Data.Function
 import qualified Data.List      as L
-import           Data.Monoid
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-import           Data.Semigroup as Semigroup
-#endif
 import           GHC.Exts
 
 data MinHeap a = MinFork !a [MinHeap a] | MinEmpty
@@ -76,19 +72,13 @@ instance (Show a, Ord a) => Show (MinHeap a) where
     show = show . toList
 
 
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-instance Ord a => Semigroup.Semigroup (MinHeap a) where
+instance Ord a => Semigroup (MinHeap a) where
   (<>) = mergeMinPH
-#endif
 
 instance Ord a => Monoid (MinHeap a) where
     mempty = emptyMinPH
     {-# INLINE mempty #-}
-#if MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-#elif MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-    mappend = (Semigtoup.<>)
-    {-# INLINE mappend #-}
-#else
+#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
     mappend = mergeMinPH
     {-# INLINE mappend #-}
 #endif

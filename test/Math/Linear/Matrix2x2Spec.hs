@@ -1,6 +1,6 @@
-module Data.Matrix2x2Spec (main, spec) where
+module Math.Linear.Matrix2x2Spec (main, spec) where
 
-import           Data.Matrix2x2
+import           Math.Linear.Matrix2x2
 import           Data.Proxy
 import           Test.Prelude
 import           Test.Prop.Num

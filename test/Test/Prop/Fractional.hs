@@ -1,27 +1,28 @@
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, ViewPatterns #-}
 
 module Test.Prop.Fractional (fractionalSpec, fractionalClosedSpec) where
 
-import           Data.Proxy
 import           Test.Prelude
 
-fractionalSpec :: (Fractional a, Arbitrary a, Show a, Eq a) => Proxy a -> Spec
-fractionalSpec proxy = do
+fractionalSpec
+    :: forall a.(Fractional a, Arbitrary a, Show a, Eq a) => Proxy a -> Spec
+fractionalSpec _ = do
     describe "recip" $
-        prop "x * recip x == recip x * x == 1" $ prop_mulInverse proxy
+        prop "x * recip x == recip x * x == 1" $ prop_mulInverse @a
     describe "^^" $ do
-        prop "x ^^ (n + m) == (x ^^ n) * (x ^^ m)" $ prop_addPow proxy
-        prop "x ^^ (n * m) == (x ^^ n) ^^ m" $ prop_mulPow proxy
-        prop "x ^^ 0 == 1" $ prop_zeroPow proxy
+        prop "x ^^ (n + m) == (x ^^ n) * (x ^^ m)" $ prop_addPow @a
+        prop "x ^^ (n * m) == (x ^^ n) ^^ m" $ prop_mulPow @a
+        prop "x ^^ 0 == 1" $ prop_zeroPow @a
 
-fractionalClosedSpec :: (Fractional a, Arbitrary a, Show a, Eq a) => (a -> Bool) -> Spec
+fractionalClosedSpec
+    :: (Fractional a, Arbitrary a, Show a, Eq a) => (a -> Bool) -> Spec
 fractionalClosedSpec validate = do
   describe "closed" $ do
     prop "recip" $ \x -> validate (recip x)
 
 prop_mulInverse :: (Fractional a, Arbitrary a, Show a, Eq a)
-  => proxy a -> NonZero a -> Bool
-prop_mulInverse _ (getNonZero -> x) = x * recip x == 1 && recip x * x == 1
+  => NonZero a -> Bool
+prop_mulInverse (getNonZero -> x) = x * recip x == 1 && recip x * x == 1
 
 -- |
 -- >>> 0 ^^ ((-1) + 1)
@@ -30,15 +31,15 @@ prop_mulInverse _ (getNonZero -> x) = x * recip x == 1 && recip x * x == 1
 -- 0
 prop_addPow
     :: (Fractional a, Eq a)
-    => Proxy a -> NonZero a -> Int -> Int -> Bool
-prop_addPow _ (getNonZero -> x) n m
+    => NonZero a -> Int -> Int -> Bool
+prop_addPow (getNonZero -> x) n m
     = x ^^ (n + m) == x ^^ n * x ^^ m
 
 prop_mulPow
     :: (Fractional a, Eq a)
-    => Proxy a -> a -> Int -> Int -> Bool
-prop_mulPow _ x n m
+    => a -> Int -> Int -> Bool
+prop_mulPow x n m
     = x ^^ (n * m) == (x ^^ n) ^^ m
 
-prop_zeroPow :: (Fractional a, Eq a) => Proxy a -> a -> Bool
-prop_zeroPow _ x = x ^^ 0 == 1
+prop_zeroPow :: (Fractional a, Eq a) => a -> Bool
+prop_zeroPow x = x ^^ 0 == 1

@@ -1,4 +1,4 @@
-module Data.Vector3 where
+module Math.Linear.Vector3 where
 
 data Vec3 a = V3 !a !a !a deriving (Eq, Ord)
 
