@@ -18,7 +18,6 @@ description:         Please see the README on Github at <https://github.com/cojn
 
 dependencies:
 # core
-- array
 - base
 - bytestring
 - containers
