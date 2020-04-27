@@ -1,12 +1,12 @@
-{-# LANGUAGE BangPatterns, CPP, LambdaCase, OverloadedLists, ViewPatterns #-}
+{-# LANGUAGE BangPatterns, CPP, DerivingStrategies, DerivingVia, LambdaCase #-}
+{-# LANGUAGE OverloadedLists, StandaloneDeriving, ViewPatterns              #-}
 
 module Data.SegTreeSpec (main, spec) where
 
 import           Data.Bits
+import           Data.Monoid
 import           Data.SegTree
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-import           Data.Semigroup              as Semigroup
-#endif
+import           Data.Semigroup
 import qualified Data.Vector                 as V
 import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as U
@@ -46,22 +46,8 @@ spec = do
         prop "x <= f x" $ prop_greaterThanOrEqual
         prop "popCount (f x / 2) /= 1 || f x / 2 < x" $ prop_least
 
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-instance Semigroup.Semigroup Int where
-  (<>) = min
-#endif
-
-instance Monoid Int where
-    mempty = maxBound
-    {-# INLINE mempty #-}
-#if MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-#elif MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-    mappend = (Semigtoup.<>)
-    {-# INLINE mappend #-}
-#else
-    mappend = min
-    {-# INLINE mappend #-}
-#endif
+deriving via (Min Int) instance Semigroup Int
+deriving via (Min Int) instance Monoid Int
 
 data SegTreeQuery a
     = SegUpdate !Int !a

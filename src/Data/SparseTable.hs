@@ -3,23 +3,12 @@ module Data.SparseTable where
 
 import           Data.Bits
 import           Data.Coerce
-#if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 import           Data.Semigroup
-#endif
 import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Math.Utils
-
-#if !MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
-newtype Min a = Min {getMin :: a} deriving (Eq, Ord, Show)
-instance (Ord a, Bounded a) => Monoid (Min a) where
-    mappend = coerce (min :: a -> a -> a)
-    {-# INLINE mappend #-}
-    mempty = coerce (maxBound :: a)
-    {-# INLINE mempty #-}
-#endif
 
 type RMQ a = SparseTable Min a
 
