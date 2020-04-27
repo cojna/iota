@@ -1,8 +1,6 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE MagicHash             #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE BangPatterns, CPP, DerivingStrategies                        #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, MagicHash, MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications, TypeFamilies, TypeInType, UnboxedTuples    #-}
 
 
 module Data.IntMod where
@@ -11,6 +9,7 @@ import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Bits
 import           Data.Coerce
+import           Data.Primitive
 import           Data.Ratio
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -65,7 +64,8 @@ x ^% n
         | m == 1 = acc *% y
         | otherwise = go (acc *% y) (y *% y) (unsafeShiftR (m - 1) 1)
 
-newtype IntMod = IntMod{getIntMod :: Int} deriving (Eq, Ord)
+newtype IntMod = IntMod{getIntMod :: Int}
+    deriving newtype (Eq, Ord, Read, Show, Real, Prim)
 
 intMod :: (Integral a) => a -> IntMod
 intMod x = fromIntegral $ mod (fromIntegral x) MOD
@@ -75,9 +75,6 @@ intModValidate :: IntMod -> Bool
 intModValidate (IntMod x) = 0 <= x && x < MOD
 {-# INLINE intModValidate #-}
 
-instance Show IntMod where
-    show (IntMod x) = show x
-
 instance Bounded IntMod where
     minBound = IntMod 0
     maxBound = IntMod $ modulus - 1
@@ -86,12 +83,10 @@ instance Enum IntMod where
     toEnum = intMod
     fromEnum = coerce
 
-instance Real IntMod where
-    toRational = coerce (toRational :: Int -> Rational)
 
 instance Integral IntMod where
     quotRem x y = (x / y, x - x / y * y)
-    toInteger = coerce (toInteger :: Int -> Integer)
+    toInteger = coerce (toInteger @Int)
 
 instance Num IntMod where
     (+) = coerce (+%)
@@ -99,7 +94,7 @@ instance Num IntMod where
     (*) = coerce (*%)
     abs = id
     signum = const (IntMod 1)
-    fromInteger x = (coerce :: Int -> IntMod) . fromInteger $ mod x modulus
+    fromInteger x = coerce @Int @IntMod . fromInteger $ mod x modulus
 
 instance Fractional IntMod where
     (/) = coerce (/%)
