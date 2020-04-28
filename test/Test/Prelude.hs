@@ -31,7 +31,11 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck.Monadic
 
-data TimeLimitExceeded = TimeLimitExceeded deriving (Show)
+data TimeLimitExceeded = TimeLimitExceeded Int
+
+instance Show TimeLimitExceeded where
+    show (TimeLimitExceeded msec)
+        = "TimeLimitExceeded (" <> shows msec " msec)"
 
 instance Exception TimeLimitExceeded
 
@@ -40,7 +44,7 @@ withTLEmsec msec action = do
     res <- timeout (msec * 1000) action
     case res of
         Just x  -> return x
-        Nothing -> throwIO TimeLimitExceeded
+        Nothing -> throwIO (TimeLimitExceeded msec)
 
 newtype Prime a = Prime {getPrime :: a}
     deriving (Eq, Ord, Show)
