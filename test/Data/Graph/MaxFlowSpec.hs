@@ -25,7 +25,7 @@ spec = do
 
         it "contains sink unreachable nodes" $ do
             let n = 3
-            withTLEmsec 10 $ do
+            withTLEmsec 1000 $ do
                 maxFlow @Int n 0 1 (\builder -> do
                     addEdgeMFB builder (0, 1, 1)
                     addEdgeMFB builder (0, 2, 1)
@@ -33,7 +33,7 @@ spec = do
 
         it "contains loop" $ do
             let n = 4
-            withTLEmsec 10 $ do
+            withTLEmsec 1000 $ do
                 maxFlow @Int n 0 2 (\builder -> do
                     addEdgeMFB builder (0, 1, 1000000000)
                     addEdgeMFB builder (1, 2, 1000000000)
@@ -43,7 +43,7 @@ spec = do
 
         it "unreachable sink" $ do
             let n = 2
-            withTLEmsec 10 $ do
+            withTLEmsec 1000 $ do
                 maxFlow @Int n 0 1 (const (return ()))
                     `shouldBe` 0
 
