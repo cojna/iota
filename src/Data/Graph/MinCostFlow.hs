@@ -1,10 +1,11 @@
-{-# LANGUAGE BangPatterns, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, LambdaCase, RankNTypes, RecordWildCards #-}
 
 module Data.Graph.MinCostFlow where
 
 import           Control.Exception
 import           Control.Monad
 import           Control.Monad.Primitive
+import           Control.Monad.ST
 import           Data.Bits
 import           Data.Function
 import           Data.Primitive.MutVar
@@ -14,6 +15,7 @@ import           Data.Word
 import           Unsafe.Coerce
 
 import           Data.Heap.Binary
+import           Data.VecQueue
 import           Utils                       (rep)
 
 nothing :: Int
@@ -25,6 +27,35 @@ inf = 0x3f3f3f3f3f3f
 type Vertex = Int
 type Cost = Int
 type Capacity = Int
+
+{- |
+Primal Dual /O(FElog V)/
+
+>>> :{
+minCostFlow 2 0 1 2 (\builder -> do
+    addEdgeMCFB builder 0 1 123 2
+    )
+:}
+Just 246
+>>> :{
+minCostFlow 2 0 1 123456789 (\builder -> do
+    addEdgeMCFB builder 0 1 123 2
+    )
+:}
+Nothing
+-}
+
+minCostFlow
+    :: Int  -- ^ number of vertices
+    -> Vertex  -- ^ source
+    -> Vertex  -- ^ sink
+    -> Capacity  -- ^ flow
+    -> (forall s . MinCostFlowBuilder s -> ST s ())
+    -> Maybe Cost
+minCostFlow numVertices src sink flow run = runST $ do
+    builder <- newMinCostFlowBuilder numVertices
+    run builder
+    buildMinCostFlow builder >>= runMinCostFlow src sink flow
 
 data MinCostFlow s = MinCostFlow
     { numVerticesMCF :: !Int
@@ -40,7 +71,7 @@ data MinCostFlow s = MinCostFlow
     , prevVertexMCF  :: UM.MVector s Vertex
     , prevEdgeMCF    :: UM.MVector s Int
     }
--- | Primal Dual O(FElog V)
+
 runMinCostFlow :: (PrimMonad m)
     => Vertex -> Vertex -> Capacity -> MinCostFlow (PrimState m) -> m (Maybe Cost)
 runMinCostFlow source sink flow mcf@MinCostFlow{..} = go 0 flow
@@ -59,6 +90,7 @@ runMinCostFlow source sink flow mcf@MinCostFlow{..} = go 0 flow
                 go (hsink * flowed + res) (f - flowed)
             else return Nothing
 
+-- | cost 48bit / vertex 16bit
 encodeMCF :: Cost -> Vertex -> Word64
 encodeMCF cost v = unsafeCoerce $ unsafeShiftL cost 16 .|. v
 {-# INLINE encodeMCF #-}
@@ -126,32 +158,24 @@ updateResidualMCF sink flow MinCostFlow{..} = go sink flow return
 data MinCostFlowBuilder s = MinCostFlowBuilder
     { numVerticesMCFB :: !Int
     , inDegreeMCFB    :: UM.MVector s Int
-    , edgesMCFB       :: MutVar s [(Vertex, Vertex, Cost, Capacity)]
+    -- | default queue size: /1024 * 1024/
+    , edgesMCFB       :: VecQueue s (Vertex, Vertex, Cost, Capacity)
     }
 
 newMinCostFlowBuilder :: (PrimMonad m)
     => Int -> m (MinCostFlowBuilder (PrimState m))
 newMinCostFlowBuilder n = MinCostFlowBuilder n
     <$> UM.replicate n 0
-    <*> newMutVar []
-
-buildMinCostFlowBuilder :: (PrimMonad m)
-    => Int -> [(Vertex, Vertex, Cost, Capacity)]
-    -> m (MinCostFlowBuilder (PrimState m))
-buildMinCostFlowBuilder n edges = do
-    mcfb <- newMinCostFlowBuilder n
-    forM_ edges $ \(src, dst, cost, capacity) -> do
-        addEdgeMCFB src dst cost capacity mcfb
-    return mcfb
+    <*> newVecQueue (1024 * 1024)
 
 addEdgeMCFB :: (PrimMonad m)
-    => Vertex -> Vertex -> Cost -> Capacity
-    -> MinCostFlowBuilder (PrimState m) -> m ()
-addEdgeMCFB src dst cost capacity MinCostFlowBuilder{..}
+    => MinCostFlowBuilder (PrimState m)
+    -> Vertex -> Vertex -> Cost -> Capacity -> m ()
+addEdgeMCFB MinCostFlowBuilder{..} src dst cost capacity
     = assert (cost >= 0) $ do
         UM.unsafeModify inDegreeMCFB (+1) src
         UM.unsafeModify inDegreeMCFB (+1) dst
-        modifyMutVar' edgesMCFB ((src, dst, cost, capacity):)
+        enqueueVQ (src, dst, cost, capacity) edgesMCFB
 
 buildMinCostFlow :: (PrimMonad m)
     => MinCostFlowBuilder (PrimState m) -> m (MinCostFlow (PrimState m))
@@ -161,13 +185,13 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
     let numEdgesMCF = U.last offsetMCF
 
     moffset <- U.thaw offsetMCF
-    edges <- readMutVar edgesMCFB
     mdstMCF <- UM.replicate numEdgesMCF nothing
     mcostMCF <- UM.replicate numEdgesMCF 0
     mrevEdgeMCF <- UM.replicate numEdgesMCF nothing
     residualMCF <- UM.replicate numEdgesMCF 0
 
-    forM_ edges $ \(src, dst, cost, capacity) -> do
+    edges <- freezeVecQueue edgesMCFB
+    U.forM_ edges $ \(src, dst, cost, capacity) -> do
         srcOffset <- UM.unsafeRead moffset src
         dstOffset <- UM.unsafeRead moffset dst
         UM.unsafeModify moffset (+1) src
