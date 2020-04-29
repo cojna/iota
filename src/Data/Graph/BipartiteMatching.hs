@@ -1,9 +1,10 @@
-{-# LANGUAGE BangPatterns, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, LambdaCase, RankNTypes, RecordWildCards #-}
 
 module Data.Graph.BipartiteMatching where
 
 import           Control.Monad
 import           Control.Monad.Primitive
+import           Control.Monad.ST
 import           Data.Function
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -12,6 +13,13 @@ import           Data.VecStack
 import           Utils                       (rep)
 
 type Vertex = Int
+
+bipartiteMatching
+    :: Int -- ^ number of vertices
+    -> (forall s . BipartiteMatchingBuilder s -> ST s ()) -> Int
+bipartiteMatching n run = runST $ do
+    builder <- newBipartiteMatchingBuilder n
+    buildBipartiteMatching builder >>= runBipartiteMatching
 
 data BipartiteMatching s = BipartiteMatching
     { numVerticesBM :: !Int
@@ -83,10 +91,10 @@ data BipartiteMatchingBuilder s = BipartiteMatchingBuilder
     }
 
 newBipartiteMatchingBuilder :: (PrimMonad m)
-    => Int -> Int -> m (BipartiteMatchingBuilder (PrimState m))
-newBipartiteMatchingBuilder n m = BipartiteMatchingBuilder n
+    => Int -> m (BipartiteMatchingBuilder (PrimState m))
+newBipartiteMatchingBuilder n = BipartiteMatchingBuilder n
     <$> UM.replicate n 0
-    <*> newVecStack m
+    <*> newVecStack (1024 * 1024)
 
 addEdgeBMB :: (PrimMonad m)
     => Vertex -> Vertex -> BipartiteMatchingBuilder (PrimState m) -> m ()

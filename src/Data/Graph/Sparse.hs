@@ -1,7 +1,8 @@
-{-# LANGUAGE LambdaCase, RecordWildCards #-}
+{-# LANGUAGE LambdaCase, RankNTypes, RecordWildCards #-}
 
 module Data.Graph.Sparse where
 
+import           Control.Monad.Primitive
 import           Control.Monad.ST
 import           Data.Bits
 import           Data.Function
@@ -9,6 +10,8 @@ import           Data.Tuple
 import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+--
+import           Data.VecQueue
 
 type Vertex = Int
 type Edge = (Vertex, Vertex)
@@ -22,56 +25,24 @@ data SparseGraph w = CSR
     , edgeCtxCSR     :: !(U.Vector w)
     }
 
-buildDirectedGraph
-    :: Int -> U.Vector Edge -> SparseGraph ()
-buildDirectedGraph numVerticesCSR edges = runST $ do
-    let numEdgesCSR = U.length edges
-    let offsetCSR = U.scanl' (+) 0
-            . U.unsafeAccumulate (+) (U.replicate numVerticesCSR 0)
-            . U.map (flip (,) 1)
-            . fst
-            $ U.unzip edges
-    moffset <- U.thaw offsetCSR
-    madj <- UM.unsafeNew numEdgesCSR
-    U.forM_ edges $ \(src, dst) -> do
-        pos <- UM.unsafeRead moffset src
-        UM.unsafeWrite moffset src (pos + 1)
-        UM.unsafeWrite madj pos dst
-    adjacentCSR <- U.unsafeFreeze madj
-    return CSR{edgeCtxCSR = U.replicate numEdgesCSR (), ..}
+data SparseGraphBuilder s w = SparseGraphBuilder
+    { numVerticesSGB :: !Int
+    , queueSGB :: VecQueue s (EdgeWith w)
+    , outDegSGB :: UM.MVector s Int
+    }
 
-buildUndirectedGraph :: Int -> U.Vector Edge -> SparseGraph ()
-buildUndirectedGraph numVerticesCSR edges = runST $ do
-    let numEdgesCSR = 2 * U.length edges
-    outDeg <- UM.replicate numVerticesCSR (0 :: Int)
-    U.forM_ edges $ \(x, y) -> do
-        UM.unsafeModify outDeg (+1) x
-        UM.unsafeModify outDeg (+1) y
-    offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDeg
-    moffset <- U.thaw offsetCSR
-    madj <- UM.unsafeNew numEdgesCSR
-    U.forM_ edges $ \(x, y) -> do
-        posX <- UM.unsafeRead moffset x
-        posY <- UM.unsafeRead moffset y
-        UM.unsafeWrite moffset x (posX + 1)
-        UM.unsafeWrite moffset y (posY + 1)
-        UM.unsafeWrite madj posX y
-        UM.unsafeWrite madj posY x
-    adjacentCSR <- U.unsafeFreeze madj
-    return CSR{edgeCtxCSR = U.replicate numEdgesCSR (), ..}
-
-buildDirectedGraphW :: (U.Unbox w)
-    => Int -> U.Vector (EdgeWith w) -> SparseGraph w
-buildDirectedGraphW numVerticesCSR edges = runST $ do
-    let numEdgesCSR = U.length edges
-    let offsetCSR = U.scanl' (+) 0
-            . U.unsafeAccumulate (+) (U.replicate numVerticesCSR 0)
-            . U.map (flip (,) 1)
-            . (\(x, _, _) -> x)
-            $ U.unzip3 edges
+buildSparseGraph :: (U.Unbox w)
+    => Int -> (forall s.SparseGraphBuilder s w -> ST s ()) -> SparseGraph w
+buildSparseGraph numVerticesCSR run = runST $ do
+    queueSGB <- newVecQueue (1024 * 1024)
+    outDegSGB <- UM.replicate numVerticesCSR 0
+    run SparseGraphBuilder{numVerticesSGB = numVerticesCSR,..}
+    numEdgesCSR <- lengthVQ queueSGB
+    offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDegSGB
     moffset <- U.thaw offsetCSR
     madj <- UM.unsafeNew numEdgesCSR
     mectx <- UM.unsafeNew numEdgesCSR
+    edges <- freezeVecQueue queueSGB
     U.forM_ edges $ \(src, dst, w) -> do
         pos <- UM.unsafeRead moffset src
         UM.unsafeWrite moffset src (pos + 1)
@@ -80,31 +51,62 @@ buildDirectedGraphW numVerticesCSR edges = runST $ do
     adjacentCSR <- U.unsafeFreeze madj
     edgeCtxCSR <- U.unsafeFreeze mectx
     return CSR{..}
+{-# INLINE buildSparseGraph #-}
+
+addDirectedEdge :: (U.Unbox w, PrimMonad m)
+    => SparseGraphBuilder (PrimState m) w -> EdgeWith w -> m ()
+addDirectedEdge SparseGraphBuilder{..} (src, dst, w) = do
+    enqueueVQ (src, dst, w) queueSGB
+    UM.unsafeModify outDegSGB (+1) src
+{-# INLINE addDirectedEdge #-}
+
+addUndirectedEdge :: (U.Unbox w, PrimMonad m)
+    => SparseGraphBuilder (PrimState m) w -> EdgeWith w -> m ()
+addUndirectedEdge SparseGraphBuilder{..} (src, dst, w) = do
+    enqueueVQ (src, dst, w) queueSGB
+    enqueueVQ (dst, src, w) queueSGB
+    UM.unsafeModify outDegSGB (+1) src
+    UM.unsafeModify outDegSGB (+1) dst
+{-# INLINE addUndirectedEdge #-}
+
+addDirectedEdge_ :: (PrimMonad m)
+    => SparseGraphBuilder (PrimState m) () -> Edge -> m ()
+addDirectedEdge_ SparseGraphBuilder{..} (src, dst) = do
+    enqueueVQ (src, dst, ()) queueSGB
+    UM.unsafeModify outDegSGB (+1) src
+{-# INLINE addDirectedEdge_ #-}
+
+addUndirectedEdge_ :: (PrimMonad m)
+    => SparseGraphBuilder (PrimState m) () -> Edge -> m ()
+addUndirectedEdge_ SparseGraphBuilder{..} (src, dst) = do
+    enqueueVQ (src, dst, ()) queueSGB
+    enqueueVQ (dst, src, ()) queueSGB
+    UM.unsafeModify outDegSGB (+1) src
+    UM.unsafeModify outDegSGB (+1) dst
+{-# INLINE addUndirectedEdge_ #-}
+
+buildDirectedGraph
+    :: Int -> U.Vector Edge -> SparseGraph ()
+buildDirectedGraph numVerticesCSR edges
+    = buildSparseGraph numVerticesCSR $ \builder -> do
+        U.mapM_ (addDirectedEdge_ builder) edges
+
+buildUndirectedGraph :: Int -> U.Vector Edge -> SparseGraph ()
+buildUndirectedGraph numVerticesCSR edges
+    = buildSparseGraph numVerticesCSR $ \builder -> do
+        U.mapM_ (addUndirectedEdge_ builder) edges
+
+buildDirectedGraphW :: (U.Unbox w)
+    => Int -> U.Vector (EdgeWith w) -> SparseGraph w
+buildDirectedGraphW numVerticesCSR edges
+    = buildSparseGraph numVerticesCSR $ \builder -> do
+        U.mapM_ (addDirectedEdge builder) edges
 
 buildUndirectedGraphW :: (U.Unbox w)
     => Int -> U.Vector (EdgeWith w) -> SparseGraph w
-buildUndirectedGraphW numVerticesCSR edges = runST $ do
-    let numEdgesCSR = 2 * U.length edges
-    outDeg <- UM.replicate numVerticesCSR (0 :: Int)
-    U.forM_ edges $ \(x, y, _) -> do
-        UM.unsafeModify outDeg (+1) x
-        UM.unsafeModify outDeg (+1) y
-    offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDeg
-    moffset <- U.thaw offsetCSR
-    madj <- UM.unsafeNew numEdgesCSR
-    mectx <- UM.unsafeNew numEdgesCSR
-    U.forM_ edges $ \(x, y, w) -> do
-        posX <- UM.unsafeRead moffset x
-        posY <- UM.unsafeRead moffset y
-        UM.unsafeWrite moffset x (posX + 1)
-        UM.unsafeWrite moffset y (posY + 1)
-        UM.unsafeWrite madj posX y
-        UM.unsafeWrite madj posY x
-        UM.unsafeWrite mectx posX w
-        UM.unsafeWrite mectx posY w
-    adjacentCSR <- U.unsafeFreeze madj
-    edgeCtxCSR <- U.unsafeFreeze mectx
-    return CSR{..}
+buildUndirectedGraphW numVerticesCSR edges
+    = buildSparseGraph numVerticesCSR $ \builder -> do
+        U.mapM_ (addUndirectedEdge builder) edges
 
 adj :: SparseGraph w -> Vertex -> U.Vector Vertex
 adj CSR{..} v = U.unsafeSlice o (o' - o) adjacentCSR

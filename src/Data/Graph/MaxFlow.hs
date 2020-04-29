@@ -1,11 +1,11 @@
-{-# LANGUAGE BangPatterns, CPP, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, CPP, LambdaCase, RankNTypes, RecordWildCards #-}
 
 module Data.Graph.MaxFlow where
 
 import           Control.Monad
 import           Control.Monad.Primitive
+import           Control.Monad.ST
 import           Data.Function
-import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
@@ -20,6 +20,36 @@ inf = 0x3f3f3f3f3f3f
 
 type Vertex = Int
 
+--
+{- |
+Dinic /O(V^2E)/
+
+>>> :set -XTypeApplications
+>>> :{
+maxFlow @Int 5 0 4 $ \builder -> do
+    addEdgeMFB builder (0, 1, 10)
+    addEdgeMFB builder (0, 2, 2)
+    addEdgeMFB builder (1, 2, 6)
+    addEdgeMFB builder (1, 3, 6)
+    addEdgeMFB builder (3, 2, 2)
+    addEdgeMFB builder (2, 4, 5)
+    addEdgeMFB builder (3, 4, 8)
+:}
+11
+>>> maxFlow @Int 2 0 1 $ const (return ())
+0
+-}
+maxFlow
+    :: (U.Unbox cap, Num cap, Ord cap)
+    => Int -- ^ number of vertices
+    -> Vertex -- ^ source
+    -> Vertex -- ^ sink
+    -> (forall s.MaxFlowBuilder s cap -> ST s ()) -> cap
+maxFlow numVertices src sink run = runST $ do
+    builder <- newMaxFlowBuilder numVertices
+    run builder
+    buildMaxFlow builder >>= runMaxFlow src sink
+
 data MaxFlow s cap = MaxFlow
     { numVerticesMF :: !Int
     , numEdgesMF    :: !Int
@@ -32,7 +62,7 @@ data MaxFlow s cap = MaxFlow
     , queueMF       :: VecQueue s Vertex
     }
 
--- | Dinic O(V^2E)
+
 runMaxFlow :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m)
     => Vertex -> Vertex -> MaxFlow (PrimState m) cap -> m cap
 runMaxFlow src sink mf@MaxFlow{..} = do
@@ -105,30 +135,15 @@ dfsMF v0 sink flow0 MaxFlow{..} = dfs v0 flow0 return
 data MaxFlowBuilder s cap = MaxFlowBuilder
     { numVerticesMFB :: !Int
     , inDegreeMFB    :: UM.MVector s Int
-    , edgesMFB       :: MutVar s [(Vertex, Vertex, cap)]
+    -- | default queue size: /1024 * 1024/
+    , edgesMFB       :: VecQueue s (Vertex, Vertex, cap)
     }
 
-newMaxFlowBuilder :: (PrimMonad m)
+newMaxFlowBuilder :: (U.Unbox cap, PrimMonad m)
     => Int -> m (MaxFlowBuilder (PrimState m) cap)
 newMaxFlowBuilder n = MaxFlowBuilder n
     <$> UM.replicate n 0
-    <*> newMutVar []
-
-buildMaxFlowBuilder :: (PrimMonad m)
-    => Int -> [(Vertex, Vertex, cap)] -> m (MaxFlowBuilder (PrimState m) cap)
-buildMaxFlowBuilder n edges = do
-    mfb <- newMaxFlowBuilder n
-    forM_ edges $ \(src, dst, cap) -> do
-        addEdgeMFB src dst cap mfb
-    return mfb
-
-addEdgeMFB :: (PrimMonad m)
-    => Vertex -> Vertex -> cap -> MaxFlowBuilder (PrimState m) cap -> m ()
-addEdgeMFB !src !dst !cap MaxFlowBuilder{..} = do
-    UM.unsafeModify inDegreeMFB (+1) src
-    UM.unsafeModify inDegreeMFB (+1) dst
-    modifyMutVar' edgesMFB ((src, dst, cap):)
-{-# INLINE addEdgeMFB #-}
+    <*> newVecQueue (1024 * 1024)
 
 buildMaxFlow :: (Num cap, U.Unbox cap, PrimMonad m)
     => MaxFlowBuilder (PrimState m) cap -> m (MaxFlow (PrimState m) cap)
@@ -142,8 +157,8 @@ buildMaxFlow MaxFlowBuilder{..} = do
     mrevEdgeMF <- UM.replicate numEdgesMF nothing
     residualMF <- UM.replicate numEdgesMF 0
 
-    edges <- readMutVar edgesMFB
-    forM_ edges $ \(src, dst, cap) -> do
+    edges <- freezeVecQueue edgesMFB
+    U.forM_ edges $ \(src, dst, cap) -> do
         srcOffset <- UM.unsafeRead moffset src
         dstOffset <- UM.unsafeRead moffset dst
         UM.unsafeModify moffset (+1) src
@@ -161,3 +176,11 @@ buildMaxFlow MaxFlowBuilder{..} = do
     U.unsafeCopy iterMF offsetMF
     queueMF <- newVecQueue numVerticesMF
     return MaxFlow{..}
+
+addEdgeMFB :: (U.Unbox cap, PrimMonad m)
+    => MaxFlowBuilder (PrimState m) cap -> (Vertex, Vertex, cap) -> m ()
+addEdgeMFB MaxFlowBuilder{..} (!src, !dst, !cap) = do
+    UM.unsafeModify inDegreeMFB (+1) src
+    UM.unsafeModify inDegreeMFB (+1) dst
+    enqueueVQ (src, dst, cap) edgesMFB
+{-# INLINE addEdgeMFB #-}

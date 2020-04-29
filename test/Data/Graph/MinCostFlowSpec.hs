@@ -1,3 +1,4 @@
+
 module Data.Graph.MinCostFlowSpec (main, spec) where
 
 import           Data.Graph.MinCostFlow
@@ -8,32 +9,35 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-    describe "runMinCostFlow" $ do
-        it "can flow" $ do
-            let n = 5
-            mcfb <- newMinCostFlowBuilder n
-            addEdgeMCFB 0 1 2 10 mcfb
-            addEdgeMCFB 0 2 4 2 mcfb
-            addEdgeMCFB 1 2 6 6 mcfb
-            addEdgeMCFB 1 3 2 6 mcfb
-            addEdgeMCFB 3 2 3 3 mcfb
-            addEdgeMCFB 2 4 2 5 mcfb
-            addEdgeMCFB 3 4 6 8 mcfb
-            mcf <- buildMinCostFlow mcfb
-            let source = 0
-            let sink = 4
-            runMinCostFlow source sink 9 mcf `shouldReturn` Just 80
-        it "cannot flow" $ do
-            let n = 5
-            mcfb <- newMinCostFlowBuilder n
-            addEdgeMCFB 0 1 2 10 mcfb
-            addEdgeMCFB 0 2 4 2 mcfb
-            addEdgeMCFB 1 2 6 6 mcfb
-            addEdgeMCFB 1 3 2 6 mcfb
-            addEdgeMCFB 3 2 3 3 mcfb
-            addEdgeMCFB 2 4 2 5 mcfb
-            addEdgeMCFB 3 4 6 8 mcfb
-            mcf <- buildMinCostFlow mcfb
-            let source = 0
-            let sink = 4
-            runMinCostFlow source sink 100 mcf `shouldReturn` Nothing
+    describe "minCostFlow" $ do
+        it "example (can flow)" $ do
+            minCostFlow 2 0 1 2 (\builder -> do
+                addEdgeMCFB builder 0 1 123 2
+                ) `shouldBe` Just (246 :: Int)
+        it "example (cannot flow)" $ do
+            minCostFlow 2 0 1 123456789 (\builder -> do
+                addEdgeMCFB builder 0 1 123 2
+                ) `shouldBe` Nothing
+        it "multiple edges" $ do
+            minCostFlow 2 0 1 1 (\builder -> do
+                addEdgeMCFB builder 0 1 123 1
+                addEdgeMCFB builder 0 1 456 1
+                ) `shouldBe` Just 123
+        it "unreachable sink" $ do
+            minCostFlow 2 0 1 1 (const $ return ())
+                `shouldBe` Nothing
+        it "contains loop (can flow)" $ do
+            minCostFlow 4 0 2 10 (\builder -> do
+                addEdgeMCFB builder 0 1 1 100
+                addEdgeMCFB builder 1 2 1 100
+                addEdgeMCFB builder 2 3 1 100
+                addEdgeMCFB builder 3 0 1 100
+                ) `shouldBe` Just 20
+        it "contains loop (cannot flow)" $ do
+            minCostFlow 4 0 2 123 (\builder -> do
+                addEdgeMCFB builder 0 1 1 100
+                addEdgeMCFB builder 1 2 1 100
+                addEdgeMCFB builder 2 3 1 100
+                addEdgeMCFB builder 3 0 1 100
+                ) `shouldBe` Nothing
+
