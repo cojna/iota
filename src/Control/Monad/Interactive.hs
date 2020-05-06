@@ -26,7 +26,6 @@ class (Monad m) => MonadInteractive m where
     recvLn :: (Read a) => m a
     recvLn = read <$> recvLine
 
-
 data InteractiveHandle = InteractiveHandle
     { hin   :: Handle
     , hout  :: Handle
@@ -62,7 +61,6 @@ instance (MonadIO m) => MonadInteractive (ReaderT InteractiveHandle m) where
             mapM_ (\herr -> hPutStr herr $ sendDebugFormat cs) mherr
             hPutStr hout cs
             hFlush hout
-
 
     sendStrLn cs = ReaderT $ \InteractiveHandle{..} ->
         liftIO $ do
