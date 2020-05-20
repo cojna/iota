@@ -69,6 +69,20 @@ nextGauss rng mu sigma = do
     let z = sqrt (-2.0 * log x) * cos (2.0 * pi * y)
     return $! sigma * z + mu
 
+shuffle :: (G.Vector v a) => v a -> v a
+shuffle v = withRNG $ \rng -> do
+    mv <- G.thaw v
+    shuffleM rng mv
+    G.unsafeFreeze mv
+
+shuffleM
+    :: (PrimMonad m, GM.MVector mv a)
+    => RNG (PrimState m) -> mv (PrimState m) a -> m ()
+shuffleM rng mv = do
+    rev (GM.length mv) $ \i -> do
+        j <- nextWord rng
+        GM.unsafeSwap mv i (unsafeCoerce $ rem j (unsafeCoerce i + 1))
+
 splitMix64 :: Word -> (Word, Word)
 splitMix64 state = case state + 0x9e3779b97f4a7c15 of
     z0 -> case (z0 `xor` unsafeShiftR z0 30) * 0xbf58476d1ce4e5b9 of
