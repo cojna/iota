@@ -109,22 +109,25 @@ naiveMoebius f xs = U.generate n $ \v ->
   where
     n = U.length xs
 
-prop_naiveZetaSetOrd :: (KnownNat n) => Proxy n -> Sized (2 ^ n) Int -> Bool
+prop_naiveZetaSetOrd
+    :: (KnownNat n) => Proxy n -> SizeFixedList (2 ^ n) Int -> Bool
 prop_naiveZetaSetOrd
     (fromIntegral . natVal -> n)
-    (U.fromList.getSized -> xs)
+    (U.fromList.getSizeFixedList -> xs)
     = U.modify (fastZeta SetOrd n) xs == naiveZeta SetOrd xs
 
-prop_naiveMoebiusSetOrd :: (KnownNat n) => Proxy n -> Sized (2 ^ n) Int -> Bool
+prop_naiveMoebiusSetOrd
+    :: (KnownNat n) => Proxy n -> SizeFixedList (2 ^ n) Int -> Bool
 prop_naiveMoebiusSetOrd
     (fromIntegral . natVal -> n)
-    (U.fromList.getSized -> xs)
+    (U.fromList.getSizeFixedList -> xs)
     = U.modify (fastMoebius SetOrd n) xs == naiveMoebius SetOrd xs
 
-prop_zetaMoebiusSetOrd :: (KnownNat n) => Proxy n -> Sized (2 ^ n) Int -> Bool
+prop_zetaMoebiusSetOrd
+    :: (KnownNat n) => Proxy n -> SizeFixedList (2 ^ n) Int -> Bool
 prop_zetaMoebiusSetOrd
     (fromIntegral . natVal -> n)
-    (U.fromList.getSized -> xs)
+    (U.fromList.getSizeFixedList -> xs)
     = xs == transformed
   where
     transformed
@@ -133,10 +136,11 @@ prop_zetaMoebiusSetOrd
             fastZeta SetOrd n mf
             ) xs
 
-prop_moebiusZetaSetOrd :: (KnownNat n) => Proxy n -> Sized (2 ^ n) Int -> Bool
+prop_moebiusZetaSetOrd
+    :: (KnownNat n) => Proxy n -> SizeFixedList (2 ^ n) Int -> Bool
 prop_moebiusZetaSetOrd
     (fromIntegral . natVal -> n)
-    (U.fromList.getSized -> xs)
+    (U.fromList.getSizeFixedList -> xs)
     = xs == transformed
   where
     transformed

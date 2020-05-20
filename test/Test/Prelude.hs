@@ -14,7 +14,8 @@ module Test.Prelude
     , Prime(..)
     , Modulo(..)
     , ByteStringOf(..)
-    , Sized(..)
+    , SizeFixedList(..)
+    , SizeBoundedList(..)
     ) where
 
 import           Control.Exception         (Exception (..), evaluate, throwIO)
@@ -76,11 +77,17 @@ instance KnownSymbol s => Arbitrary (ByteStringOf s) where
         . elements
         $ symbolVal (Proxy :: Proxy s)
 
-newtype Sized (n :: Nat) a = Sized{getSized :: [a]}
+newtype SizeFixedList (n :: Nat) a = SizeFixedList{getSizeFixedList :: [a]}
     deriving (Eq, Ord, Show)
 
-instance (Arbitrary a, KnownNat n) => Arbitrary (Sized n a) where
-    arbitrary = Sized <$> vectorOf
+instance (Arbitrary a, KnownNat n) => Arbitrary (SizeFixedList n a) where
+    arbitrary = SizeFixedList <$> vectorOf
         (fromIntegral $ natVal (Proxy @n))
         (arbitrary @a)
 
+newtype SizeBoundedList (n :: Nat) a = SizeBoundedList{ getSizeBoundedList :: [a]}
+    deriving (Eq, Ord, Show)
+
+instance (Arbitrary a, KnownNat n) => Arbitrary (SizeBoundedList n a) where
+    arbitrary = SizeBoundedList . take (fromIntegral $ natVal (Proxy @n))
+        <$> arbitrary @[a]
