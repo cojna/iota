@@ -1,41 +1,55 @@
-{-# LANGUAGE BangPatterns, TypeApplications #-}
+{-# LANGUAGE BangPatterns, RankNTypes, TypeApplications #-}
 
 -- xoroshiro128**
 -- http://vigna.di.unimi.it/xorshift/
 module System.Random.XoRoShiRo where
 
 import           Control.Monad.Primitive
+import           Control.Monad.ST
 import           Data.Bits
-import qualified Data.Primitive.ByteArray as BA
+import           Data.Primitive.ByteArray
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as GM
 import           Data.Word
 import           Unsafe.Coerce
 
-newtype RNG s = RNG (BA.MutableByteArray s)
+import           Utils
+
+newtype RNG s = RNG (MutableByteArray s)
+
+defaultSeed :: Word
+defaultSeed = 123456789
 
 newRNG :: (PrimMonad m) => m (RNG (PrimState m))
-newRNG = newRNGWithSeed 123456789
+newRNG = newRNGWithSeed defaultSeed
 
 newRNGWithSeed :: (PrimMonad m) => Word -> m (RNG (PrimState m))
 newRNGWithSeed seed = do
     let (s0, seed') = splitMix64 seed
     let (s1, _) = splitMix64 seed'
-    mba <- BA.newByteArray (2 * 8)
-    BA.writeByteArray @Word mba 0 s0
-    BA.writeByteArray @Word mba 1 s1
+    mba <- newByteArray (2 * 8)
+    writeByteArray @Word mba 0 s0
+    writeByteArray @Word mba 1 s1
     return $ RNG mba
+
+withRNG :: (forall s . RNG s -> ST s a) -> a
+withRNG = withRNGWithSeed defaultSeed
+
+withRNGWithSeed :: Word -> (forall s . RNG s -> ST s a) -> a
+withRNGWithSeed seed f = runST $ newRNGWithSeed seed >>= f
 
 nextInt :: (PrimMonad m) => RNG (PrimState m) -> m Int
 nextInt rng = unsafeCoerce @Word @Int <$> nextWord rng
 
 nextWord :: (PrimMonad m) => RNG (PrimState m) -> m Word
 nextWord (RNG mba) = do
-    !s0 <- BA.readByteArray @Word mba 0
-    !s1 <- xor s0 <$> BA.readByteArray @Word mba 1
-    BA.writeByteArray mba 0 $
+    !s0 <- readByteArray @Word mba 0
+    !s1 <- xor s0 <$> readByteArray @Word mba 1
+    writeByteArray mba 0 $
         (unsafeShiftL s0 24 .|. unsafeShiftR s0 40)
             `xor` s1
             `xor` (unsafeShiftL s1 16)
-    BA.writeByteArray mba 1 $ unsafeShiftL s1 37 .|. unsafeShiftR s1 27
+    writeByteArray mba 1 $ unsafeShiftL s1 37 .|. unsafeShiftR s1 27
     let s05 = s0 * 5
     return $! (unsafeShiftL s05 7 .|. unsafeShiftR s05 57) * 9
 
