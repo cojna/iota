@@ -11,8 +11,6 @@ import           Geometry.Dim2.Instances
 import           Geometry.Dim2.SmallestEnclosingCircle
 import           Test.Prelude
 
-import           Debug.Trace
-
 main :: IO ()
 main = hspec spec
 
