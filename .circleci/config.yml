@@ -18,7 +18,7 @@ jobs:
                     - /work/.stack-work
     deploy:
         docker:
-            - image: fpco/stack-build:latest
+            - image: fpco/stack-build:lts-15
         working_directory: /work
         environment:
             - GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
