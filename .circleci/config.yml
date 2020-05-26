@@ -7,12 +7,12 @@ jobs:
         steps:
             - checkout
             - restore_cache:
-                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
+                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
             - run: stack --version
             - run: stack ghc -- --version
             - run: stack test
             - save_cache:
-                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "atcoder.yaml"}}
+                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
                 paths:
                     - ~/.stack
                     - /work/.stack-work
