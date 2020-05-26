@@ -1,27 +1,9 @@
 version: 2
 jobs:
-    build_latest:
-      docker:
-          - image: fpco/stack-build:latest
-      working_directory: /work
-      steps:
-          - checkout
-          - restore_cache:
-              key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
-          - run: stack --version
-          - run: stack ghc -- --version
-          - run: stack test
-          - save_cache:
-              key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack.yaml"}}
-              paths:
-                  - ~/.stack
-                  - /work/.stack-work
-    build_atcoder:
+    build:
         docker:
-            - image: fpco/stack-build:lts-14
+            - image: fpco/stack-build:lts-15
         working_directory: /work
-        environment:
-            - STACK_YAML: atcoder.yaml
         steps:
             - checkout
             - restore_cache:
@@ -75,15 +57,10 @@ workflows:
     version: 2
     test_and_deploy:
         jobs:
-            - build_atcoder
-            - build_latest:
-                filters:
-                    branches:
-                        only:
-                          - master
+            - build
             - deploy:
                 requires:
-                    - build_atcoder
+                    - build
                 filters:
                     branches:
                         only:
