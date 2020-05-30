@@ -1,7 +1,10 @@
 # iota
 [![CircleCI](https://circleci.com/gh/cojna/iota.svg?style=svg&circle-token=1cf96b5aee7f1aceb1fa285e904ea008a23f2a7c)](https://circleci.com/gh/cojna/iota)
 
-library for competitive programming
+my library for competitive programming
+
+## Document
+https://cojna.github.io/iota/
 
 ## License
 
