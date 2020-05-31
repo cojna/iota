@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications, TypeFamilies                         #-}
 
-module Data.IntMod.GF where
+module Data.GaloisField where
 
 import           Control.Monad
 import           Data.Coerce

@@ -1,9 +1,9 @@
 {-# LANGUAGE DataKinds, FlexibleInstances, ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications, TypeSynonymInstances            #-}
 
-module Data.IntMod.GFSpec (main, spec) where
+module Data.GaloisFieldSpec (main, spec) where
 
-import           Data.IntMod.GF
+import           Data.GaloisField
 import           Test.Prelude
 import           Test.Prop.Fractional
 import           Test.Prop.Num
