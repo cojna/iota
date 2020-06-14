@@ -95,3 +95,12 @@ mappendTo
     => SegTree (PrimState m) a -> Int -> m a
 mappendTo segtree = mappendFromTo segtree 0
 {-# INLINE mappendTo #-}
+
+-- | mappend [0..)
+--
+-- /O(1)/
+mappendAll
+    :: (U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) a -> m a
+mappendAll segtree = UM.unsafeRead (getSegTree segtree) 1
+{-# INLINE mappendAll #-}
