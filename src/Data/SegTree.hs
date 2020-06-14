@@ -29,7 +29,7 @@ newtype SegTree s a = SegTree { getSegTree :: UM.MVector s a }
 newSegTree
     :: (Monoid a, U.Unbox a, PrimMonad m)
     => Int -> m (SegTree (PrimState m) a)
-newSegTree n = SegTree <$> UM.replicate (extendToPowerOfTwo n) mempty
+newSegTree n = SegTree <$> UM.replicate (2 * extendToPowerOfTwo n) mempty
 
 -- | /O(n)/
 buildSegTree
