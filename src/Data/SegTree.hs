@@ -31,6 +31,13 @@ newSegTree
     => Int -> m (SegTree (PrimState m) a)
 newSegTree n = SegTree <$> UM.replicate (2 * extendToPowerOfTwo n) mempty
 
+readSegTree :: (Monoid a, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) a -> Int -> m a
+readSegTree segtree k = do
+    let tree = getSegTree segtree
+    let n = unsafeShiftRL (UM.length tree) 1
+    UM.unsafeRead tree (k + n)
+
 -- | /O(n)/
 buildSegTree
     :: (Monoid a, U.Unbox a, PrimMonad m)
