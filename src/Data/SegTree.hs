@@ -19,15 +19,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
 --
-import           Utils                       (rev, unsafeShiftRL)
-
--- |
--- >>> extendToPowerOfTwo 0
--- 1
-extendToPowerOfTwo :: Int -> Int
-extendToPowerOfTwo x
-    | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
-    | otherwise = 1
+import           Utils                       (unsafeShiftRL)
 
 newtype SegTree s a = SegTree { getSegTree :: UM.MVector s a }
 
@@ -35,13 +27,6 @@ newSegTree
     :: (Monoid a, U.Unbox a, PrimMonad m)
     => Int -> m (SegTree (PrimState m) a)
 newSegTree n = SegTree <$> UM.replicate (2 * extendToPowerOfTwo n) mempty
-
-readSegTree :: (Monoid a, U.Unbox a, PrimMonad m)
-    => SegTree (PrimState m) a -> Int -> m a
-readSegTree segtree k = do
-    let tree = getSegTree segtree
-    let n = unsafeShiftRL (UM.length tree) 1
-    UM.unsafeRead tree (k + n)
 
 -- | /O(n)/
 buildSegTree
@@ -58,6 +43,14 @@ buildSegTree vec = do
         UM.unsafeWrite tree i x
     return $ SegTree tree
 
+-- | /O(1)/
+readSegTree :: (Monoid a, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) a -> Int -> m a
+readSegTree segtree k = do
+    let tree = getSegTree segtree
+    let n = unsafeShiftRL (UM.length tree) 1
+    UM.unsafeRead tree (k + n)
+
 -- | /O(log n)/
 writeSegTree
     :: (Monoid a, U.Unbox a, PrimMonad m)
@@ -66,6 +59,22 @@ writeSegTree segtree k v = do
     let tree = getSegTree segtree
     let n = unsafeShiftRL (UM.length tree) 1
     UM.unsafeWrite tree (k + n) v
+    flip fix (k + n) $ \loop !i ->
+        when (i > 1) $ do
+            x <- mappend
+                <$> UM.unsafeRead tree i
+                <*> UM.unsafeRead tree (i `xor` 1)
+            UM.unsafeWrite tree (unsafeShiftRL i 1) x
+            loop $ unsafeShiftR i 1
+
+-- | /O(log n)/
+modifySegTree
+    :: (Monoid a, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) a -> (a -> a) -> Int -> m ()
+modifySegTree segtree f k = do
+    let tree = getSegTree segtree
+    let n = unsafeShiftRL (UM.length tree) 1
+    UM.unsafeModify tree f (k + n)
     flip fix (k + n) $ \loop !i ->
         when (i > 1) $ do
             x <- mappend
@@ -94,7 +103,9 @@ mappendFromTo segtree l r = do
             | otherwise = return
 
         go l r k
-            | l < r = go (unsafeShiftRL (l + l .&. 1) 1) (unsafeShiftRL (r - r .&. 1) 1)
+            | l < r
+                = go (unsafeShiftRL (l + l .&. 1) 1)
+                     (unsafeShiftRL (r - r .&. 1) 1)
                 $ stepL l >=> (stepR r >=> k)
             | otherwise = k
     go (n + l) (n + r) return mempty
@@ -108,7 +119,7 @@ mappendTo
 mappendTo segtree = mappendFromTo segtree 0
 {-# INLINE mappendTo #-}
 
--- | mappend [0..)
+-- | mappend [0..n)
 --
 -- /O(1)/
 mappendAll
@@ -116,3 +127,11 @@ mappendAll
     => SegTree (PrimState m) a -> m a
 mappendAll segtree = UM.unsafeRead (getSegTree segtree) 1
 {-# INLINE mappendAll #-}
+
+-- |
+-- >>> extendToPowerOfTwo 0
+-- 1
+extendToPowerOfTwo :: Int -> Int
+extendToPowerOfTwo x
+    | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
+    | otherwise = 1
