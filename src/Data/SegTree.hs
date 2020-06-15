@@ -51,7 +51,7 @@ buildSegTree vec = do
     let n = extendToPowerOfTwo $ U.length vec
     tree <- UM.replicate (2 * n) mempty
     U.unsafeCopy (UM.unsafeSlice n (U.length vec) tree) vec
-    rev (n - 1) $ \i -> do
+    U.forM_ (U.iterateN (n - 1) (subtract 1) (n - 1)) $ \i -> do
         x <- mappend
             <$> UM.unsafeRead tree (unsafeShiftL i 1)
             <*> UM.unsafeRead tree (unsafeShiftL i 1 .|. 1)
