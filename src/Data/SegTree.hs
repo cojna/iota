@@ -1,5 +1,10 @@
 {-# LANGUAGE BangPatterns, LambdaCase #-}
 
+-- |
+-- = Segment Tree
+-- == Reference
+--   * <https://codeforces.com/blog/entry/18051>
+
 module Data.SegTree where
 
 import           Control.Monad
