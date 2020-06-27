@@ -5,7 +5,7 @@ module Math.Combinatrics where
 import           Control.Exception
 import           Data.Coerce
 import           Data.IntMod
-import qualified Data.Vector.Unboxed  as U
+import qualified Data.Vector.Unboxed as U
 
 #define FACT_CACHE_SIZE 100100
 
@@ -18,7 +18,7 @@ recipFact = U.unsafeIndex recipFactCache
 {-# INLINE recipFact #-}
 
 perm :: Int -> Int -> IntMod
-perm n k = fact n * recipFact k
+perm n k = fact n * recipFact (n - k)
 {-# INLINE perm #-}
 
 comb :: Int -> Int -> IntMod
