@@ -50,3 +50,11 @@ queryDepth :: LCA -> Vertex -> Int
 queryDepth LCA{..} v
     = fst . readRMQ rmqLCA $ U.unsafeIndex firstIndexLCA v
 {-# INLINE queryDepth #-}
+
+-- | /O(1)/
+queryDist :: LCA -> Vertex -> Vertex -> Int
+queryDist lca v u
+    = queryDepth lca v
+    + queryDepth lca u
+    - 2 * queryDepth lca (queryLCA lca v u)
+{-# INLINE queryDist #-}

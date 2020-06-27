@@ -34,6 +34,14 @@ spec = do
                 queryDepth lca 3 `shouldBe` 2
             it "queryDepth lca 4 == 2" $ do
                 queryDepth lca 4 `shouldBe` 2
+            it "queryDist lca 0 0 == 0" $ do
+                queryDist lca 0 0 `shouldBe` 0
+            it "queryDist lca 0 1 == " $ do
+                queryDist lca 0 1 `shouldBe` 1
+            it "queryDist lca 0 4 == " $ do
+                queryDist lca 0 4 `shouldBe` 2
+            it "queryDist lca 2 3 == " $ do
+                queryDist lca 3 2 `shouldBe` 3
         describe "buildLCA gr 1" $ do
             let lca = buildLCA gr 1
             it "queryLCA 1 2 == 1" $ do
@@ -54,4 +62,12 @@ spec = do
                 queryDepth lca 3 `shouldBe` 1
             it "queryDepth lca 4 == 1" $ do
                 queryDepth lca 4 `shouldBe` 1
+            it "queryDist lca 0 0 == 0" $ do
+                queryDist lca 0 0 `shouldBe` 0
+            it "queryDist lca 0 1 == " $ do
+                queryDist lca 0 1 `shouldBe` 1
+            it "queryDist lca 0 4 == " $ do
+                queryDist lca 0 4 `shouldBe` 2
+            it "queryDist lca 2 3 == " $ do
+                queryDist lca 3 2 `shouldBe` 3
 
