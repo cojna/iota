@@ -1,13 +1,11 @@
-{-# LANGUAGE CPP                        #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications                                     #-}
 
 module Data.Monoid.Exts where
 
 import           Data.Bits
 import           Data.Coerce
-import qualified Data.Foldable  as F
+import qualified Data.Foldable as F
 
 -- |
 -- >>> mempty :: GCD Int
@@ -34,7 +32,7 @@ instance (Num a, Integral a) => Monoid (GCD a) where
 
 -- |
 -- >>> mempty :: LCM Int
--- LCM {getLCM = 0}
+-- LCM {getLCM = 1}
 -- >>> LCM (-2) <> LCM 3
 -- LCM {getLCM = 6}
 -- >>> LCM (-1) <> mempty
@@ -42,7 +40,7 @@ instance (Num a, Integral a) => Monoid (GCD a) where
 newtype LCM a = LCM { getLCM :: a } deriving (Eq, Show, Num)
 
 instance (Integral a) => Semigroup (LCM a) where
-  (<>) = coerce (lcm :: a -> a -> a)
+  (<>) = coerce (lcm @a)
   {-# INLINE (<>) #-}
 
 instance (Num a, Integral a) => Monoid (LCM a) where
@@ -51,7 +49,7 @@ instance (Num a, Integral a) => Monoid (LCM a) where
     mconcat = F.foldl' mappend mempty
     {-# INLINE mconcat #-}
 #if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce (lcm :: a -> a -> a)
+    mappend = coerce (lcm @a)
     {-# INLINE mappend #-}
 #endif
 
@@ -63,16 +61,16 @@ instance (Num a, Integral a) => Monoid (LCM a) where
 newtype BitAnd a = BitAnd { getBitAnd :: a } deriving (Eq, Show)
 
 instance (Bits a) => Semigroup (BitAnd a) where
-  (<>) = coerce ((.&.) :: a -> a -> a)
+  (<>) = coerce ((.&.) @a)
   {-# INLINE (<>) #-}
 
 instance (Bits a) => Monoid (BitAnd a) where
-    mempty = coerce $ complement (zeroBits :: a)
+    mempty = coerce $ complement (zeroBits @a)
     {-# INLINE mempty #-}
     mconcat = F.foldl' mappend mempty
     {-# INLINE mconcat #-}
 #if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce ((.&.) :: a -> a -> a)
+    mappend = coerce ((.&.) @a)
     {-# INLINE mappend #-}
 #endif
 
@@ -82,16 +80,16 @@ instance (Bits a) => Monoid (BitAnd a) where
 newtype BitOr a = BitOr { getBitOr :: a } deriving (Eq, Show)
 
 instance (Bits a) => Semigroup (BitOr a) where
-  (<>) = coerce ((.|.) :: a -> a -> a)
+  (<>) = coerce ((.|.) @a)
   {-# INLINE (<>) #-}
 
 instance (Bits a) => Monoid (BitOr a) where
-    mempty = coerce (zeroBits :: a)
+    mempty = coerce (zeroBits @a)
     {-# INLINE mempty #-}
     mconcat = F.foldl' mappend mempty
     {-# INLINE mconcat #-}
 #if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce ((.|.) :: a -> a -> a)
+    mappend = coerce ((.|.) @a)
     {-# INLINE mappend #-}
 #endif
 
@@ -101,15 +99,15 @@ instance (Bits a) => Monoid (BitOr a) where
 newtype BitXor a = BitXor { getBitXor :: a } deriving (Eq, Show)
 
 instance (Bits a) => Semigroup (BitXor a) where
-  (<>) = coerce (xor :: a -> a -> a)
+  (<>) = coerce (xor @a)
   {-# INLINE (<>) #-}
 
 instance (Bits a) => Monoid (BitXor a) where
-    mempty = coerce (zeroBits :: a)
+    mempty = coerce (zeroBits @a)
     {-# INLINE mempty #-}
     mconcat = F.foldl' mappend mempty
     {-# INLINE mconcat #-}
 #if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce (xor :: a -> a -> a)
+    mappend = coerce (xor @a)
     {-# INLINE mappend #-}
 #endif

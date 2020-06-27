@@ -3,7 +3,7 @@
 module Math.CombinatricsSpec (main, spec) where
 
 import           Data.IntMod
-import qualified Data.Vector.Unboxed       as U
+import qualified Data.Vector.Unboxed as U
 import           Math.Combinatrics
 import           Test.Prelude
 
@@ -24,22 +24,24 @@ spec = do
         it "fact 100 = 437918130 (mod 1000000007)" $ do
             fact 100 `shouldBe` 437918130
     describe "perm" $ do
-        it "perm 10 0 == 3628800" $ do
-            perm 10 0 `shouldBe` 3628800
-        it "prem 10 1 == 3628800" $ do
-            perm 10 1 `shouldBe` 3628800
-        it "perm 10 2 == 1814400" $ do
-            perm 10 2 `shouldBe` 1814400
-        it "perm 10 9 == 10" $ do
-            perm 10 9 `shouldBe` 10
-        it "perm 10 10 == 1" $ do
-            perm 10 10 `shouldBe` 1
+        it "perm 10 0 == 1" $ do
+            perm 10 0 `shouldBe` 1
+        it "prem 10 1 == 10" $ do
+            perm 10 1 `shouldBe` 10
+        it "perm 10 2 == 90" $ do
+            perm 10 2 `shouldBe` 90
+        it "perm 10 9 == 3628800" $ do
+            perm 10 9 `shouldBe` 3628800
+        it "perm 10 10 == 3628800" $ do
+            perm 10 10 `shouldBe` 3628800
+        prop "perm n n == fact n" prop_permNN
     describe "comb" $ do
         prop "comb n 0 = 1" prop_combN0
         prop "comb n n = 1" prop_combNN
         prop "comb n k = comb (n - 1) (k - 1) + comb (n - 1) k" $
             prop_constructPascal'sTriangle
         prop "comb n k = comb n (n - k)" prop_combSym
+        prop "comb n k = perm n k / fact k" prop_combByPerm
     describe "fact/recipFact cache" $ do
         it "fact * recipFact = 1" $
             U.zipWith (*) factCache recipFactCache
@@ -47,6 +49,10 @@ spec = do
 
 normalize :: Int -> Int
 normalize = flip mod factCacheSize
+
+prop_permNN :: NonNegative Int -> Bool
+prop_permNN (normalize.getNonNegative -> n)
+    = perm n n == fact n
 
 prop_combN0 :: NonNegative Int -> Bool
 prop_combN0 (normalize.getNonNegative -> n)
@@ -72,6 +78,16 @@ prop_combSym
     (normalize.getPositive -> x)
     (normalize.getPositive -> y)
     = comb n k == comb n (n - k)
+  where
+    n = max x y
+    k = min x y
+
+prop_combByPerm
+    :: Positive Int -> Positive Int -> Bool
+prop_combByPerm
+    (normalize.getPositive -> x)
+    (normalize.getPositive -> y)
+    = comb n k == perm n k / fact k
   where
     n = max x y
     k = min x y
