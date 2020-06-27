@@ -34,7 +34,7 @@ instance (Num a, Integral a) => Monoid (GCD a) where
 
 -- |
 -- >>> mempty :: LCM Int
--- LCM {getLCM = 0}
+-- LCM {getLCM = 1}
 -- >>> LCM (-2) <> LCM 3
 -- LCM {getLCM = 6}
 -- >>> LCM (-1) <> mempty
