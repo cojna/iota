@@ -16,7 +16,7 @@ logFact = U.unsafeIndex logFactCache
 {-# INLINE logFact #-}
 
 logPerm :: Int -> Int -> Double
-logPerm n k = logFact n - logFact k
+logPerm n k = logFact n - logFact (n - k)
 {-# INLINE logPerm #-}
 
 logComb :: Int -> Int -> Double
