@@ -3,6 +3,7 @@
 module Math.Modulus where
 
 import           Data.Bits
+import qualified Data.Foldable           as F
 import           Data.Function
 import qualified Data.IntMap.Strict      as IM
 
@@ -157,3 +158,30 @@ cipolla a p = fst $ pow (ns, 1) (quot (p + 1) 2)
 
     x *% y = x * y `rem` p
     {-# INLINE (*%) #-}
+
+-- |
+-- x (mod m) (x = r[i] (mod m[i]))
+--
+-- gcd m[i] m[j] == 1
+--
+-- /O(n^2)/
+--
+-- >>> garner [(2, 3), (3, 5), (2, 7)] 999
+-- 23
+-- >>> garner [(2, 3), (3, 5), (2, 7)] 10
+-- 3
+garner :: (Integral a) => [(a, a)] -> a -> a
+garner rms m0 = go [] rms
+  where
+    ms = map snd rms
+    go cs ((r,m):rest) = go (cs ++ [c]) rest
+      where
+        -- a + b * c = r (mod m)
+        (a, b) = F.foldl' (step m) (0, 1) $ zip cs ms
+        !c  = rem (mod (r - a) m * recipMod b m) m
+    go cs [] = fst . F.foldl' (step m0) (0, 1) $ zip cs ms
+
+    step m (!s, !p) (ci, mi) = (s', p')
+      where
+        !s' = rem (s + rem (ci * p) m) m
+        !p' = rem (p * mi) m

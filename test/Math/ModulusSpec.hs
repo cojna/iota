@@ -63,6 +63,11 @@ spec = do
         it "sqrtMod 5 998244353 = []" $ do
             sqrtMod 5 998244353 `shouldBe` []
         prop "(sqrtMod a p) ^ 2 == a" prop_sqrtMod
+    describe "garner" $ do
+        it "garner [(2, 3), (3, 5), (2, 7)] 999 = 23" $ do
+            garner [(2, 3), (3, 5), (2, 7)] 999 `shouldBe` 23
+        it "garner [(2, 3), (3, 5), (2, 7)] 10 = 3" $ do
+            garner [(2, 3), (3, 5), (2, 7)] 10 `shouldBe` 3
 
 naivePowMod :: Integer -> Int -> Integer -> Integer
 naivePowMod x n m = L.foldl' (\acc x -> acc * x `mod` m) 1 $ replicate n x
