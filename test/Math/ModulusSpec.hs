@@ -56,10 +56,10 @@ prop_powModSameToNaive
     (getPrime -> m)
     = powMod x n m == naivePowMod x n m
 
-prop_Fermat'sLittleTheorem :: NonNegative Int -> Prime Int -> Bool
+prop_Fermat'sLittleTheorem :: NonNegative Int -> Prime Int -> Property
 prop_Fermat'sLittleTheorem
     (getNonNegative -> x) (getPrime -> p)
-    = powMod x p p == x
+    = gcd x p == 1 ==> powMod x p p == x
 
 prop_recipMod :: Positive Integer -> Prime Integer -> Bool
 prop_recipMod
