@@ -23,16 +23,16 @@ spec = do
         it "exp (logFact 10) == 3628800" $ do
             exp (logFact 10) `shouldSatisfy` eq 3628800.0
     describe "logPerm" $ do
-        it "exp (logPerm 10 0) == 3628800" $ do
-            exp (logPerm 10 0) `shouldSatisfy` eq 3628800.0
-        it "exp (logPrem 10 1) == 3628800" $ do
-            exp (logPerm 10 1) `shouldSatisfy` eq 3628800.0
-        it "exp (logPerm 10 2) == 1814400" $ do
-            exp (logPerm 10 2) `shouldSatisfy` eq 1814400.0
-        it "exp (logPerm 10 9) == 10" $ do
-            exp (logPerm 10 9) `shouldSatisfy` eq 10.0
-        it "exp (logPerm 10 10) == 1" $ do
-            exp (logPerm 10 10) `shouldSatisfy` eq 1.0
+        it "exp (logPerm 10 0) == 1" $ do
+            exp (logPerm 10 0) `shouldSatisfy` eq 1.0
+        it "exp (logPrem 10 1) == 10" $ do
+            exp (logPerm 10 1) `shouldSatisfy` eq 10.0
+        it "exp (logPerm 10 2) == 90" $ do
+            exp (logPerm 10 2) `shouldSatisfy` eq 90.0
+        it "exp (logPerm 10 9) == 3628800" $ do
+            exp (logPerm 10 9) `shouldSatisfy` eq 3628800.0
+        it "exp (logPerm 10 10) == 3628800" $ do
+            exp (logPerm 10 10) `shouldSatisfy` eq 3628800.0
     describe "logComb" $ do
         it "exp (logComb 10 0) == 1" $ do
             exp (logComb 10 0) `shouldSatisfy` eq 1.0

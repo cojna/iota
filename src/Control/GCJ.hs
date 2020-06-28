@@ -19,7 +19,7 @@ withGCJ f = getArgs >>= \case
     ["--debug"] -> f
     [] -> do
         t <- readLn
-        mapM_ ((*> f) . putStrLn . formatGCJ) [1..t]
+        mapM_ ((*> f) . putStr . formatGCJ) [1..t]
     args -> error $ show args
 
 withGCJInteractive :: ([Int] -> Interactive a) -> IO ()
