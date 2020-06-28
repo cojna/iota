@@ -15,7 +15,7 @@ powMod x n m
   where
     go !acc !y !i
         | i .&. 1 == 0 = go acc (y * y `rem` m) (unsafeShiftR i 1)
-        | i == 1 = acc * y `rem` m
+        | i == 1 = acc * y `mod` m
         | otherwise = go (acc * y `rem` m) (y * y `rem` m) (unsafeShiftR (i - 1) 1)
 {-# INLINE powMod #-}
 
