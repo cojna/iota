@@ -63,6 +63,22 @@ spec = do
         it "sqrtMod 5 998244353 = []" $ do
             sqrtMod 5 998244353 `shouldBe` []
         prop "(sqrtMod a p) ^ 2 == a" prop_sqrtMod
+    describe "crt" $ do
+        it "crt (10, 20) (10, 30) = Just (10, 60)" $ do
+            crt (10, 20) (10, 30) `shouldBe` Just (10, 60)
+        it "crt (10, 20) (10, 20) = Just (10, 20)" $ do
+            crt (10, 20) (10, 20) `shouldBe` Just (10, 20)
+        it "crt (10, 20) (11, 20) = Nothing" $ do
+            crt (10, 20) (11, 20) `shouldBe` Nothing
+    describe "crts" $ do
+        it "crts [(20,30),(30,50),(20,70)] = Just (230, 1050)" $ do
+            crts [(20,30),(30,50),(20,70)] `shouldBe` Just (230, 1050)
+        it "crts [] = Just (0, 1)" $ do
+            crts [] `shouldBe` Just (0, 1)
+        it "crts [(1, 10), (2, 20), (3, 30)] = Nothing" $ do
+            crts [(1, 10), (2, 20), (3, 30)] `shouldBe` Nothing
+
+
     describe "garner" $ do
         it "garner [(2, 3), (3, 5), (2, 7)] 999 = 23" $ do
             garner [(2, 3), (3, 5), (2, 7)] 999 `shouldBe` 23
