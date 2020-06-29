@@ -2,6 +2,7 @@
 
 module Math.Modulus where
 
+import           Control.Monad
 import           Data.Bits
 import qualified Data.Foldable           as F
 import           Data.Function
@@ -158,6 +159,47 @@ cipolla a p = fst $ pow (ns, 1) (quot (p + 1) 2)
 
     x *% y = x * y `rem` p
     {-# INLINE (*%) #-}
+
+-- |
+-- (x, y, g) = extGCD a b (a * x + b * y = g)
+extGCD :: (Integral a) => a -> a -> (a, a, a)
+extGCD a b = go a b 1 0
+  where
+    go !a !b !u !v
+        | b > 0 = case a `quot` b of
+            q -> go b (a - (q * b)) v (u - (q * v))
+        | otherwise = (u, v, a)
+{-# INLINE extGCD #-}
+
+-- | Chinese Remainder Theorem
+--
+--  x = r0 (mod m0), x = r1 (mod m1) ==> x (mod (lcm m0 m1))
+--
+-- >>> crt (10, 20) (10, 30)
+-- Just (10,60)
+-- >>> crt (10, 20) (10, 20)
+-- Just (10,20)
+-- >>> crt (10, 20) (11, 20)
+-- Nothing
+crt :: (Integral a) => (a, a) -> (a, a) -> Maybe (a, a)
+crt (!r0, !m0) (!r1, !m1)
+    | mod (r1 - r0) g == 0 = Just $! (r, m)
+    | otherwise = Nothing
+  where
+    -- m0 * p + m1 * q == g
+    (p, q, g) = extGCD m0 m1
+    !m = m0 * quot m1 g
+    !r = mod (r0 + m0 * (quot (r1 - r0) g) * p) m
+
+-- |
+-- >>> crts [(20,30),(30,50),(20,70)]
+-- Just (230,1050)
+-- >>> crts []
+-- Just (0,1)
+-- >>> crts [(1, 10), (2, 20), (3, 30)]
+-- Nothing
+crts :: (Integral a) => [(a, a)] -> Maybe (a, a)
+crts cs = foldr ((>=>).crt) return cs $ (0, 1)
 
 -- |
 -- x (mod m) (x = r[i] (mod m[i]))
