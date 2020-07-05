@@ -98,7 +98,7 @@ prop_powModSameToNaive
 prop_Fermat'sLittleTheorem :: NonNegative Int -> Prime Int -> Property
 prop_Fermat'sLittleTheorem
     (getNonNegative -> x) (getPrime -> p)
-    = gcd x p == 1 ==> powMod x p p == x
+    = gcd x p == 1 ==> powMod x p p == mod x p
 
 prop_recipMod :: Positive Integer -> Prime Integer -> Bool
 prop_recipMod
