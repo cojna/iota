@@ -27,12 +27,12 @@ modulusVal = fromIntegral . natVal
 {-# INLINE modulusVal #-}
 
 -- |
--- >>> withModulus 998244353 $ \proxy -> print (modulusVal proxy)
+-- >>> reifyModulus 998244353 $ \proxy -> print (modulusVal proxy)
 -- 998244353
-withModulus :: (Integral i) => i -> (forall n.KnownNat n => Proxy n -> a) -> a
-withModulus n f = case someNatVal (fromIntegral n) of
+reifyModulus :: (Integral i) => i -> (forall n.KnownNat n => Proxy n -> a) -> a
+reifyModulus n f = case someNatVal (fromIntegral n) of
     Just (SomeNat proxy) -> f proxy
-    Nothing              -> error "withModulus failed"
+    Nothing              -> error "reifyModulus failed"
 
 instance (KnownNat p) => Num (GF p) where
     x + y = case coerce x + coerce y of
