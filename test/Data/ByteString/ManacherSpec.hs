@@ -27,9 +27,9 @@ spec = do
         it "manacher \"a$b$b$a\" = [1,1,2,4,2,1,1]" $ do
             manacher "a$b$b$a" `shouldBe` U.fromList [1,1,2,4,2,1,1]
 
-prop_naive :: ByteStringOf "ab" -> Bool
+prop_naive :: ByteStringOf "ab" -> Property
 prop_naive (getByteStringOf -> s)
-    = manacher s == naiveManacher s
+    = odd (B.length s) ==> manacher s == naiveManacher s
 
 naiveManacher :: B.ByteString -> U.Vector Int
 naiveManacher bs = U.generate n $ naiveRadius bs

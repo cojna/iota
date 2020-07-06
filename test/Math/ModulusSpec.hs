@@ -70,6 +70,8 @@ spec = do
             crt (10, 20) (10, 20) `shouldBe` Just (10, 20)
         it "crt (10, 20) (11, 20) = Nothing" $ do
             crt (10, 20) (11, 20) `shouldBe` Nothing
+    describe "crt'" $ do
+        prop "solve equations" prop_crt'
     describe "crts" $ do
         it "crts [(20,30),(30,50),(20,70)] = Just (230, 1050)" $ do
             crts [(20,30),(30,50),(20,70)] `shouldBe` Just (230, 1050)
@@ -118,3 +120,8 @@ prop_sqrtMod :: Int -> Prime Int -> Bool
 prop_sqrtMod a (getPrime -> p)
     = and [res * res `rem` p == mod a p | res <- sqrtMod a p]
 
+prop_crt' :: (Int, Prime Int) -> (Int, Prime Int) -> Bool
+prop_crt' (r0, Prime p0) (r1, Prime p1)
+    = mod x p0 == mod r0 p0 && mod x p1 == mod r1 p1
+  where
+    x = crt' (r0, p0) (r1, p1)

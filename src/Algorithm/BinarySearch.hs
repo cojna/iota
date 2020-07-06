@@ -2,27 +2,40 @@
 
 module Algorithm.BinarySearch where
 
+import           Control.Monad
+import           Data.Bool
 import           Data.Functor.Identity
 
 import           Utils                 (unsafeShiftRL)
 
 -- | assert (p high)
-lowerBound :: Int -> Int -> (Int -> Bool) -> Int
-lowerBound low high p = go low high
+lowerBoundM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
+lowerBoundM low high p = go low high
   where
     go !low !high
-        | high <= low = high
-        | p mid       = go low       mid
-        | otherwise   = go (mid + 1) high
+        | high <= low = return high
+        | otherwise = p mid >>= bool (go (mid + 1) high) (go low mid)
       where
         mid = low + unsafeShiftRL (high - low) 1
+{-# INLINE lowerBoundM #-}
+
+-- | assert (p low)
+upperBoundM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
+upperBoundM low high p = do
+    flg <- p high
+    if flg
+    then return high
+    else subtract 1 <$!> lowerBoundM low high (fmap not.p)
+{-# INLINE upperBoundM #-}
+
+-- | assert (p high)
+lowerBound :: Int -> Int -> (Int -> Bool) -> Int
+lowerBound low high p = runIdentity (lowerBoundM low high (return . p))
 {-# INLINE lowerBound #-}
 
 -- | assert (p low)
 upperBound :: Int -> Int -> (Int -> Bool) -> Int
-upperBound low high p
-    | p high = high
-    | otherwise = lowerBound low high (not.p) - 1
+upperBound low high p = runIdentity (upperBoundM low high (return . p))
 {-# INLINE upperBound #-}
 
 lowerBoundInteger :: Integer -> Integer -> (Integer -> Bool) -> Integer

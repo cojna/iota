@@ -15,7 +15,7 @@ import           Utils                       (unsafeShiftRL)
 
 -- | Number Theoretic Transform
 --
--- /O(n log n)
+-- /O(n log n)/
 --
 -- >>> ntt 998244353 3 [1,1,1,1]
 -- [4,0,0,0]
