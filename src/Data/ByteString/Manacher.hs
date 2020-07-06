@@ -11,8 +11,10 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 -- |
--- O(n)
--- 
+-- /n/ must be odd
+--
+-- /O(n)/
+--
 -- >>> manacher "a"
 -- [1]
 -- >>> manacher "aba"
