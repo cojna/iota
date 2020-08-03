@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE LambdaCase, RecordWildCards #-}
 
 module Data.Graph.Sparse.Dijkstra where
 
@@ -11,12 +11,10 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Graph.Sparse
 import           Data.Heap.Binary
 
-#define INF 0x3f3f3f3f3f3f3f3f
-
-dijkstraCSR :: (U.Unbox w, Num w, Ord w)
+dijkstraCSR :: (U.Unbox w, Num w, Ord w, Bounded w)
     => Vertex -> SparseGraph w -> U.Vector w
 dijkstraCSR source gr@CSR{..} = U.create $ do
-    dist <- UM.replicate numVerticesCSR INF
+    dist <- UM.replicate numVerticesCSR maxBound
     heap <- newMinBinaryHeap numEdgesCSR
     UM.write dist source 0
     insertBH (0, source) heap
@@ -25,11 +23,11 @@ dijkstraCSR source gr@CSR{..} = U.create $ do
             Just (d, v) -> do
                 dv <- UM.unsafeRead dist v
                 when (dv == d) $ do
-                    U.forM_ (gr `adjW` v) $ \(v', w') -> do
-                        dv' <- UM.unsafeRead dist v'
-                        when (dv + w' < dv') $ do
-                            UM.unsafeWrite dist v' $ dv + w'
-                            insertBH (dv + w', v') heap
+                    U.forM_ (gr `adjW` v) $ \(nv, w) -> do
+                        dnv <- UM.unsafeRead dist nv
+                        when (dv + w < dnv) $ do
+                            UM.unsafeWrite dist nv $ dv + w
+                            insertBH (dv + w, nv) heap
                 loop
             Nothing -> return ()
     return dist

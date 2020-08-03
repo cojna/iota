@@ -11,12 +11,8 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.VecQueue
 
-nothing :: Int
-nothing = -1
-
-inf :: (Num a) => a
-inf = 0x3f3f3f3f3f3f
-{-# INLINE inf #-}
+nothingMF :: Int
+nothingMF = -1
 
 type Vertex = Int
 
@@ -40,7 +36,7 @@ maxFlow @Int 5 0 4 $ \builder -> do
 0
 -}
 maxFlow
-    :: (U.Unbox cap, Num cap, Ord cap)
+    :: (U.Unbox cap, Num cap, Ord cap, Bounded cap)
     => Int -- ^ number of vertices
     -> Vertex -- ^ source
     -> Vertex -- ^ sink
@@ -63,20 +59,20 @@ data MaxFlow s cap = MaxFlow
     }
 
 
-runMaxFlow :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m)
+runMaxFlow :: (U.Unbox cap, Num cap, Ord cap, Bounded cap, PrimMonad m)
     => Vertex -> Vertex -> MaxFlow (PrimState m) cap -> m cap
 runMaxFlow src sink mf@MaxFlow{..} = do
     flip fix 0 $ \loopBFS !flow -> do
-        UM.set levelMF nothing
+        UM.set levelMF nothingMF
         clearVQ queueMF
         bfsMF src mf
         lsink <- UM.unsafeRead levelMF sink
-        if lsink == nothing
+        if lsink == nothingMF
         then return flow
         else do
             U.unsafeCopy iterMF offsetMF
             flip fix flow $ \loopDFS !f -> do
-                df <- dfsMF src sink inf mf
+                df <- dfsMF src sink maxBound mf
                 if df > 0
                 then loopDFS (f + df)
                 else loopBFS f
@@ -96,14 +92,15 @@ bfsMF src MaxFlow{..} = do
                     let nv = U.unsafeIndex dstMF e
                     res <- UM.unsafeRead residualMF e
                     lnv <- UM.unsafeRead levelMF nv
-                    when (res > 0 && lnv == nothing) $ do
-                        UM.unsafeRead levelMF v >>= UM.unsafeWrite levelMF nv . (+1)
+                    when (res > 0 && lnv == nothingMF) $ do
+                        UM.unsafeRead levelMF v
+                            >>= UM.unsafeWrite levelMF nv . (+1)
                         enqueueVQ nv queueMF
                     loop
             Nothing -> return ()
 {-# INLINE bfsMF #-}
 
-dfsMF :: (U.Unbox cap, Num cap, Ord cap, PrimMonad m)
+dfsMF :: (U.Unbox cap, Num cap, Ord cap, Bounded cap, PrimMonad m)
     => Vertex -> Vertex -> cap -> MaxFlow (PrimState m) cap -> m cap
 dfsMF v0 sink flow0 MaxFlow{..} = dfs v0 flow0 return
   where
@@ -153,8 +150,8 @@ buildMaxFlow MaxFlowBuilder{..} = do
     let numEdgesMF = U.last offsetMF
 
     moffset <- U.thaw offsetMF
-    mdstMF <- UM.replicate numEdgesMF nothing
-    mrevEdgeMF <- UM.replicate numEdgesMF nothing
+    mdstMF <- UM.replicate numEdgesMF nothingMF
+    mrevEdgeMF <- UM.replicate numEdgesMF nothingMF
     residualMF <- UM.replicate numEdgesMF 0
 
     edges <- freezeVecQueue edgesMFB
@@ -170,7 +167,7 @@ buildMaxFlow MaxFlowBuilder{..} = do
         UM.unsafeWrite residualMF srcOffset cap
 
     dstMF <- U.unsafeFreeze mdstMF
-    levelMF <- UM.replicate numVerticesMF nothing
+    levelMF <- UM.replicate numVerticesMF nothingMF
     revEdgeMF <- U.unsafeFreeze mrevEdgeMF
     iterMF <- UM.replicate numVerticesMF 0
     U.unsafeCopy iterMF offsetMF
