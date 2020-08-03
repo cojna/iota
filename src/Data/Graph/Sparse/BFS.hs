@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE LambdaCase, RecordWildCards #-}
 
 module Data.Graph.Sparse.BFS where
 
@@ -11,11 +11,9 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Graph.Sparse
 import           Data.VecQueue
 
-#define INF 0x3f3f3f3f3f3f3f3f
-
 bfsCSR :: Vertex -> SparseGraph w -> U.Vector Int
 bfsCSR source gr@CSR{..} = U.create $ do
-    dist <- UM.replicate numVerticesCSR INF
+    dist <- UM.replicate numVerticesCSR maxBound
     que <- newVecQueue numEdgesCSR
     UM.write dist source 0
     enqueueVQ source que
@@ -23,11 +21,11 @@ bfsCSR source gr@CSR{..} = U.create $ do
         dequeueVQ que >>= \case
             Just v -> do
                 dv <- UM.unsafeRead dist v
-                U.forM_ (gr `adj` v) $ \v' -> do
-                    visited <- (< INF) <$> UM.unsafeRead dist v'
-                    unless visited $ do
-                        UM.unsafeWrite dist v' $ dv + 1
-                        enqueueVQ v' que
+                U.forM_ (gr `adj` v) $ \nv -> do
+                    dnv <- UM.unsafeRead dist nv
+                    when (dnv == maxBound) $ do
+                        UM.unsafeWrite dist nv $ dv + 1
+                        enqueueVQ nv que
                 loop
             Nothing -> return ()
     return dist

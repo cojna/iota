@@ -18,11 +18,8 @@ import           Data.Heap.Binary
 import           Data.VecQueue
 import           Utils                       (rep)
 
-nothing :: Int
-nothing = -1
-
-inf :: Int
-inf = 0x3f3f3f3f3f3f
+nothingMCF :: Int
+nothingMCF = -1
 
 type Vertex = Int
 type Cost = Int
@@ -105,7 +102,7 @@ decodeMCF costv = unsafeCoerce (cost, v)
 dijkstraMCF :: (PrimMonad m)
     => Vertex -> Vertex -> MinCostFlow (PrimState m) -> m Bool
 dijkstraMCF source sink MinCostFlow{..} = do
-    UM.set distMCF inf
+    UM.set distMCF maxBound
     UM.unsafeWrite distMCF source 0
     clearBH heapMCF
     insertBH (encodeMCF 0 source) heapMCF
@@ -134,7 +131,7 @@ dijkstraMCF source sink MinCostFlow{..} = do
                 loop
             Nothing -> do
                 cost <- UM.unsafeRead distMCF sink
-                return $! cost < inf
+                return $! cost < maxBound
 {-# INLINE dijkstraMCF #-}
 
 updateResidualMCF :: (PrimMonad m)
@@ -185,9 +182,9 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
     let numEdgesMCF = U.last offsetMCF
 
     moffset <- U.thaw offsetMCF
-    mdstMCF <- UM.replicate numEdgesMCF nothing
+    mdstMCF <- UM.replicate numEdgesMCF nothingMCF
     mcostMCF <- UM.replicate numEdgesMCF 0
-    mrevEdgeMCF <- UM.replicate numEdgesMCF nothing
+    mrevEdgeMCF <- UM.replicate numEdgesMCF nothingMCF
     residualMCF <- UM.replicate numEdgesMCF 0
 
     edges <- freezeVecQueue edgesMCFB
@@ -211,6 +208,6 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
     distMCF <- UM.replicate numVerticesMCF 0
     heapMCF <- newMinBinaryHeap numEdgesMCF
     revEdgeMCF <- U.unsafeFreeze mrevEdgeMCF
-    prevVertexMCF <- UM.replicate numVerticesMCF nothing
-    prevEdgeMCF <- UM.replicate numVerticesMCF nothing
+    prevVertexMCF <- UM.replicate numVerticesMCF nothingMCF
+    prevEdgeMCF <- UM.replicate numVerticesMCF nothingMCF
     return MinCostFlow{..}
