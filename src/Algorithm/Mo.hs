@@ -12,6 +12,7 @@ import qualified Data.Vector.Unboxed.Mutable       as UM
 import           Data.Word
 import           Unsafe.Coerce
 --
+import           Utils                             (stream, streamR)
 import           Data.Vector.Sort.Radix            (radixSort64)
 
 -- | /O((N+Q)sqrt N)/
@@ -65,21 +66,3 @@ moEncode blockSize qi l r
 moDecode :: Word64 -> Int
 moDecode = unsafeCoerce @Word64 @Int . (.&. 0xfffff)
 {-# INLINE moDecode #-}
-
-stream :: (Monad m) => Int -> Int -> MS.Stream m Int
-stream l r = MS.Stream step l
-  where
-    step x
-        | x < r = return $ MS.Yield x (x + 1)
-        | otherwise = return MS.Done
-    {-# INLINE [0] step #-}
-{-# INLINE [1] stream #-}
-
-streamR :: (Monad m) => Int -> Int -> MS.Stream m Int
-streamR l r = MS.Stream step (r - 1)
-  where
-    step x
-        | x >= l = return $ MS.Yield x (x - 1)
-        | otherwise = return MS.Done
-    {-# INLINE [0] step #-}
-{-# INLINE [1] streamR #-}
