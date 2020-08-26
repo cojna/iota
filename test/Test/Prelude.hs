@@ -95,6 +95,9 @@ instance (Arbitrary a, KnownNat n) => Arbitrary (SizeBoundedList n a) where
     arbitrary = SizeBoundedList . take (fromIntegral $ natVal (Proxy @n))
         <$> arbitrary @[a]
 
+instance (Arbitrary a) => Arbitrary (EPS a) where
+    arbitrary = EPS <$> arbitrary
+
 class Applox a where
     approx :: Double -> a -> a -> Bool
 
