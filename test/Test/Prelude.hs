@@ -16,17 +16,20 @@ module Test.Prelude
     , ByteStringOf(..)
     , SizeFixedList(..)
     , SizeBoundedList(..)
+    , Approx(..)
     ) where
 
 import           Control.Exception         (Exception (..), evaluate, throwIO)
 import qualified Data.ByteString.Char8     as C
 import           Data.Coerce
+import           Data.EPS
 import           Data.IntMod
 import           Data.Proxy
+import           Data.Semigroup
 import           GHC.TypeLits
 import           Math.Prime                (smallPrimes)
 import           System.Timeout            (timeout)
-import           Test.Hspec
+import           Test.Hspec                hiding (Arg)
 import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
@@ -91,3 +94,22 @@ newtype SizeBoundedList (n :: Nat) a = SizeBoundedList{ getSizeBoundedList :: [a
 instance (Arbitrary a, KnownNat n) => Arbitrary (SizeBoundedList n a) where
     arbitrary = SizeBoundedList . take (fromIntegral $ natVal (Proxy @n))
         <$> arbitrary @[a]
+
+instance (Arbitrary a) => Arbitrary (EPS a) where
+    arbitrary = EPS <$> arbitrary
+
+class Approx a where
+    approx :: Double -> a -> a -> Bool
+
+instance Approx Double where
+    approx e ans x = absErr ans x < e || relErr ans x < e
+
+instance (Approx a, Approx b) => Approx (a, b) where
+    approx e (x0, y0) (x, y) = approx e x0 x && approx e y0 y
+
+instance (Approx a, Approx b, Approx c) => Approx (a, b, c) where
+    approx e (x0, y0, z0) (x, y, z)
+        = approx e x0 x && approx e y0 y && approx e z0 z
+
+instance (Approx a, Approx b) => Approx (Arg a b) where
+    approx e (Arg v0 k0) (Arg v k) = approx e v0 v && approx e k0 k

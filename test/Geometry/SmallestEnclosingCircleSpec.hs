@@ -1,14 +1,16 @@
 {-# LANGUAGE BangPatterns, DataKinds, ViewPatterns #-}
 
-module Geometry.Dim2.SmallestEnclosingCircleSpec (main, spec) where
+module Geometry.SmallestEnclosingCircleSpec (main, spec) where
 
 import           Algorithm.GoldenSectionSearch
+import           Data.Coerce
+import           Data.EPS
 import           Data.Semigroup
 import qualified Data.Vector                           as V
-import           Geometry.Dim2.Base
-import           Geometry.Dim2.Circle
-import           Geometry.Dim2.Instances
-import           Geometry.Dim2.SmallestEnclosingCircle
+import           Geometry
+import           Geometry.Circle
+import           Geometry.Instances
+import           Geometry.SmallestEnclosingCircle
 import           Test.Prelude
 
 main :: IO ()
@@ -30,7 +32,7 @@ spec = do
               smallestEnclosingCircle (V.fromList points)
                 `shouldBe` Circle (P 0.0 0.4230769230769231) 8.949976033818032
 
-byGoldenSectionSearch :: V.Vector Point -> Circle
+byGoldenSectionSearch :: V.Vector (Point Double) -> Circle Double
 byGoldenSectionSearch points | V.null points = Circle (P 0.0 0.0) 0.0
 byGoldenSectionSearch points = Circle (P x y) r
   where
@@ -38,18 +40,20 @@ byGoldenSectionSearch points = Circle (P x y) r
     high = 1000.0
     Min (Arg r (x, y)) = goldenSectionSearchMin2 low high $ \cx cy ->
         let !c = P cx cy
-        in V.maximum $ V.map (\p -> norm2 (p - c)) points
+        in V.maximum $ V.map (\p -> norm (p - c)) points
 
-prop_naive :: SizeBoundedList 16 Point -> Bool
+prop_naive :: SizeBoundedList 16 (Point (EPS Double)) -> Bool
 prop_naive (getSizeBoundedList -> points)
     = smallestEnclosingCircle (V.fromList points) ==
         naiveSmallestEnclosingCircle points
 
-prop_goldenSectionSearch :: [Point] -> Bool
+prop_goldenSectionSearch :: [Point (EPS Double)] -> Bool
 prop_goldenSectionSearch (V.fromList -> points)
-    = smallestEnclosingCircle points == byGoldenSectionSearch points
+    = let res = smallestEnclosingCircle points
+          ans = coerce . byGoldenSectionSearch . coerce $ points
+      in approx 1e-8 ans res
 
-prop_enclose :: [Point] -> Bool
+prop_enclose :: [Point (EPS Double)] -> Bool
 prop_enclose (V.fromList -> points) = V.all (`inCircle` c) points
   where
     !c = smallestEnclosingCircle points

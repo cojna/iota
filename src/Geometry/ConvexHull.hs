@@ -1,13 +1,12 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Geometry.Dim2.ConvexHull where
+module Geometry.ConvexHull where
 
 import qualified Data.List          as L
 
-import           Data.VecStack
-import           Geometry.Dim2.Base
+import           Geometry
 
-convexHull :: [Point] -> [Point]
+convexHull :: (Num a, Ord a) => [Point a] -> [Point a]
 convexHull [] = []
 convexHull (L.sort -> (leftest:sorted))
     = reverse . go [leftest] $ L.sortBy (compareCCW leftest) sorted
@@ -15,7 +14,7 @@ convexHull (L.sort -> (leftest:sorted))
      go (p:q:conv) (r:rs) = case compareCCW q p r of
         LT -> go (r:p:q:conv) rs
         GT -> go (q:conv) (r:rs)
-        EQ | (q - p) `dot` (r - p) < 0 -> go (r:q:conv) rs -- q--p--r
-           | otherwise                 -> go (p:q:conv) rs -- q--r--p
+        EQ | dot (q - p) (r - p) < 0 -> go (r:q:conv) rs -- q--p--r
+           | otherwise               -> go (p:q:conv) rs -- q--r--p
      go conv (r:rs) = go (r:conv) rs
      go conv [] = conv
