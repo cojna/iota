@@ -1,4 +1,4 @@
-module Data.Double.EPS where
+module Data.EPS where
 
 eps :: Double
 eps = 1e-8

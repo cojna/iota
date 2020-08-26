@@ -1,7 +1,7 @@
 module Algorithm.GoldenSectionSearchSpec where
 
 import           Algorithm.GoldenSectionSearch
-import           Data.Double.EPS
+import           Data.EPS
 import           Data.Semigroup
 import           Test.Prelude hiding (Arg)
 
