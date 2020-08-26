@@ -1,8 +1,11 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Geometry.Dim2.ConvexHullSpec (main, spec) where
 
 import qualified Data.Vector              as V
 
-import           Geometry.Dim2.Base
+import           Data.EPS
+import           Geometry
 import           Geometry.Dim2.ConvexHull
 import           Geometry.Dim2.Instances
 import qualified System.Random.XoRoShiRo  as Random
@@ -46,9 +49,10 @@ spec = do
                     | x<-[0..n-1], y<-[0..n-1]
                     ]
             convexHull points `shouldBe` [P 0 0, P lim 0, P lim lim, P 0 lim]
-        prop "convexHull . convexHull = convexHull"
-            $ prop_convexHullConvexHull
+        describe "convexHull . convexHull = convexHull" $ do
+            prop "Int" (prop_convexHullConvexHull @Int)
+            prop "Double" (prop_convexHullConvexHull @(EPS Double))
 
-prop_convexHullConvexHull :: [Point] -> Bool
+prop_convexHullConvexHull :: (Num a, Ord a) => [Point a] -> Bool
 prop_convexHullConvexHull points
     = convexHull (convexHull points) == convexHull points

@@ -2,51 +2,49 @@
 
 module Geometry.Dim2.Circle where
 
-import           Geometry.Dim2.Base
+import           Geometry
 
-data Circle = Circle
-    { centerC :: !Point  -- ^ center
-    , radiusC :: !Double -- ^ radius
-    } deriving (Show)
+data Circle a = Circle
+    { centerC :: !(Point a)  -- ^ center
+    , radiusC :: !a          -- ^ radius
+    } deriving (Eq, Show)
 
-instance Eq Circle where
-    (Circle p0 r0) == (Circle p1 r1) = p0 == p1 && eqEPS r0 r1
-
-inCircle :: Point -> Circle -> Bool
-inCircle (P x0 y0) (Circle (P x y) r) = dx * dx + dy * dy <= r' * r'
+inCircle :: (Num a, Ord a) => Point a -> Circle a -> Bool
+inCircle (P x0 y0) (Circle (P x y) r) = dx * dx + dy * dy <= r * r
   where
     !dx = x - x0
     !dy = y - y0
-    !r' = r + eps
 
 triangleCenter
-    :: Double -> Double -> Double
-    -> Point -> Point -> Point
-    -> Point
+    :: (Fractional a)
+    => a -> a -> a
+    -> Point a -> Point a -> Point a
+    -> Point a
 triangleCenter wa wb wc a b c
-    = recip (wa + wb + wc)
-    *: (wa *: a + wb *: b + wc *: c)
+    = fmap (recip (wa + wb + wc) *)
+        (fmap (wa *) a + fmap (wb *) b + fmap (wc *) c)
 
-incenter :: Point -> Point -> Point -> Point
+incenter :: (Floating a)
+    => Point a -> Point a -> Point a -> Point a
 incenter a b c
     = triangleCenter aa bb cc a b c
   where
-    cc = norm2 (a - b)
-    aa = norm2 (b - c)
-    bb = norm2 (c - a)
+    cc = norm (a - b)
+    aa = norm (b - c)
+    bb = norm (c - a)
 
-centroid :: Point -> Point -> Point -> Point
-centroid a b c = recip 3.0 *: (a + b + c)
+centroid :: (Fractional a) => Point a -> Point a -> Point a -> Point a
+centroid a b c = fmap (recip 3.0 *) (a + b + c)
 
-circumcenter :: Point -> Point -> Point -> Point
+circumcenter :: (Fractional a) => Point a -> Point a -> Point a -> Point a
 circumcenter a b c
     = triangleCenter
         (aa * (bb + cc - aa)) (bb * (cc + aa - bb)) (cc * (aa + bb - cc))
         a b c
   where
-    aa = sqrNorm2 (b - c)
-    bb = sqrNorm2 (c - a)
-    cc = sqrNorm2 (a - b)
+    aa = sqrNorm (b - c)
+    bb = sqrNorm (c - a)
+    cc = sqrNorm (a - b)
 
-orthocenter :: Point -> Point -> Point -> Point
+orthocenter :: (Num a) => Point a -> Point a -> Point a -> Point a
 orthocenter a b c = a + b + c
