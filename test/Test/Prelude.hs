@@ -16,7 +16,7 @@ module Test.Prelude
     , ByteStringOf(..)
     , SizeFixedList(..)
     , SizeBoundedList(..)
-    , Applox(..)
+    , Approx(..)
     ) where
 
 import           Control.Exception         (Exception (..), evaluate, throwIO)
@@ -98,18 +98,18 @@ instance (Arbitrary a, KnownNat n) => Arbitrary (SizeBoundedList n a) where
 instance (Arbitrary a) => Arbitrary (EPS a) where
     arbitrary = EPS <$> arbitrary
 
-class Applox a where
+class Approx a where
     approx :: Double -> a -> a -> Bool
 
-instance Applox Double where
+instance Approx Double where
     approx e ans x = absErr ans x < e || relErr ans x < e
 
-instance (Applox a, Applox b) => Applox (a, b) where
+instance (Approx a, Approx b) => Approx (a, b) where
     approx e (x0, y0) (x, y) = approx e x0 x && approx e y0 y
 
-instance (Applox a, Applox b, Applox c) => Applox (a, b, c) where
+instance (Approx a, Approx b, Approx c) => Approx (a, b, c) where
     approx e (x0, y0, z0) (x, y, z)
         = approx e x0 x && approx e y0 y && approx e z0 z
 
-instance (Applox a, Applox b) => Applox (Arg a b) where
+instance (Approx a, Approx b) => Approx (Arg a b) where
     approx e (Arg v0 k0) (Arg v k) = approx e v0 v && approx e k0 k
