@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, DataKinds, ViewPatterns #-}
 
-module Geometry.Dim2.SmallestEnclosingCircleSpec (main, spec) where
+module Geometry.SmallestEnclosingCircleSpec (main, spec) where
 
 import           Algorithm.GoldenSectionSearch
 import           Data.Coerce
@@ -8,9 +8,9 @@ import           Data.EPS
 import           Data.Semigroup
 import qualified Data.Vector                           as V
 import           Geometry
-import           Geometry.Dim2.Circle
-import           Geometry.Dim2.Instances
-import           Geometry.Dim2.SmallestEnclosingCircle
+import           Geometry.Circle
+import           Geometry.Instances
+import           Geometry.SmallestEnclosingCircle
 import           Test.Prelude
 
 main :: IO ()

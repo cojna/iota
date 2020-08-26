@@ -1,12 +1,12 @@
 {-# LANGUAGE BangPatterns, FlexibleContexts #-}
 
-module Geometry.Dim2.SmallestEnclosingCircle where
+module Geometry.SmallestEnclosingCircle where
 
 import           Data.Function
 import qualified Data.List               as L
 import qualified Data.Vector.Generic     as G
 import           Geometry
-import           Geometry.Dim2.Circle
+import           Geometry.Circle
 import           System.Random.XoRoShiRo
 
 smallestEnclosingCircle

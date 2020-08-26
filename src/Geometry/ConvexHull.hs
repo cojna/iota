@@ -1,6 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Geometry.Dim2.ConvexHull where
+module Geometry.ConvexHull where
 
 import qualified Data.List          as L
 

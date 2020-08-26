@@ -1,7 +1,7 @@
-module Geometry.Dim2.Instances where
+module Geometry.Instances where
 
 import           Geometry
-import           Geometry.Dim2.Circle
+import           Geometry.Circle
 import           Test.Prelude
 
 instance (Arbitrary a) => Arbitrary (Point a) where

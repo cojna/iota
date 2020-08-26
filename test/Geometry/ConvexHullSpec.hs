@@ -1,13 +1,13 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Geometry.Dim2.ConvexHullSpec (main, spec) where
+module Geometry.ConvexHullSpec (main, spec) where
 
 import qualified Data.Vector              as V
 
 import           Data.EPS
 import           Geometry
-import           Geometry.Dim2.ConvexHull
-import           Geometry.Dim2.Instances
+import           Geometry.ConvexHull
+import           Geometry.Instances
 import qualified System.Random.XoRoShiRo  as Random
 import           Test.Prelude             hiding (shuffle)
 

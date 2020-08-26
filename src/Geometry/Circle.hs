@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Geometry.Dim2.Circle where
+module Geometry.Circle where
 
 import           Geometry
 
