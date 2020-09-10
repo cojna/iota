@@ -99,7 +99,7 @@ mappendFromTo segtree l r = do
 
         stepR r
             | r .&. 1 == 1 = \acc ->
-                mappend acc <$> UM.unsafeRead tree (r - 1)
+                flip mappend acc <$> UM.unsafeRead tree (r - 1)
             | otherwise = return
 
         go l r k
@@ -127,6 +127,66 @@ mappendAll
     => SegTree (PrimState m) a -> m a
 mappendAll segtree = UM.unsafeRead (getSegTree segtree) 1
 {-# INLINE mappendAll #-}
+
+
+maxRightSegTree :: (Monoid a, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) a -> Int -> (a -> Bool) -> m Int
+maxRightSegTree segtree l p = do
+    let tree = getSegTree segtree
+    let !n = unsafeShiftRL (UM.length tree) 1
+    fix ( \oloop !oacc !ol -> do
+        let ol' = unsafeShiftRL ol (countTrailingZeros ol)
+        oacc' <- (<> oacc) <$> UM.unsafeRead tree ol'
+        if p oacc'
+        then do
+            let !ol'' = ol' + 1
+            if (ol'' .&. (-ol'')) /= ol''
+            then oloop oacc' ol''
+            else return $! n
+        else do
+            fix (\iloop !iacc !il -> do
+                    if il < n
+                    then do
+                        let il' = 2 * il
+                        iacc' <- (<> iacc) <$> UM.unsafeRead tree il'
+                        if p iacc'
+                        then iloop iacc' (il' + 1)
+                        else iloop iacc il'
+                    else return $! il - n
+                ) oacc ol'
+        ) mempty (l + n)
+{-# INLINE maxRightSegTree #-}
+
+minLeftSegTree :: (Monoid a, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) a -> Int -> (a -> Bool) -> m Int
+minLeftSegTree segtree r p = do
+    let tree = getSegTree segtree
+    let !n = unsafeShiftRL (UM.length tree) 1
+    fix ( \oloop !oacc !or -> do
+        let or' = fix (\loop !r ->
+                if r > 1 && r .&. 1 == 1
+                then loop (unsafeShiftRL r 1)
+                else r
+                ) or
+        oacc' <- (<> oacc) <$> UM.unsafeRead tree or'
+        if p oacc'
+        then do
+            if (or' .&. (-or')) /= or'
+            then oloop oacc' or'
+            else return 0
+        else do
+            fix (\iloop !iacc !ir -> do
+                    if ir < n
+                    then do
+                        let ir' = 2 * ir + 1
+                        iacc' <- (<> iacc) <$> UM.unsafeRead tree ir'
+                        if p iacc'
+                        then iloop iacc' (ir' - 1)
+                        else iloop iacc ir'
+                    else return $! ir + 1 - n
+                ) oacc or'
+        ) mempty (r + n)
+{-# INLINE minLeftSegTree #-}
 
 -- |
 -- >>> extendToPowerOfTwo 0

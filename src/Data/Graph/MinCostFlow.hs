@@ -33,13 +33,13 @@ minCostFlow 2 0 1 2 (\builder -> do
     addEdgeMCFB builder 0 1 123 2
     )
 :}
-Just 246
+(246,2)
 >>> :{
 minCostFlow 2 0 1 123456789 (\builder -> do
     addEdgeMCFB builder 0 1 123 2
     )
 :}
-Nothing
+(246,2)
 -}
 
 minCostFlow
@@ -48,7 +48,7 @@ minCostFlow
     -> Vertex  -- ^ sink
     -> Capacity  -- ^ flow
     -> (forall s . MinCostFlowBuilder s -> ST s ())
-    -> Maybe Cost
+    -> (Cost, Capacity)
 minCostFlow numVertices src sink flow run = runST $ do
     builder <- newMinCostFlowBuilder numVertices
     run builder
@@ -70,11 +70,11 @@ data MinCostFlow s = MinCostFlow
     }
 
 runMinCostFlow :: (PrimMonad m)
-    => Vertex -> Vertex -> Capacity -> MinCostFlow (PrimState m) -> m (Maybe Cost)
+    => Vertex -> Vertex -> Capacity -> MinCostFlow (PrimState m) -> m (Cost, Capacity)
 runMinCostFlow source sink flow mcf@MinCostFlow{..} = go 0 flow
   where
     go !res !f
-        | f == 0 = return $ Just res
+        | f == 0 = return (res, flow)
         | otherwise = do
             canFlow <- dijkstraMCF source sink mcf
             if canFlow
@@ -85,7 +85,7 @@ runMinCostFlow source sink flow mcf@MinCostFlow{..} = go 0 flow
                 flowed <- updateResidualMCF sink f mcf
                 hsink <- UM.unsafeRead potentialMCF sink
                 go (hsink * flowed + res) (f - flowed)
-            else return Nothing
+            else return (res, flow - f)
 
 -- | cost 48bit / vertex 16bit
 encodeMCF :: Cost -> Vertex -> Word64
@@ -165,6 +165,7 @@ newMinCostFlowBuilder n = MinCostFlowBuilder n
     <$> UM.replicate n 0
     <*> newVecQueue (1024 * 1024)
 
+-- | /cost >= 0/
 addEdgeMCFB :: (PrimMonad m)
     => MinCostFlowBuilder (PrimState m)
     -> Vertex -> Vertex -> Cost -> Capacity -> m ()

@@ -19,6 +19,7 @@ bipartiteMatching
     -> (forall s . BipartiteMatchingBuilder s -> ST s ()) -> Int
 bipartiteMatching n run = runST $ do
     builder <- newBipartiteMatchingBuilder n
+    run builder
     buildBipartiteMatching builder >>= runBipartiteMatching
 
 data BipartiteMatching s = BipartiteMatching

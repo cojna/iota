@@ -3,8 +3,10 @@
 module Data.ByteString.SuffixArray where
 
 import           Control.Monad
+import           Data.Bits
 import qualified Data.ByteString             as B
 import qualified Data.ByteString.Unsafe      as B
+import qualified Data.Foldable               as F
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
@@ -20,81 +22,54 @@ getSuffix :: SuffixArray -> Int -> B.ByteString -> B.ByteString
 getSuffix  = (B.unsafeDrop.) . getSuffixStartPos
 {-# INLINE getSuffix #-}
 
+-- | n < 2 ^ 20 (= 1,048,576)
 buildSuffixArray :: B.ByteString -> SuffixArray
-buildSuffixArray bs = SuffixArray $ U.create $ do
-  let !n = B.length bs :: Int
-      !countMax = max 0xff (n+1)
+buildSuffixArray bs = SuffixArray
+    . fst
+    . F.foldl step (sa0, rank0)
+    . takeWhile (<= n)
+    $ map (shiftL 1) [0..]
+  where
+    !n = B.length bs :: Int
+    !sa0 = U.generate (n + 1) id
+    !rank0 = U.generate n (fromIntegral . B.unsafeIndex bs) `U.snoc` 0
+    step (!sa, !rank) k = (sa', rank')
+      where
+        encode sai =
+            let !x = rank U.! sai
+                !y | sai + k <= n = rank U.! (sai + k)
+                   | otherwise = 0
+            in  unsafeShiftL x 40 .|. unsafeShiftL y 20 .|. sai
+        maskSA x = x .&. 0xfffff
+        maskRank x = unsafeShiftR x 20
 
-  sa    <- UM.replicate (n + 1) (0 :: Int)
-  rank  <- UM.replicate (n + 1) (0 :: Int)
-  tmp   <- UM.replicate (n + 1) (0 :: Int)
-  count <- UM.replicate (countMax + 1) (0 :: Int)
+        sorted = radixSort64 $ U.map encode sa
+        !sa' = U.map maskSA sorted
+        !rank' = U.create $ do
+            mv <- UM.unsafeNew (n + 1)
+            UM.write mv (sa' U.! 0) 1
 
-  rep n $ \i-> do
-    UM.unsafeWrite sa i i
-    UM.unsafeWrite rank i . fromIntegral $ B.unsafeIndex bs i
-  UM.unsafeWrite sa n n
-  UM.unsafeWrite rank n 1
+            U.forM_ (U.zip sorted $ U.tail sorted) $ \(prev, cur) -> do
+                x <- UM.unsafeRead mv (maskSA prev)
+                UM.unsafeWrite mv (maskSA cur)
+                    $ x + fromEnum (maskRank prev < maskRank cur)
 
-  forM_ (takeWhile (<=n) $ iterate (*2) 1) $ \k-> do
-    -- sort sa
-    rep (countMax+1) $ \i-> do
-      UM.unsafeWrite count i 0
-    rep (n+1) $ \i-> do
-      sai <- UM.unsafeRead sa i
-      if sai+k<=n then do
-        rankik <- UM.unsafeRead rank (sai+k)
-        UM.unsafeModify count (+1) rankik
-      else UM.unsafeModify count (+1) 0
-    rep countMax $ \i-> do
-      cnti <- UM.unsafeRead count i
-      UM.unsafeModify count (+cnti) (i+1)
-    rev (n+1) $ \i-> do
-      sai <- UM.unsafeRead sa i
-      rankik <- if sai + k <= n then do
-                   UM.unsafeRead rank (sai+k)
-                else return 0
-      j <- subtract 1 <$> UM.unsafeRead count rankik
-      UM.unsafeWrite count rankik j
-      UM.unsafeRead sa i>>=UM.unsafeWrite tmp j
+            return mv
 
-    rep (countMax+1) $ \i-> do
-      UM.unsafeWrite count i 0
-    rep (n+1) $ \i-> do
-      sai <- UM.unsafeRead tmp i
-      ranki <- UM.unsafeRead rank sai
-      UM.unsafeModify count (+1) ranki
-    rep countMax $ \i-> do
-      cnti <- UM.unsafeRead count i
-      UM.unsafeModify count (+cnti) (i+1)
-    rev (n+1) $ \i-> do
-      sai <- UM.unsafeRead tmp i
-      ranki <- UM.unsafeRead rank sai
-      j <- subtract 1 <$> UM.unsafeRead count ranki
-      UM.unsafeWrite count ranki j
-      UM.unsafeWrite sa j sai
-
-    -- update rank
-    sa0 <- UM.unsafeRead sa 0
-    UM.unsafeWrite tmp sa0 1
-    rep n $ \i-> do
-      sai    <- UM.unsafeRead sa i
-      sai1   <- UM.unsafeRead sa (i+1)
-      ranki  <- UM.unsafeRead rank sai
-      ranki1 <- UM.unsafeRead rank sai1
-      if ranki == ranki1 then do
-           rankik  <- if sai  + k > n then return (-1)
-                      else UM.unsafeRead rank (sai+k)
-           ranki1k <- if sai1 + k > n then return (-1)
-                      else UM.unsafeRead rank (sai1+k)
-           if rankik == ranki1k then do
-             UM.unsafeRead tmp sai >>= UM.unsafeWrite tmp sai1
-           else do
-             UM.unsafeRead tmp sai >>= UM.unsafeWrite tmp sai1 . (+1)
-      else do
-        UM.unsafeRead tmp sai >>= UM.unsafeWrite tmp sai1 . (+1)
-
-    rep (n+1) $ \i-> do
-      UM.unsafeRead tmp i >>= UM.unsafeWrite rank i
-
-  return sa
+radixSort64 :: U.Vector Int -> U.Vector Int
+radixSort64 v = F.foldl' step v [0, 16, 32, 48]
+  where
+    mask k x = fromIntegral $ unsafeShiftR x k .&. 0xffff
+    step v k = U.create $ do
+        pref <- U.unsafeThaw
+            . U.prescanl' (+) 0
+            . U.unsafeAccumulate (+) (U.replicate 0x10000 0)
+            $ U.map (flip (,) 1 . mask k) v
+        res <- UM.unsafeNew $ U.length v
+        U.forM_ v $ \x -> do
+            let !masked = mask k x
+            i <- UM.unsafeRead pref masked
+            UM.unsafeWrite pref masked $ i + 1
+            UM.unsafeWrite res i x
+        return res
+{-# INLINE radixSort64 #-}

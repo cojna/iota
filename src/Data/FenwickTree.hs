@@ -13,13 +13,13 @@ import           Data.Word
 
 newtype FenwickTree s a = FenwickTree {getFenwickTree :: UM.MVector s a}
 
-newFenwickTree :: (PrimMonad m, U.Unbox a, Monoid a)
+newFenwickTree :: (U.Unbox a, Monoid a, PrimMonad m)
     => Int -> m (FenwickTree (PrimState m) a)
 newFenwickTree n = FenwickTree <$> UM.replicate (n + 1) mempty
 {-# INLINE newFenwickTree #-}
 
 -- | /O(n)/
-buildFenwickTree :: (PrimMonad m, U.Unbox a, Monoid a)
+buildFenwickTree :: (U.Unbox a, Monoid a, PrimMonad m)
     => U.Vector a -> m (FenwickTree (PrimState m) a)
 buildFenwickTree vec = do
     let n = U.length vec
@@ -52,7 +52,7 @@ mappendTo (FenwickTree ft) = go mempty
 -- | sum [0..k)
 --
 -- /O(log n)/
-sumTo :: (PrimMonad m, U.Unbox a, Num a)
+sumTo :: (U.Unbox a, Num a, PrimMonad m)
     => FenwickTree (PrimState m) (Sum a) -> Int ->  m (Sum a)
 sumTo = mappendTo
 {-# INLINE sumTo #-}
@@ -60,7 +60,7 @@ sumTo = mappendTo
 -- | sum [l..r)
 --
 -- /O(log n)/
-sumFromTo :: (PrimMonad m, U.Unbox a, Num a)
+sumFromTo :: (U.Unbox a, Num a, PrimMonad m)
     => FenwickTree (PrimState m) (Sum a) -> Int -> Int -> m (Sum a)
 sumFromTo ft l r = (-) <$> sumTo ft r <*> sumTo ft l
 {-# INLINE sumFromTo #-}
@@ -72,13 +72,13 @@ readFenwickTree ft i = sumFromTo ft i (i + 1)
 {-# INLINE readFenwickTree #-}
 
 -- /O(log n)/
-writeFenwickTree :: (PrimMonad m, U.Unbox a, Num a)
+writeFenwickTree :: (U.Unbox a, Num a, PrimMonad m)
     => FenwickTree (PrimState m) (Sum a) -> Int -> (Sum a) -> m ()
 writeFenwickTree ft i x = readFenwickTree ft i >>= mappendAt ft i . (x-)
 {-# INLINE writeFenwickTree #-}
 
 -- | /O(log n)/
-mappendAt :: (PrimMonad m, U.Unbox a, Semigroup a)
+mappendAt :: (U.Unbox a, Semigroup a, PrimMonad m)
     => FenwickTree (PrimState m) a -> Int -> a -> m ()
 mappendAt (FenwickTree ft) k v = flip fix (k + 1) $ \loop !i -> do
     when (i < n) $ do
@@ -87,6 +87,12 @@ mappendAt (FenwickTree ft) k v = flip fix (k + 1) $ \loop !i -> do
   where
     !n = UM.length ft
 {-# INLINE mappendAt #-}
+
+-- | /O(log n)/
+addAt :: (U.Unbox a, Num a, PrimMonad m)
+    => FenwickTree (PrimState m) (Sum a) -> Int -> Sum a -> m ()
+addAt = mappendAt
+{-# INLINE addAt #-}
 
 -- | max i s.t. sum [0..i) < w
 --
@@ -105,7 +111,7 @@ mappendAt (FenwickTree ft) k v = flip fix (k + 1) $ \loop !i -> do
 -- >>> zeros <- buildFenwickTree [0, 0, 0, 0, 0]
 -- >>> findMaxIndexLT 1 zeros
 -- 5
-findMaxIndexLT :: (PrimMonad m, U.Unbox a, Num a, Ord a)
+findMaxIndexLT :: (U.Unbox a, Num a, Ord a, PrimMonad m)
     => FenwickTree (PrimState m) a -> a -> m Int
 findMaxIndexLT (FenwickTree ft) w0
     | w0 <= 0 = return 0
