@@ -99,7 +99,7 @@ mappendFromTo segtree l r = do
 
         stepR r
             | r .&. 1 == 1 = \acc ->
-                mappend acc <$> UM.unsafeRead tree (r - 1)
+                flip mappend acc <$> UM.unsafeRead tree (r - 1)
             | otherwise = return
 
         go l r k
