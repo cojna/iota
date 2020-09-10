@@ -22,7 +22,10 @@ spec = do
     describe "convolute" $ do
         it "convolute 998244353 3 [1,1,1,0] [1,1,1,0] = [1,2,3,2,1,0,0,0]" $ do
             convolute 998244353 3 [1,1,1,0] [1,1,1,0]
-                `shouldBe` [1,2,3,2,1,0,0,0]
+                `shouldBe` [1,2,3,2,1,0,0]
+        it "convolute 998244353 3 [1,1,1] [1,1,1,0] = [1,2,3,2,1,0,0]" $ do
+            convolute 998244353 3 [1,1,1] [1,1,1,0]
+                `shouldBe` [1,2,3,2,1,0]
     describe "growToPowerOfTwo" $ do
         it "growToPowerOfTwo [1,2,3] = [1,2,3,0]" $ do
             growToPowerOfTwo [1,2,3] `shouldBe` [1,2,3,0]

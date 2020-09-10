@@ -54,16 +54,20 @@ intt p g f = U.map ((`rem` p) . (* n')) $ ntt p (recipMod g p) f
 
 -- |
 -- >>> convolute 998244353 3 [1,1,1,0] [1,1,1,0]
--- [1,2,3,2,1,0,0,0]
+-- [1,2,3,2,1,0,0]
+-- >>> convolute 998244353 3 [1,1,1] [1,1,1,0]
+-- [1,2,3,2,1,0]
 convolute :: Int -> Int -> U.Vector Int -> U.Vector Int -> U.Vector Int
 convolute p g xs ys
-    = intt p g
+    = U.take l
+    . intt p g
     $ U.zipWith (\x y -> x * y `rem` p)
-        (ntt p g $ xs U.++ U.replicate n 0)
-        (ntt p g $ ys U.++ U.replicate n 0)
+        (ntt p g $ xs U.++ U.replicate (extendToPowerOfTwo l - n) 0)
+        (ntt p g $ ys U.++ U.replicate (extendToPowerOfTwo l - m) 0)
   where
     !n = U.length xs
-{-# INLINE convolute #-}
+    !m = U.length ys
+    !l = n + m - 1
 
 -- |
 -- >>> growToPowerOfTwo [1,2,3]
@@ -74,3 +78,11 @@ growToPowerOfTwo v
     | U.length v == 1 = v
     | n <- unsafeShiftRL (-1) (countLeadingZeros (U.length v - 1)) + 1
         = v U.++ U.replicate (n - U.length v) 0
+
+-- |
+-- >>> extendToPowerOfTwo 0
+-- 1
+extendToPowerOfTwo :: Int -> Int
+extendToPowerOfTwo x
+    | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
+    | otherwise = 1
