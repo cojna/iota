@@ -38,7 +38,13 @@ infixl 6 +%, -%
 {-# INLINE (-%) #-}
 
 (*%) :: Int -> Int -> Int
-(I# x#) *% (I# y#) = I# ((x# *# y#) `remInt#` MOD#)
+(I# x#) *% (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
+    z# -> case timesWord2# z# im# of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
+            v# | isTrue# (geWord# v# MOD##) -> I# (word2Int# (plusWord# v# MOD##))
+               | otherwise -> I# (word2Int# v#)
+  where
+    im# = plusWord# (quotWord# 0xffffffffffffffff## MOD##) 1##
 {-# INLINE (*%) #-}
 
 -- |
