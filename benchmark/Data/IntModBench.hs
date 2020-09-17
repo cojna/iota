@@ -1,16 +1,15 @@
-{-# LANGUAGE CPP       #-}
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP, MagicHash #-}
 
-module Data.IntMod.OperatorBench (benchMain) where
+module Data.IntModBench (benchMain) where
 
 import           Criterion
-import           Data.IntMod.Operator
-import qualified Data.Vector.Unboxed  as U
+import           Data.IntMod
+import qualified Data.Vector.Unboxed     as U
 import           GHC.Exts
-import           Utils.Random
+import           System.Random.XoRoShiRo
 
 benchMain :: Benchmark
-benchMain = bgroup "IntMod.Operator"
+benchMain = bgroup "IntMod"
     [ bgroup "(+%)"
         [ bench "(+%)" $ whnf (U.foldl' (+%) 0) randoms
         , bench "addMod1" $ whnf (U.foldl' addMod1 0) randoms
@@ -33,8 +32,8 @@ benchMain = bgroup "IntMod.Operator"
   where
     n = 10000
     randoms :: U.Vector Int
-    randoms = U.fromList . map (intMod.fromIntegral) $ take n xorshift128
-
+    randoms = withRNG $ \rng ->
+        U.replicateM n (getIntMod . intMod <$> nextInt rng)
 
 #define MOD 1000000007
 
@@ -85,4 +84,3 @@ subMod6 (I# x#) (I# y#) = I# (x# -# y# +# ((x# <# y#) *# MOD#))
 
 subMod7 :: Int -> Int -> Int
 subMod7 (I# x#) (I# y#) = I# (x# -# y# +# (MOD# *# (x# <# y#)))
-
