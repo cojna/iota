@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
 
 module Data.IntModBench (benchMain) where
 
@@ -28,6 +28,16 @@ benchMain = bgroup "IntMod"
         , bench "subMod6" $ whnf (U.foldl' subMod6 0) randoms
         , bench "subMod7" $ whnf (U.foldl' subMod7 0) randoms
         ]
+    , bgroup "(*%)"
+        [ bench "(*%)" $ whnf (U.foldl' (*%) 1) randoms
+        , bench "timesMod1" $ whnf (U.foldl' timesMod1 1) randoms
+        , bench "timesMod2" $ whnf (U.foldl' timesMod2 1) randoms
+        , bench "timesMod3" $ whnf (U.foldl' timesMod3 1) randoms
+        , bench "timesMod4" $ whnf (U.foldl' timesMod4 1) randoms
+        , bench "timesMod5" $ whnf (U.foldl' timesMod5 1) randoms
+        , bench "timesMod6" $ whnf (U.foldl' timesMod6 1) randoms
+        ]
+
     ]
   where
     n = 10000
@@ -84,3 +94,44 @@ subMod6 (I# x#) (I# y#) = I# (x# -# y# +# ((x# <# y#) *# MOD#))
 
 subMod7 :: Int -> Int -> Int
 subMod7 (I# x#) (I# y#) = I# (x# -# y# +# (MOD# *# (x# <# y#)))
+
+#define INV_MOD 18446743945
+
+timesMod1 :: Int -> Int -> Int
+timesMod1 (I# x#) (I# y#) = I# (x# *# y# `remInt#` MOD#)
+
+timesMod2 :: Int -> Int -> Int
+timesMod2 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
+    z# -> case timesWord2# z# INV_MOD## of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
+            v# -> I# (word2Int# v# +# (leWord# MOD## v#) *# MOD#)
+
+timesMod3 :: Int -> Int -> Int
+timesMod3 (I# x#) (I# y#) = case int2Word# (x# *# y#) of
+    z# -> case timesWord2# z# INV_MOD## of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
+            v# -> I# (word2Int# v# +# (leWord# MOD## v#) *# MOD#)
+
+timesMod4 :: Int -> Int -> Int
+timesMod4 (I# x#) (I# y#) = case int2Word# (x# *# y#) of
+    z# -> case timesWord2# z# INV_MOD## of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
+            v# -> I# ((geWord# v# MOD##) *# MOD# +# word2Int# v#)
+
+timesMod5 :: Int -> Int -> Int
+timesMod5 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
+    z# -> case timesWord2# z# im# of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
+            v# -> I# (word2Int# v# +# (leWord# MOD## v#) *# MOD#)
+  where
+    im# = plusWord# (quotWord# 0xffffffffffffffff## MOD##) 1##
+
+timesMod6 :: Int -> Int -> Int
+timesMod6 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
+    z# -> case timesWord2# z# im# of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
+            v# | isTrue# (geWord# v# MOD##) -> I# (word2Int# (plusWord# v# MOD##))
+               | otherwise -> I# (word2Int# v#)
+  where
+    im# = plusWord# (quotWord# 0xffffffffffffffff## MOD##) 1##
+
