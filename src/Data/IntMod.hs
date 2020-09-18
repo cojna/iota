@@ -40,11 +40,12 @@ infixl 6 +%, -%
 (*%) :: Int -> Int -> Int
 (I# x#) *% (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
     z# -> case timesWord2# z# im# of
-        (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
-            v# | isTrue# (geWord# v# MOD##) -> I# (word2Int# (plusWord# v# MOD##))
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# m#) of
+            v# | isTrue# (geWord# v# m#) -> I# (word2Int# (plusWord# v# m#))
                | otherwise -> I# (word2Int# v#)
   where
-    im# = plusWord# (quotWord# 0xffffffffffffffff## MOD##) 1##
+    m# = int2Word# MOD#
+    im# = plusWord# (quotWord# 0xffffffffffffffff## m#) 1##
 {-# INLINE (*%) #-}
 
 -- |

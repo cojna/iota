@@ -36,6 +36,7 @@ benchMain = bgroup "IntMod"
         , bench "timesMod4" $ whnf (U.foldl' timesMod4 1) randoms
         , bench "timesMod5" $ whnf (U.foldl' timesMod5 1) randoms
         , bench "timesMod6" $ whnf (U.foldl' timesMod6 1) randoms
+        , bench "timesMod7" $ whnf (U.foldl' timesMod7 1) randoms
         ]
 
     ]
@@ -135,3 +136,12 @@ timesMod6 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
   where
     im# = plusWord# (quotWord# 0xffffffffffffffff## MOD##) 1##
 
+timesMod7 :: Int -> Int -> Int
+timesMod7 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
+    z# -> case timesWord2# z# im# of
+        (# q#, _ #) -> case minusWord# z# (timesWord# q# m#) of
+            v# | isTrue# (geWord# v# m#) -> I# (word2Int# (plusWord# v# m#))
+               | otherwise -> I# (word2Int# v#)
+  where
+    m# = int2Word# MOD#
+    im# = plusWord# (quotWord# 0xffffffffffffffff## m#) 1##
