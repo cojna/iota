@@ -5,6 +5,7 @@ module Data.FenwickTree where
 import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Bits
+import           Data.Coerce
 import           Data.Function
 import           Data.Monoid
 import qualified Data.Vector.Unboxed         as U
@@ -49,34 +50,6 @@ mappendTo (FenwickTree ft) = go mempty
         | otherwise = return acc
 {-# INLINE mappendTo #-}
 
--- | sum [0..k)
---
--- /O(log n)/
-sumTo :: (U.Unbox a, Num a, PrimMonad m)
-    => FenwickTree (PrimState m) (Sum a) -> Int ->  m (Sum a)
-sumTo = mappendTo
-{-# INLINE sumTo #-}
-
--- | sum [l..r)
---
--- /O(log n)/
-sumFromTo :: (U.Unbox a, Num a, PrimMonad m)
-    => FenwickTree (PrimState m) (Sum a) -> Int -> Int -> m (Sum a)
-sumFromTo ft l r = (-) <$> sumTo ft r <*> sumTo ft l
-{-# INLINE sumFromTo #-}
-
--- /O(log n)/
-readFenwickTree :: (PrimMonad m, U.Unbox a, Num a)
-    => FenwickTree (PrimState m) (Sum a) -> Int -> m (Sum a)
-readFenwickTree ft i = sumFromTo ft i (i + 1)
-{-# INLINE readFenwickTree #-}
-
--- /O(log n)/
-writeFenwickTree :: (U.Unbox a, Num a, PrimMonad m)
-    => FenwickTree (PrimState m) (Sum a) -> Int -> (Sum a) -> m ()
-writeFenwickTree ft i x = readFenwickTree ft i >>= mappendAt ft i . (x-)
-{-# INLINE writeFenwickTree #-}
-
 -- | /O(log n)/
 mappendAt :: (U.Unbox a, Semigroup a, PrimMonad m)
     => FenwickTree (PrimState m) a -> Int -> a -> m ()
@@ -88,10 +61,51 @@ mappendAt (FenwickTree ft) k v = flip fix (k + 1) $ \loop !i -> do
     !n = UM.length ft
 {-# INLINE mappendAt #-}
 
+type SumFenwickTree s a = FenwickTree s (Sum a)
+
+newSumFenwickTree :: (Num a, U.Unbox a, PrimMonad m)
+    => Int -> m (SumFenwickTree (PrimState m) a)
+newSumFenwickTree = newFenwickTree
+{-# INLINE newSumFenwickTree #-}
+
+-- | /O(n)/
+buildSumFenwickTree :: (Num a, U.Unbox a, PrimMonad m)
+    => U.Vector a -> m (SumFenwickTree (PrimState m) a)
+buildSumFenwickTree = buildFenwickTree . U.map coerce
+{-# INLINE buildSumFenwickTree #-}
+
+-- | sum [0..k)
+--
+-- /O(log n)/
+sumTo :: (Num a, U.Unbox a, PrimMonad m)
+    => SumFenwickTree (PrimState m) a -> Int ->  m a
+sumTo ft k = coerce <$> mappendTo ft k
+{-# INLINE sumTo #-}
+
+-- | sum [l..r)
+--
+-- /O(log n)/
+sumFromTo :: (Num a, U.Unbox a, PrimMonad m)
+    => SumFenwickTree (PrimState m) a -> Int -> Int -> m a
+sumFromTo ft l r = (-) <$> sumTo ft r <*> sumTo ft l
+{-# INLINE sumFromTo #-}
+
+-- /O(log n)/
+readSumFenwickTree :: (Num a, U.Unbox a, PrimMonad m)
+    => SumFenwickTree (PrimState m) a -> Int -> m a
+readSumFenwickTree ft i = sumFromTo ft i (i + 1)
+{-# INLINE readSumFenwickTree #-}
+
+-- /O(log n)/
+writeSumFenwickTree :: (Num a, U.Unbox a, PrimMonad m)
+    => SumFenwickTree (PrimState m) a -> Int -> a -> m ()
+writeSumFenwickTree ft i x = readSumFenwickTree ft i >>= addAt ft i . (x-)
+{-# INLINE writeSumFenwickTree #-}
+
 -- | /O(log n)/
 addAt :: (U.Unbox a, Num a, PrimMonad m)
-    => FenwickTree (PrimState m) (Sum a) -> Int -> Sum a -> m ()
-addAt = mappendAt
+    => SumFenwickTree (PrimState m) a -> Int -> a -> m ()
+addAt ft k x = mappendAt ft k (coerce x)
 {-# INLINE addAt #-}
 
 -- | max i s.t. sum [0..i) < w
