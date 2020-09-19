@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications                                       #-}
 
-module Data.SegTree.Lazy where
+module Data.SegTree where
 
 import           Control.Monad
 import           Control.Monad.Primitive
