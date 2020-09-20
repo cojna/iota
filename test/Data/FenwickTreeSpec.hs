@@ -67,7 +67,7 @@ prop_naiveSumTo (U.fromList -> vec) = monadicIO $ do
     res <- run $ do
         ft <- buildFenwickTree vec
         U.generateM n $ \i -> do
-            sumTo ft (i + 1)
+            Sum <$> sumTo ft (i + 1)
     assert $ res == prefixSums vec
 
 prop_naiveSumFromTo :: NonNegative Int -> Property

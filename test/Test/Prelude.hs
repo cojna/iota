@@ -50,6 +50,18 @@ withTLEmsec msec action = do
         Just x  -> return x
         Nothing -> throwIO (TimeLimitExceeded msec)
 
+instance (Arbitrary a) => Arbitrary (Min a) where
+    arbitrary = Min <$> arbitrary
+
+instance (Arbitrary a) => Arbitrary (Max a) where
+    arbitrary = Max <$> arbitrary
+
+instance (Arbitrary a) => Arbitrary (First a) where
+    arbitrary = First <$> arbitrary
+
+instance (Arbitrary a) => Arbitrary (Last a) where
+    arbitrary = Last <$> arbitrary
+
 newtype Prime a = Prime {getPrime :: a}
     deriving (Eq, Ord, Show)
 
