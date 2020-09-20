@@ -6,7 +6,11 @@ module Data.SegTree where
 import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Bits
+import           Data.Coerce
 import           Data.Function
+import           Data.Monoid                       hiding (First (..),
+                                                    Last (..))
+import           Data.Semigroup
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Unboxed               as U
 import qualified Data.Vector.Unboxed.Mutable       as UM
@@ -18,19 +22,40 @@ import           Utils                             (stream, streamR,
 class (Monoid f) => MonoidAction f a where
     appMonoid :: f -> a -> a
 
--- | Range update Range query
-instance (Monoid m) => MonoidAction m m where
-    appMonoid = (<>)
-    {-# INLINE appMonoid #-}
-
--- | Point update Range query
 instance MonoidAction () m where
     appMonoid = flip const
     {-# INLINE appMonoid #-}
 
+instance MonoidAction (Sum Int) (Min Int) where
+    appMonoid = coerce ((+) @Int)
+    {-# INLINE appMonoid #-}
+
+instance MonoidAction (Sum Int) (Max Int) where
+    appMonoid = coerce ((+) @Int)
+    {-# INLINE appMonoid #-}
+
+instance MonoidAction (Sum Int) (Sum Int, Sum Int) where
+    appMonoid (Sum x) (Sum y, Sum size)
+        = (Sum (y + x * size), Sum size)
+
+instance MonoidAction (Dual (Maybe (Last (Min Int)))) (Min Int) where
+    appMonoid (Dual Nothing) y  = y
+    appMonoid (Dual (Just x)) _ = coerce x
+
+instance MonoidAction (Dual (Maybe (Last (Max Int)))) (Max Int) where
+    appMonoid (Dual Nothing) y  = y
+    appMonoid (Dual (Just x)) _ = coerce x
+
+instance MonoidAction (Min Int) (Min Int) where
+    appMonoid = (<>)
+    {-# INLINE appMonoid #-}
+
+instance MonoidAction (Max Int) (Max Int) where
+    appMonoid = (<>)
+    {-# INLINE appMonoid #-}
+
 -- | * @appMonoid mempty x = x@
 --   * @appMonoid (f <> g) x = appMonoid f (appMonoid g x)@
---   * @appMonoid f mempty = mempty@
 --   * @appMonoid f (x <> y) = appMonoid f x <> appMonoid f y@
 data SegTree s a f = SegTree
     (UM.MVector s a)
