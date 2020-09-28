@@ -22,6 +22,8 @@ spec = do
         monoidActionSpec (Proxy @(Sum Int)) (Proxy @(Max Int))
     describe "MonoidAction (Sum Int) (Sum Int, Sum Int)" $ do
         monoidActionSpec (Proxy @(Sum Int)) (Proxy @(Sum Int, Sum Int))
+    describe "MonoidAction (Product Int) (Sum Int)" $ do
+        monoidActionSpec (Proxy @(Product Int)) (Proxy @(Sum Int))
     describe "MonoidAction (Dual (Maybe (Last (Min Int)))) (Min Int)" $ do
         monoidActionSpec (Proxy @(Dual (Maybe (Last (Min Int))))) (Proxy @(Min Int))
     describe "MonoidAction (Dual (Maybe (Last (Max Int)))) (Max Int)" $ do
