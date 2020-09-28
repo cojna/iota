@@ -2,14 +2,19 @@
 
 module Utils where
 
+import           Control.Monad.Primitive
 import           Control.Monad.State.Strict
+import           Data.Bits
 import           Data.Bool
 import qualified Data.ByteString                   as B
 import qualified Data.ByteString.Char8             as C
 import           Data.Char
 import           Data.Coerce
+import qualified Data.Foldable                     as F
 import           Data.Functor.Identity
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
+import qualified Data.Vector.Unboxed               as U
+import qualified Data.Vector.Unboxed.Mutable       as UM
 import           Data.Word
 import           GHC.Exts
 
@@ -17,9 +22,17 @@ rep :: (Monad m) => Int -> (Int -> m ()) -> m ()
 rep n = flip MS.mapM_ (stream 0 n)
 {-# INLINE rep #-}
 
+rep1 :: (Monad m) => Int -> (Int -> m ()) -> m ()
+rep1 n = flip MS.mapM_ (stream 1 (n + 1))
+{-# INLINE rep1 #-}
+
 rev :: (Monad m) => Int -> (Int -> m ()) -> m ()
-rev !n = flip MS.mapM_ (streamR 0 n)
+rev n = flip MS.mapM_ (streamR 0 n)
 {-# INLINE rev #-}
+
+rev1 :: (Monad m) => Int -> (Int -> m ()) -> m ()
+rev1 n = flip MS.mapM_ (streamR 1 (n + 1))
+{-# INLINE rev1 #-}
 
 stream :: (Monad m) => Int -> Int -> MS.Stream m Int
 stream !l !r = MS.Stream step l
@@ -84,31 +97,49 @@ skipSpaces = modify' (C.dropWhile isSpace)
 {-# INLINE skipSpaces #-}
 
 -- | assert (p high)
-lowerBoundM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
-lowerBoundM low high p = go low high
+binarySearchM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
+binarySearchM low high p = go low high
   where
     go !low !high
         | high <= low = return high
         | otherwise = p mid >>= bool (go (mid + 1) high) (go low mid)
       where
         mid = low + unsafeShiftRL (high - low) 1
-{-# INLINE lowerBoundM #-}
-
--- | assert (p low)
-upperBoundM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
-upperBoundM low high p = do
-    flg <- p high
-    if flg
-    then return high
-    else subtract 1 <$!> lowerBoundM low high (fmap not.p)
-{-# INLINE upperBoundM #-}
+{-# INLINE binarySearchM #-}
 
 -- | assert (p high)
-lowerBound :: Int -> Int -> (Int -> Bool) -> Int
-lowerBound low high p = runIdentity (lowerBoundM low high (return . p))
-{-# INLINE lowerBound #-}
+binarySearch :: Int -> Int -> (Int -> Bool) -> Int
+binarySearch low high p = runIdentity (binarySearchM low high (return . p))
+{-# INLINE binarySearch #-}
 
--- | assert (p low)
-upperBound :: Int -> Int -> (Int -> Bool) -> Int
-upperBound low high p = runIdentity (upperBoundM low high (return . p))
-{-# INLINE upperBound #-}
+radixSort :: U.Vector Int -> U.Vector Int
+radixSort v = F.foldl' step v [0, 16, 32, 48]
+  where
+    mask k x = unsafeShiftRL x k .&. 0xffff
+    step v k = U.create $ do
+        pos <- UM.unsafeNew 0x10001
+        UM.set pos 0
+        U.forM_ v $ \x -> do
+            UM.unsafeModify pos (+1) (mask k x + 1)
+        rep 0xffff $ \i -> do
+            fi <- UM.unsafeRead pos i
+            UM.unsafeModify pos (+fi) (i + 1)
+        res <- UM.unsafeNew $ U.length v
+        U.forM_ v $ \x -> do
+            let !masked = mask k x
+            i <- UM.unsafeRead pos masked
+            UM.unsafeWrite pos masked $ i + 1
+            UM.unsafeWrite res i x
+        return res
+{-# INLINE radixSort #-}
+
+encode32x2 :: Int -> Int -> Int
+encode32x2 x y = unsafeShiftL x 32 .|. y
+{-# INLINE encode32x2 #-}
+
+decode32x2 :: Int -> (Int, Int)
+decode32x2 xy =
+    let !x = unsafeShiftRL xy 32
+        !y = xy .&. 0xffffffff
+    in (x, y)
+{-# INLINE decode32x2 #-}
