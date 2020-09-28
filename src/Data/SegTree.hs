@@ -8,17 +8,15 @@ import           Control.Monad.Primitive
 import           Data.Bits
 import           Data.Coerce
 import           Data.Function
-import           Data.Monoid                       hiding (First (..),
-                                                    Last (..))
+import           Data.Monoid                 hiding (First (..), Last (..))
 import           Data.Semigroup
-import qualified Data.Vector.Fusion.Stream.Monadic as MS
-import qualified Data.Vector.Unboxed               as U
-import qualified Data.Vector.Unboxed.Mutable       as UM
+import qualified Data.Vector.Unboxed         as U
+import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Utils                             (stream, streamR,
-                                                    unsafeShiftRL)
--- | * @appMonoid mempty x = x@
---   * @appMonoid (f <> g) x = appMonoid f (appMonoid g x)@
+import           Utils                       (rep1, rev1, unsafeShiftRL)
+
+-- | * @appMonoid mempty = id@
+--   * @appMonoid (f <> g) = appMonoid f . appMonoid g@
 class (Monoid f) => MonoidAction f a where
     appMonoid :: f -> a -> a
 
@@ -27,16 +25,24 @@ instance MonoidAction () m where
     {-# INLINE appMonoid #-}
 
 instance MonoidAction (Sum Int) (Min Int) where
-    appMonoid = coerce ((+) @Int)
+    appMonoid (Sum x) (Min y)
+        | y /= maxBound = Min (x + y)
+        | otherwise = Min y
     {-# INLINE appMonoid #-}
 
 instance MonoidAction (Sum Int) (Max Int) where
-    appMonoid = coerce ((+) @Int)
+    appMonoid (Sum x) (Max y)
+        | y /= minBound = Max (x + y)
+        | otherwise = Max y
     {-# INLINE appMonoid #-}
 
 instance MonoidAction (Sum Int) (Sum Int, Sum Int) where
     appMonoid (Sum x) (Sum y, Sum size)
         = (Sum (y + x * size), Sum size)
+
+instance MonoidAction (Product Int) (Sum Int) where
+    appMonoid = coerce ((*) :: Int -> Int -> Int)
+    {-# INLINE appMonoid #-}
 
 instance MonoidAction (Dual (Maybe (Last (Min Int)))) (Min Int) where
     appMonoid (Dual Nothing) y  = y
@@ -54,140 +60,138 @@ instance MonoidAction (Max Int) (Max Int) where
     appMonoid = (<>)
     {-# INLINE appMonoid #-}
 
--- | * @appMonoid mempty x = x@
---   * @appMonoid (f <> g) x = appMonoid f (appMonoid g x)@
---   * @appMonoid f (x <> y) = appMonoid f x <> appMonoid f y@
-data SegTree s a f = SegTree
-    (UM.MVector s a)
-    (UM.MVector s f)
+-- | * @appMonoid f (x <> y) = appMonoid f x <> appMonoid f y@
+--   * @appMonoid (f <> g) = appMonoid f . appMonoid g@
+--   * @appMonoid mempty = id@
+data SegTree s f a = SegTree
+    { getSegTree     :: !(UM.MVector s a)
+    , getDualSegTree :: !(UM.MVector s f)
+    , sizeSegTree    :: !Int
+    , heightSegTree  :: !Int
+    }
 
-newSegTree :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, PrimMonad m)
-    => Int -> m (SegTree (PrimState m) a f)
-newSegTree n = SegTree
-    <$> UM.replicate (2 * extendToPowerOfTwo n) mempty
-    <*> UM.replicate (extendToPowerOfTwo n) mempty
+newSegTree
+    :: (Monoid f, U.Unbox f, Monoid a, U.Unbox a, PrimMonad m)
+    => Int -> m (SegTree (PrimState m) f a)
+newSegTree n0 = do
+    seg <- UM.replicate (2 * n) mempty
+    dseg <- UM.replicate n mempty
+    return $ SegTree seg dseg n (63 - countLeadingZeros n)
+  where
+    !n = extendToPowerOfTwo n0
 
-buildSegTree :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, PrimMonad m)
-    => U.Vector a -> m (SegTree (PrimState m) a f)
+-- | /O(n)/
+buildSegTree
+    :: (Monoid f, U.Unbox f, Monoid a, U.Unbox a, PrimMonad m)
+    => U.Vector a -> m (SegTree (PrimState m) f a)
 buildSegTree xs = do
-    tree <- UM.replicate (2 * n) mempty
-    lazy <- UM.replicate n mempty
-    U.unsafeCopy (UM.unsafeSlice n (U.length xs) tree) xs
-    let seg = SegTree tree lazy
-    flip MS.mapM_ (streamR 1 n) $ \i -> do
-        updateSegTree seg i
-    return seg
+    seg <- UM.replicate (2 * n) mempty
+    dseg <- UM.replicate n mempty
+    U.unsafeCopy (UM.unsafeSlice n (U.length xs) seg) xs
+    let st = SegTree seg dseg n (63 - countLeadingZeros n)
+    rev1 (n - 1) $ \i -> do
+        pullSegTree st i
+    return st
   where
     !n = extendToPowerOfTwo $ U.length xs
 
-fullAppAt :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> f -> m ()
-fullAppAt (SegTree tree lazy) k f = do
-    tk <- UM.unsafeModify tree (appMonoid f) k
-    when (k < UM.length lazy) $ do
-        UM.unsafeModify lazy (mappend f) k
-{-# INLINE fullAppAt #-}
-
-pushSegTree :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int  -> m ()
-pushSegTree st@(SegTree tree lazy) k = do
-    fk <- UM.unsafeRead lazy k
-    fullAppAt st (2 * k) fk
-    fullAppAt st (2 * k + 1) fk
-    UM.unsafeWrite lazy k mempty
-{-# INLINE pushSegTree #-}
-
-updateSegTree :: (Monoid a, U.Unbox a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> m ()
-updateSegTree (SegTree tree _) k = do
-    (<>) <$> UM.unsafeRead tree (2 * k) <*> UM.unsafeRead tree (2 * k + 1)
-        >>= UM.unsafeWrite tree k
-{-# INLINE updateSegTree #-}
-
-writeSegTree :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> a -> m ()
-writeSegTree st@(SegTree tree lazy) k0 v = do
-    let !n = UM.length lazy
-        k = k0 + n
-        !h = 64 - countLeadingZeros n
-    flip MS.mapM_ (streamR 1 h) $ \i -> do
+-- | /O(log n)/
+readSegTree
+    :: (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> m a
+readSegTree st k0 = do
+    let !k = k0 + sizeSegTree st
+    rev1 (heightSegTree st) $ \i -> do
         pushSegTree st (unsafeShiftR k i)
-    UM.unsafeWrite tree k v
-    flip MS.mapM_ (stream 1 h) $ \i -> do
-        updateSegTree st (unsafeShiftR k i)
-{-# INLINE writeSegTree #-}
-
-readSegTree :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> m a
-readSegTree st@(SegTree tree lazy) k0 = do
-    let !n = UM.length lazy
-        k = k0 + n
-        !h = 64 - countLeadingZeros n
-    flip MS.mapM_ (streamR 1 h) $ \i -> do
-        pushSegTree st (unsafeShiftR k i)
-    UM.unsafeRead tree k
+    UM.unsafeRead (getSegTree st) k
 {-# INLINE readSegTree #-}
 
-mappendFromTo :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> Int -> m a
-mappendFromTo st@(SegTree tree lazy) l0 r0 = do
-    let !n = UM.length lazy
-        !l = l0 + n
-        !r = r0 + n
-        !h = 64 - countLeadingZeros n
-    flip MS.mapM_ (streamR 1 h) $ \i -> do
+-- | /O(log n)/
+writeSegTree
+    :: (MonoidAction f a, Semigroup a, U.Unbox a, U.Unbox f, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> a -> m ()
+writeSegTree st k0 v = do
+    let !k = k0 + sizeSegTree st
+    rev1 (heightSegTree st) $ \i -> do
+        pushSegTree st (unsafeShiftR k i)
+    UM.unsafeWrite (getSegTree st) k v
+    rep1 (heightSegTree st) $ \i -> do
+        pullSegTree st (unsafeShiftR k i)
+{-# INLINE writeSegTree #-}
+
+-- | /O(log n)/
+modifySegTree
+    :: (MonoidAction f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> (a -> a) -> Int -> m ()
+modifySegTree st f k0 = do
+    let !k = k0 + sizeSegTree st
+    rev1 (heightSegTree st) $ \i -> do
+        pushSegTree st (unsafeShiftR k i)
+    UM.unsafeModify (getSegTree st) f k
+    rep1 (heightSegTree st) $ \i -> do
+        pullSegTree st (unsafeShiftR k i)
+{-# INLINE modifySegTree #-}
+
+-- | mappend [l..r)
+-- /O(log n)/
+mappendFromTo
+    :: (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> Int -> m a
+mappendFromTo st l0 r0 = do
+    let !l = l0 + sizeSegTree st
+        !r = r0 + sizeSegTree st
+    rev1 (heightSegTree st) $ \i -> do
         when (unsafeShiftR l i `unsafeShiftL` i /= l) $ do
             pushSegTree st (unsafeShiftR l i)
         when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
             pushSegTree st (unsafeShiftR r i)
-    let calcL l acc
-            | l .&. 1 == 1 =
-                mappend acc <$> UM.unsafeRead tree l
-            | otherwise = return acc
-
-        calcR r acc
-            | r .&. 1 == 1 =
-                flip mappend acc <$> UM.unsafeRead tree (r - 1)
-            | otherwise = return acc
 
     fix (\loop !accL !accR !l' !r' -> do
         if l' < r'
         then do
-            !accL' <- calcL l' accL
-            !accR' <- calcR r' accR
+            !accL' <- if l' .&. 1 == 1
+                then (accL <>) <$!> UM.unsafeRead (getSegTree st) l'
+                else return accL
+            !accR' <- if r' .&. 1 == 1
+                then (<> accR) <$!> UM.unsafeRead (getSegTree st) (r' - 1)
+                else return accR
             loop accL' accR'
-                (unsafeShiftRL (l' + l' .&. 1) 1)
-                (unsafeShiftRL (r' - r' .&. 1) 1)
+                (unsafeShiftR (l' + l' .&. 1) 1)
+                (unsafeShiftR (r' - r' .&. 1) 1)
         else return $! accL <> accR
         ) mempty mempty l r
 {-# INLINE mappendFromTo #-}
 
-mappendAll :: (Monoid a, U.Unbox a, PrimMonad m)
-    => SegTree (PrimState m) a f -> m a
-mappendAll (SegTree tree _) = UM.unsafeRead tree 1
+-- | mappend [0..k)
+-- /O(log n)/
+mappendTo
+    :: (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> m a
+mappendTo st = mappendFromTo st 0
+{-# INLINE mappendTo #-}
+
+-- | mappend [0..n)
+-- /O(1)/
+mappendAll :: (U.Unbox a, PrimMonad m) => SegTree (PrimState m) f a -> m a
+mappendAll st = UM.unsafeRead (getSegTree st) 1
 {-# INLINE mappendAll #-}
 
-appAt :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> f -> m ()
-appAt st@(SegTree tree lazy) k0 f = do
-    let !n = UM.length lazy
-        k = k0 + n
-        !h = 64 - countLeadingZeros n
-    flip MS.mapM_ (streamR 1 h) $ \i -> do
-        pushSegTree st (unsafeShiftR k i)
-    UM.unsafeModify tree (appMonoid f) k
-    flip MS.mapM_ (stream 1 h) $ \i -> do
-        updateSegTree st (unsafeShiftR k i)
+-- | modify f k
+-- /O(log n)/
+appAt :: (MonoidAction f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> f -> m ()
+appAt st k f = modifySegTree st (appMonoid f) k
 {-# INLINE appAt #-}
 
-appFromTo :: (Monoid a, U.Unbox a, Monoid f, U.Unbox f, MonoidAction f a, PrimMonad m)
-    => SegTree (PrimState m) a f -> Int -> Int -> f -> m ()
-appFromTo st@(SegTree tree lazy) l0 r0 f = when (l0 < r0) $ do
-    let !n = UM.length lazy
-        !l = l0 + n
-        !r = r0 + n
-        !h = 64 - countLeadingZeros n
-    flip MS.mapM_ (streamR 1 h) $ \i -> do
+-- | mapM_ (modify f) [l..r)
+-- /O(log n)/
+appFromTo
+    :: (MonoidAction f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> Int -> f -> m ()
+appFromTo st l0 r0 f = when (l0 < r0) $ do
+    let !l = l0 + sizeSegTree st
+        !r = r0 + sizeSegTree st
+    rev1 (heightSegTree st) $ \i -> do
         when (unsafeShiftR l i `unsafeShiftL` i /= l) $ do
             pushSegTree st (unsafeShiftRL l i)
         when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
@@ -195,18 +199,50 @@ appFromTo st@(SegTree tree lazy) l0 r0 f = when (l0 < r0) $ do
 
     fix (\loop !l' !r' -> when (l' < r') $ do
         when (l' .&. 1 == 1) $ do
-            fullAppAt st l' f
+            evalAt st l' f
         when (r' .&. 1 == 1) $ do
-            fullAppAt st (r' - 1) f
-        loop (unsafeShiftRL (l' + l' .&. 1) 1) (unsafeShiftRL (r' - r' .&. 1) 1)
+            evalAt st (r' - 1) f
+        loop (unsafeShiftR (l' + l' .&. 1) 1)
+             (unsafeShiftR (r' - r' .&. 1) 1)
         ) l r
 
-    flip MS.mapM_ (stream 1 h) $ \i -> do
+    rep1 (heightSegTree st) $ \i -> do
         when (unsafeShiftR l i `unsafeShiftL` i /= l) $ do
-            updateSegTree st (unsafeShiftRL l i)
+            pullSegTree st (unsafeShiftRL l i)
         when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
-            updateSegTree st (unsafeShiftRL (r - 1) i)
+            pullSegTree st (unsafeShiftRL (r - 1) i)
 {-# INLINE appFromTo #-}
+
+-- | /O(1)/
+evalAt
+    :: (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> f -> m ()
+evalAt st k f = do
+    tk <- UM.unsafeModify (getSegTree st) (appMonoid f) k
+    when (k < sizeSegTree st) $ do
+        UM.unsafeModify (getDualSegTree st) (f <>) k
+{-# INLINE evalAt #-}
+
+-- | /O(1)/
+pushSegTree
+    :: (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int  -> m ()
+pushSegTree st k = do
+    fk <- UM.unsafeRead (getDualSegTree st) k
+    UM.unsafeWrite (getDualSegTree st) k mempty
+    evalAt st (2 * k) fk
+    evalAt st (2 * k + 1) fk
+{-# INLINE pushSegTree #-}
+
+-- | /O(1)/
+pullSegTree
+    :: (Semigroup a, U.Unbox a, PrimMonad m)
+    => SegTree (PrimState m) f a -> Int -> m ()
+pullSegTree st k = do
+    (<>) <$> UM.unsafeRead (getSegTree st) (2 * k)
+        <*> UM.unsafeRead (getSegTree st) (2 * k + 1)
+        >>= UM.unsafeWrite (getSegTree st) k
+{-# INLINE pullSegTree #-}
 
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
