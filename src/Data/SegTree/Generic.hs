@@ -170,7 +170,7 @@ minLeftSegTree segtree r p = do
                 if r > 1 && r .&. 1 == 1
                 then loop (unsafeShiftR r 1)
                 else r
-                ) or
+                ) (or - 1)
         oacc' <- (<> oacc) <$> GM.unsafeRead tree or'
         if p oacc'
         then do
