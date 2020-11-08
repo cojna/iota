@@ -20,13 +20,8 @@ twoSat n run
     satisfiable = U.and $ U.generate n $ \i ->
         U.unsafeIndex comp i /= U.unsafeIndex comp (i + offset)
     offset = n
-    scc = stronglyConnectedComponents
-        $ buildSparseGraph (2 * n) run
-    !comp = U.create $ do
-        cs <- UM.unsafeNew (2 * n)
-        forM_ (zip[(0::Int)..]scc) $ \(i, c) -> do
-            U.forM_ c $ \x -> UM.unsafeWrite cs x i
-        return cs
+    !comp = stronglyConnectedComponents
+        $ buildSparseGraph (2 * n) run    
 
 type CNFBuilder s w = SparseGraphBuilder s w
 
