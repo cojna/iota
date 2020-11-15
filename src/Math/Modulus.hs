@@ -191,6 +191,16 @@ crt (!r0, !m0) (!r1, !m1)
     !m = m0 * quot m1 g
     !r = mod (r0 + m0 * (quot (r1 - r0) g) * p) m
 
+
+-- | * @p0@, @p1@ are prime
+--   * @p0 /= p1@ or @r0 == r1@
+--
+-- >>> crt' (2,3) (3,5)
+-- 8
+-- >>> crt' (3,5) (3,7)
+-- 3
+-- >>> crt' (3,7) (3,7)
+-- 3
 crt' :: (Integral a) => (a, a) -> (a, a) -> a
 crt' (r0, p0) (r1, p1)
     = mod (r0 + p0 * recipMod p0 p1 `rem` (p0 * p1) * (r1 - r0)) (p0 * p1)

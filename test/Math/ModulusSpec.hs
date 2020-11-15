@@ -72,6 +72,12 @@ spec = do
             crt (10, 20) (11, 20) `shouldBe` Nothing
     describe "crt'" $ do
         prop "solve equations" prop_crt'
+        it "crt' (2,3) (3,5) = 8" $ do
+            crt' (2,3) (3,5) `shouldBe` 8
+        it "crt' (3,5) (3,7) = 3" $ do
+            crt' (3,5) (3,7) `shouldBe` 3
+        it "crt' (3,7) (3,7) = 3" $ do
+            crt' (3,7) (3,7) `shouldBe` 3
     describe "crts" $ do
         it "crts [(20,30),(30,50),(20,70)] = Just (230, 1050)" $ do
             crts [(20,30),(30,50),(20,70)] `shouldBe` Just (230, 1050)
@@ -120,8 +126,13 @@ prop_sqrtMod :: Int -> Prime Int -> Bool
 prop_sqrtMod a (getPrime -> p)
     = and [res * res `rem` p == mod a p | res <- sqrtMod a p]
 
+validateCRT' :: (Int, Prime Int) -> (Int, Prime Int) -> Bool
+validateCRT' (r0, p0) (r1, p1)
+    = r0 /= r1 || p0 == p1
+
 prop_crt' :: (Int, Prime Int) -> (Int, Prime Int) -> Bool
 prop_crt' (r0, Prime p0) (r1, Prime p1)
-    = mod x p0 == mod r0 p0 && mod x p1 == mod r1 p1
+    = not (validateCRT' (r0, Prime p0) (r1, Prime p1))
+    || mod x p0 == mod r0 p0 && mod x p1 == mod r1 p1
   where
     x = crt' (r0, p0) (r1, p1)
