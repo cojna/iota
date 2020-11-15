@@ -12,55 +12,53 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Graph.Sparse
 import           Data.VecStack
 import           Utils                       (rep)
+type ComponentId = Int
 
-
-nothingSCC :: Int
-nothingSCC = -1
-
-stronglyConnectedComponents :: SparseGraph w -> [U.Vector Vertex]
+stronglyConnectedComponents :: SparseGraph w -> U.Vector ComponentId
 stronglyConnectedComponents gr = runST $ do
     let numV = numVerticesCSR gr
-    low <- UM.replicate numV nothingSCC
-    preord <- UM.replicate numV nothingSCC
+    low <- UM.replicate numV nothing
+    preord <- UM.replicate numV nothing
     stack <- newVecStack numV
-    onStack <- UM.replicate numV False
-    num <- newMutVar 0
-    components <- newMutVar []
+    component <- UM.replicate numV nothing
+    vars <- UM.replicate 2 0
 
     rep numV $ \root -> do
         rootOrd <- UM.unsafeRead preord root
-        when (rootOrd == nothingSCC) $ do
+        when (rootOrd == nothing) $ do
             flip fix root $ \dfs v -> do
-                pord <- readMutVar num <* modifyMutVar' num (+1)
-                UM.unsafeWrite preord v pord >> UM.unsafeWrite low v pord
+                preordId <- UM.unsafeRead vars _preordId
+                UM.unsafeWrite vars _preordId (preordId + 1)
 
-                pushVS v stack >> UM.unsafeWrite onStack v True
+                UM.unsafeWrite preord v preordId
+                UM.unsafeWrite low v preordId
+
+                pushVS v stack
 
                 U.forM_ (adj gr v) $ \u -> do
-                    isVisited <- (/= nothingSCC) <$> UM.unsafeRead preord u
-                    if isVisited
+                    ordU <- UM.unsafeRead preord u
+                    if ordU == nothing
                     then do
-                        onS <- UM.unsafeRead onStack u
-                        when onS $ do
-                            uOrd <- UM.unsafeRead preord u
-                            UM.unsafeModify low (min uOrd) v
-                    else do
                         dfs u
-                        uLow <- UM.unsafeRead low u
-                        UM.unsafeModify low (min uLow) v
+                        lowU <- UM.unsafeRead low u
+                        UM.unsafeModify low (min lowU) v
+                    else UM.unsafeModify low (min ordU) v
 
-                isRoot <- (==)
-                    <$> UM.unsafeRead low v
-                    <*> UM.unsafeRead preord v
-                when isRoot $ do
-                    flip fix 1 $ \loop !i -> do
+                lowV <- UM.unsafeRead low v
+                ordV <- UM.unsafeRead preord v
+                when (lowV == ordV) $ do
+                    compId <- UM.unsafeRead vars _compId
+                    fix $ \loop -> do
                         popVS stack >>= \case
-                            Just x
-                                | x /= v -> loop (i + 1)
-                                | otherwise -> do
-                                    o <- UM.unsafeRead (intVarsVS stack) _sizeVS
-                                    component <- U.freeze $ UM.slice o i (internalVecStack stack)
-                                    U.mapM_ (flip (UM.unsafeWrite onStack) False) component
-                                    modifyMutVar' components (component:)
+                            Just x -> do
+                                UM.unsafeWrite preord x numV
+                                UM.unsafeWrite component x compId
+                                when (x /= v) loop
                             Nothing -> undefined
-    readMutVar components
+                    UM.unsafeWrite vars _compId (compId + 1)
+    maxCompId <- subtract 1 <$!> UM.unsafeRead vars _compId
+    U.map (maxCompId -) <$> U.unsafeFreeze component
+  where
+    nothing = -1
+    _preordId = 0
+    _compId = 1
