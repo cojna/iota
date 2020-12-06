@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, Safe #-}
 
-module Utils.Safe where
+module My.Prelude.Safe where
 
 import           Control.Monad.State.Strict
 import qualified Data.ByteString            as B

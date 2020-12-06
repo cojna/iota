@@ -13,8 +13,7 @@ import qualified Data.Vector.Generic.Mutable as GM
 import           Data.Word
 import           Unsafe.Coerce
 
-import           Utils
-
+import           My.Prelude                  (rev)
 newtype RNG s = RNG (MutableByteArray s)
 
 defaultSeed :: Word

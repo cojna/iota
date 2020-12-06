@@ -11,7 +11,7 @@ import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Utils                       (rep)
+import           My.Prelude                  (rep)
 
 -- | O(V^2)
 dijkstraDense :: (U.Unbox w, Num w, Ord w, Bounded w)

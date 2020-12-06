@@ -13,7 +13,7 @@ import qualified Data.Vector.Unboxed.Mutable       as UM
 import           GHC.Exts
 
 import           Math.Modulus                      (powMod, recipMod)
-import           Utils                             (rep, stream, streamR,
+import           My.Prelude                        (rep, stream, streamR,
                                                     unsafeShiftRL)
 
 -- | Number Theoretic Transform

@@ -12,7 +12,7 @@ import qualified Data.Vector.Unboxed.Mutable       as UM
 import           Data.Word
 import           Unsafe.Coerce
 --
-import           Utils                             (stream, streamR)
+import           My.Prelude                        (stream, streamR)
 import           Data.Vector.Sort.Radix            (radixSort64)
 
 -- | /O((N+Q)sqrt N)/

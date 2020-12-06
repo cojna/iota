@@ -10,7 +10,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import           Unsafe.Coerce
 
 import           Data.BitSet
-import           Utils                       (rep)
+import           My.Prelude                  (rep)
 
 -- | Traveling Salesman Problem
 --

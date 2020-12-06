@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed.Mutable       as UM
 
 
 import           Data.Graph.Sparse
-import           Utils                             (stream)
+import           My.Prelude                       (stream)
 
 type HLDIndex = Int
 

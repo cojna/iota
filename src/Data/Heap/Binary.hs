@@ -13,7 +13,7 @@ import           Data.Ord
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 --
-import           Utils                       (rev)
+import           My.Prelude                  (rev)
 
 data BinaryHeap (f :: * -> *) s a = BinaryHeap
     { priorityBH    :: a -> f a

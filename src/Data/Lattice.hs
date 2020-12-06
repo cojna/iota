@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Math.Prime
 
-import           Utils
+import           My.Prelude                  (rep, rev)
 
 infix 4 .<.
 class Poset a where
