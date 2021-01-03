@@ -10,7 +10,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 --
 import           Data.VecStack
-import           Utils                       (rep)
+import           My.Prelude                  (rep)
 
 type Vertex = Int
 

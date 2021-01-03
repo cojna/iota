@@ -4,7 +4,7 @@ import           Control.Monad.Primitive
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Utils                       (rep)
+import           My.Prelude                  (rep)
 
 -- | O(V^3)
 warshallFloyd :: (PrimMonad m, U.Unbox a, Num a, Ord a)

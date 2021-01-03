@@ -7,7 +7,7 @@ import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Unboxed               as U
 import qualified Data.Vector.Unboxed.Mutable       as UM
 
-import           Utils                             (rep, stream)
+import           My.Prelude                        (rep, stream)
 
 -- | /O(V^2)/
 primDense :: (U.Unbox w, Num w, Ord w)

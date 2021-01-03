@@ -9,7 +9,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.ByteString.SuffixArray
-import           Utils
+import           My.Prelude
 
 newtype LCPArray = LCPArray {getLCPArray :: U.Vector Int} deriving (Show)
 

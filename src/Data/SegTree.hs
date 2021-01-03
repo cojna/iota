@@ -13,7 +13,7 @@ import           Data.Semigroup
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Utils                       (rep1, rev1, unsafeShiftRL)
+import           My.Prelude                  (rep1, rev1, unsafeShiftRL)
 
 -- | * @appMonoid mempty = id@
 --   * @appMonoid (f <> g) = appMonoid f . appMonoid g@

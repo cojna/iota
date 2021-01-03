@@ -16,7 +16,7 @@ import qualified Data.Vector.Primitive             as P
 import           GHC.Exts
 import           GHC.TypeLits
 --
-import           Utils                             (rep)
+import           My.Prelude                        (rep)
 
 -- | n x n square matrix
 data SqMat (n :: Nat) a = SqMat !Int !ByteArray

@@ -10,7 +10,7 @@ import qualified Data.Foldable               as F
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Utils
+import           My.Prelude
 
 newtype SuffixArray = SuffixArray {getSuffixArray :: U.Vector Int} deriving (Show)
 

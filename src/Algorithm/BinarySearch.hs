@@ -6,7 +6,7 @@ import           Control.Monad
 import           Data.Bool
 import           Data.Functor.Identity
 
-import           Utils                 (unsafeShiftRL)
+import           My.Prelude                 (unsafeShiftRL)
 
 -- | assert (p high)
 lowerBoundM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int

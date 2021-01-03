@@ -16,7 +16,7 @@ import           Unsafe.Coerce
 
 import           Data.Heap.Binary
 import           Data.VecQueue
-import           Utils                       (rep)
+import           My.Prelude                  (rep)
 
 nothingMCF :: Int
 nothingMCF = -1

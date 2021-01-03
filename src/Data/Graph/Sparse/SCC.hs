@@ -11,7 +11,8 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.Graph.Sparse
 import           Data.VecStack
-import           Utils                       (rep)
+import           My.Prelude                  (rep)
+
 type ComponentId = Int
 
 stronglyConnectedComponents :: SparseGraph w -> U.Vector ComponentId
