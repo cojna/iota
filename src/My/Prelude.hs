@@ -186,18 +186,38 @@ gridHW :: Int -> Int -> Parser (U.Vector Char)
 gridHW h w = U.unfoldrN (h * w) (runParser char) . C.filter (/= '\n') <$> takeLines h
 {-# INLINE gridHW #-}
 
+-- >>> runStateT takeLine (C.pack "abc")
+-- Just ("abc","")
+-- >>> runStateT takeLine (C.pack "abc\n")
+-- Just ("abc","")
+-- >>> runStateT takeLine (C.pack "abc\r\n")
+-- Just ("abc\r","")
+-- >>> runStateT takeLine C.empty
+-- Just ("","")
+-- >>> runStateT takeLine (C.pack "\n")
+-- Just ("","")
+-- >>> runStateT takeLine (C.pack "\n\n")
+-- Just ("","\n")
 takeLine :: Parser C.ByteString
-takeLine = do
-    skipSpaces
-    state $ C.span (/= '\n')
+takeLine = state $
+    fmap (B.drop 1) . C.span (/= '\n')
 {-# INLINE takeLine #-}
 
+-- >>> runStateT (takeLines 1) (C.pack "abc\ndef\n")
+-- Just ("abc\n","def\n")
+-- >>> runStateT (takeLines 2) (C.pack "abc\ndef\n")
+-- Just ("abc\ndef\n","")
+-- >>> runStateT (takeLines 0) (C.pack "abc\ndef\n")
+-- Just ("","abc\ndef\n")
+-- >>> runStateT (takeLines 999) (C.pack "abc")
+-- Just ("abc","")
 takeLines :: Int -> Parser C.ByteString
-takeLines n = do
-    skipSpaces
-    gets (drop (n - 1) . C.elemIndices '\n') >>= \case
-        (i : _) -> state (C.splitAt (i + 1))
-        [] -> state (flip (,) C.empty)
+takeLines n
+    | n > 0 = do
+        gets (drop (n - 1) . C.elemIndices '\n') >>= \case
+            (i : _) -> state (C.splitAt (i + 1))
+            [] -> state (flip (,) C.empty)
+    | otherwise = pure C.empty
 {-# INLINE takeLines #-}
 
 neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()

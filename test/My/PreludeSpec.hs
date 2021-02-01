@@ -32,16 +32,37 @@ spec = do
             B.toLazyByteString (gridB @V.Vector 2 3 B.intDec [1, 2, 3, 4, 5, 6])
                 `shouldBe` "1 2 3\n4 5 6\n"
     describe "takeLine" $ do
-        it "takeLine \"abc\" == \"abc\"" $ do
-            evalStateT takeLine "abc"
-                `shouldBe` Just "abc"
-        it "takeLine \"abc\n\" == \"abc\"" $ do
-            evalStateT takeLine "abc\n"
-                `shouldBe` Just "abc"
+        it "runStateT takeLine \"abc\" == Just (\"abc\",\"\")" $ do
+            runStateT takeLine "abc"
+                `shouldBe` Just ("abc", "")
+        it "runStateT takeLine \"abc\\n\" == Just (\"abc\",\"\")" $ do
+            runStateT takeLine "abc\n"
+                `shouldBe` Just ("abc", "")
+        it "runStateT takeLine \"abc\\r\\n\" == Just (\"abc\\r\",\"\")" $ do
+            runStateT takeLine "abc\r\n"
+                `shouldBe` Just ("abc\r", "")
+        it "runStateT takeLine \"\" == Just (\"\",\"\")" $ do
+            runStateT takeLine ""
+                `shouldBe` Just ("", "")
+        it "runStateT takeLine \"\\n\" == Just (\"\",\"\")" $ do
+            runStateT takeLine "\n"
+                `shouldBe` Just ("", "")
+        it "runStateT takeLine \"\\n\\n\" == Just (\"\",\"\\n\")" $ do
+            runStateT takeLine "\n\n"
+                `shouldBe` Just ("", "\n")
     describe "takeLines" $ do
-        it "takeLines 1 \"abc\" == \"abc\"" $ do
-            evalStateT (takeLines 1) "abc"
-                `shouldBe` Just "abc"
-        it "takeLines 1 \"abc\n\" == \"abc\"" $ do
-            evalStateT (takeLines 1) "abc\n"
-                `shouldBe` Just "abc\n"
+        it "runStateT takeLines 1 \"abc\\ndef\\n\" == Just (\"abc\\n\",\"def\\n\")" $ do
+            runStateT (takeLines 1) "abc\ndef\n"
+                `shouldBe` Just ("abc\n", "def\n")
+        it "runStateT takeLines 2 \"abc\\ndef\\n\" == Just (\"abc\\ndef\\n\",\"\")" $ do
+            runStateT (takeLines 2) "abc\ndef\n"
+                `shouldBe` Just ("abc\ndef\n", "")
+        it "runStateT takeLines 0 \"abc\\ndef\\n\" == Just (\"\",\"abc\\ndef\\n\")" $ do
+            runStateT (takeLines 0) "abc\ndef\n"
+                `shouldBe` Just ("","abc\ndef\n")
+        it "runStateT takeLines 2 \"abc\\ndef\" == Just (\"abc\\ndef\",\"\")" $ do
+            runStateT (takeLines 2) "abc\ndef"
+                `shouldBe` Just ("abc\ndef", "")
+        it "runStateT takeLines 999 \"abc\" == Just (\"abc\",\"\")" $ do
+            runStateT (takeLines 999) "abc"
+                `shouldBe` Just ("abc", "")
