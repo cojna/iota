@@ -32,12 +32,24 @@ spec = do
             B.toLazyByteString (gridB @V.Vector 2 3 B.intDec [1, 2, 3, 4, 5, 6])
                 `shouldBe` "1 2 3\n4 5 6\n"
     describe "takeLine" $ do
-        it "takeLine \"abc\" == \"abc\"" $ do
+        it "runStateT takeLine \"abc\" == Just (\"abc\",\"\")" $ do
             runStateT takeLine "abc"
                 `shouldBe` Just ("abc", "")
-        it "takeLine \"abc\n\" == \"abc\"" $ do
+        it "runStateT takeLine \"abc\\n\" == Just (\"abc\",\"\")" $ do
             runStateT takeLine "abc\n"
-                `shouldBe` Just ("abc", "\n")
+                `shouldBe` Just ("abc", "")
+        it "runStateT takeLine \"abc\\r\\n\" == Just (\"abc\\r\",\"\")" $ do
+            runStateT takeLine "abc\r\n"
+                `shouldBe` Just ("abc\r", "")
+        it "runStateT takeLine \"\" == Just (\"\",\"\")" $ do
+            runStateT takeLine ""
+                `shouldBe` Just ("", "")
+        it "runStateT takeLine \"\\n\" == Just (\"\",\"\")" $ do
+            runStateT takeLine "\n"
+                `shouldBe` Just ("", "")
+        it "runStateT takeLine \"\\n\\n\" == Just (\"\",\"\\n\")" $ do
+            runStateT takeLine "\n\n"
+                `shouldBe` Just ("", "\n")
     describe "takeLines" $ do
         it "takeLines 1 \"abc\" == \"abc\"" $ do
             runStateT (takeLines 1) "abc"
