@@ -98,8 +98,8 @@ newBipartiteMatchingBuilder n = BipartiteMatchingBuilder n
     <*> newVecStack (1024 * 1024)
 
 addEdgeBMB :: (PrimMonad m)
-    => Vertex -> Vertex -> BipartiteMatchingBuilder (PrimState m) -> m ()
-addEdgeBMB !src !dst BipartiteMatchingBuilder{..} = do
+    => BipartiteMatchingBuilder (PrimState m) -> Vertex -> Vertex -> m ()
+addEdgeBMB BipartiteMatchingBuilder{..} !src !dst = do
     UM.unsafeModify inDegreeBMB (+1) src
     pushVS (src, dst) edgesBMB
 {-# INLINE addEdgeBMB #-}
