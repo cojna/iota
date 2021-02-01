@@ -51,9 +51,18 @@ spec = do
             runStateT takeLine "\n\n"
                 `shouldBe` Just ("", "\n")
     describe "takeLines" $ do
-        it "takeLines 1 \"abc\" == \"abc\"" $ do
-            runStateT (takeLines 1) "abc"
+        it "runStateT takeLines 1 \"abc\\ndef\\n\" == Just (\"abc\\n\",\"def\\n\")" $ do
+            runStateT (takeLines 1) "abc\ndef\n"
+                `shouldBe` Just ("abc\n", "def\n")
+        it "runStateT takeLines 2 \"abc\\ndef\\n\" == Just (\"abc\\ndef\\n\",\"\")" $ do
+            runStateT (takeLines 2) "abc\ndef\n"
+                `shouldBe` Just ("abc\ndef\n", "")
+        it "runStateT takeLines 0 \"abc\\ndef\\n\" == Just (\"\",\"abc\\ndef\\n\")" $ do
+            runStateT (takeLines 0) "abc\ndef\n"
+                `shouldBe` Just ("","abc\ndef\n")
+        it "runStateT takeLines 2 \"abc\\ndef\" == Just (\"abc\\ndef\",\"\")" $ do
+            runStateT (takeLines 2) "abc\ndef"
+                `shouldBe` Just ("abc\ndef", "")
+        it "runStateT takeLines 999 \"abc\" == Just (\"abc\",\"\")" $ do
+            runStateT (takeLines 999) "abc"
                 `shouldBe` Just ("abc", "")
-        it "takeLines 1 \"abc\n\" == \"abc\"" $ do
-            runStateT (takeLines 1) "abc\n"
-                `shouldBe` Just ("abc\n", "")
