@@ -33,15 +33,15 @@ spec = do
                 `shouldBe` "1 2 3\n4 5 6\n"
     describe "takeLine" $ do
         it "takeLine \"abc\" == \"abc\"" $ do
-            evalStateT takeLine "abc"
-                `shouldBe` Just "abc"
+            runStateT takeLine "abc"
+                `shouldBe` Just ("abc", "")
         it "takeLine \"abc\n\" == \"abc\"" $ do
-            evalStateT takeLine "abc\n"
-                `shouldBe` Just "abc"
+            runStateT takeLine "abc\n"
+                `shouldBe` Just ("abc", "\n")
     describe "takeLines" $ do
         it "takeLines 1 \"abc\" == \"abc\"" $ do
-            evalStateT (takeLines 1) "abc"
-                `shouldBe` Just "abc"
+            runStateT (takeLines 1) "abc"
+                `shouldBe` Just ("abc", "")
         it "takeLines 1 \"abc\n\" == \"abc\"" $ do
-            evalStateT (takeLines 1) "abc\n"
-                `shouldBe` Just "abc\n"
+            runStateT (takeLines 1) "abc\n"
+                `shouldBe` Just ("abc\n", "")
