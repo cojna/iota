@@ -65,7 +65,7 @@ runMaxFlow src sink mf@MaxFlow{..} = do
     flip fix 0 $ \loopBFS !flow -> do
         UM.set levelMF nothingMF
         clearVQ queueMF
-        bfsMF src mf
+        bfsMF src sink mf
         lsink <- UM.unsafeRead levelMF sink
         if lsink == nothingMF
         then return flow
@@ -79,13 +79,13 @@ runMaxFlow src sink mf@MaxFlow{..} = do
 
 
 bfsMF :: (Num cap, Ord cap, U.Unbox cap, PrimMonad m)
-    => Vertex -> MaxFlow (PrimState m) cap -> m ()
-bfsMF src MaxFlow{..} = do
+    => Vertex -> Vertex -> MaxFlow (PrimState m) cap -> m ()
+bfsMF src sink MaxFlow{..} = do
     UM.unsafeWrite levelMF src 0
     enqueueVQ src queueMF
     fix $ \loop -> do
         dequeueVQ queueMF >>= \case
-            Just v -> do
+            Just v -> when (v /= sink) $ do
                 let start = U.unsafeIndex offsetMF v
                 let end = U.unsafeIndex offsetMF (v + 1)
                 U.forM_ (U.generate (end - start) (+start)) $ \e -> do
