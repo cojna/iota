@@ -85,17 +85,19 @@ bfsMF src sink MaxFlow{..} = do
     enqueueVQ src queueMF
     fix $ \loop -> do
         dequeueVQ queueMF >>= \case
-            Just v -> when (v /= sink) $ do
-                let start = U.unsafeIndex offsetMF v
-                let end = U.unsafeIndex offsetMF (v + 1)
-                U.forM_ (U.generate (end - start) (+start)) $ \e -> do
-                    let nv = U.unsafeIndex dstMF e
-                    res <- UM.unsafeRead residualMF e
-                    lnv <- UM.unsafeRead levelMF nv
-                    when (res > 0 && lnv == nothingMF) $ do
-                        UM.unsafeRead levelMF v
-                            >>= UM.unsafeWrite levelMF nv . (+1)
-                        enqueueVQ nv queueMF
+            Just v -> do
+                lsink <- UM.unsafeRead levelMF sink
+                when (lsink == nothingMF) $ do
+                    let start = U.unsafeIndex offsetMF v
+                        end = U.unsafeIndex offsetMF (v + 1)
+                    lv <- UM.unsafeRead levelMF v
+                    U.forM_ (U.generate (end - start) (+start)) $ \e -> do
+                        let nv = U.unsafeIndex dstMF e
+                        res <- UM.unsafeRead residualMF e
+                        lnv <- UM.unsafeRead levelMF nv
+                        when (res > 0 && lnv == nothingMF) $ do
+                            UM.unsafeWrite levelMF nv (lv + 1)
+                            enqueueVQ nv queueMF
                     loop
             Nothing -> return ()
 {-# INLINE bfsMF #-}
