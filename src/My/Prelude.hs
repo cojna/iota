@@ -158,6 +158,10 @@ linesN n p = do
         $ evalStateT p bs
 {-# INLINE linesN #-}
 
+lineP :: Parser a -> Parser a
+lineP f = takeLine >>= lift . evalStateT f
+{-# INLINE lineP #-}
+
 putBuilder :: (MonadIO m) => B.Builder -> m ()
 putBuilder = liftIO . B.hPutBuilder stdout
 
