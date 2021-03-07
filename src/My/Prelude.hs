@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE TypeApplications #-}
 
 module My.Prelude where
 
@@ -85,10 +86,26 @@ unwordsB f vec
         f (G.head vec)
             <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
 
+concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
+concatB f = G.foldr ((<>).f) mempty
+
+-- |
+-- >>> B.toLazyByteString . matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+-- "1 2 3\n4 5 6\n"
+matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
+matrixB h w f mat =
+    F.foldMap
+        ((<> endlB) . unwordsB f)
+        [G.slice (i * w) w mat | i <- [0 .. h -1]]
+-- |
+-- >>> B.toLazyByteString . gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
+-- ".#.\n#.#\n"
+-- >>> B.toLazyByteString . gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+-- "123\n456\n"
 gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 gridB h w f mat =
     F.foldMap
-        ((<> endlB) . unwordsB f)
+        ((<> endlB) . concatB f)
         [G.slice (i * w) w mat | i <- [0 .. h -1]]
 
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
@@ -97,6 +114,11 @@ sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
 yesnoB :: Bool -> B.Builder
 yesnoB = bool (B.string7 "No") (B.string7 "Yes")
 
+-- |
+-- >>> B.toLazyByteString . pairB B.intDec B.intDec $ (0, 1)
+-- "0 1"
+-- >>> B.toLazyByteString . pairB B.intDec (pairB B.intDec B.intDec) $ (0, (1, 2))
+-- "0 1 2"
 pairB :: (a -> B.Builder) -> (b -> B.Builder) -> (a, b) -> B.Builder
 pairB f g (x, y) = f x <> B.char7 ' ' <> g y
 
@@ -110,15 +132,37 @@ endlB :: B.Builder
 endlB = B.char7 '\n'
 {-# INLINE endlB #-}
 
-runSolver :: Parser B.Builder -> IO ()
-runSolver solver = do
-    bs <- C.getContents
-    case runStateT solver bs of
-        Just (answer, rest) -> do
-            unless (C.all isSpace rest) $ do
-                C.hPutStrLn stderr rest
-            B.hPutBuilder stdout answer
-        Nothing -> hPutStrLn stderr "parse error"
+type Solver a = StateT C.ByteString IO a
+
+runSolver :: Solver () -> IO ()
+runSolver solver = C.getContents
+    >>= evalStateT (solver <* validateSolverState)
+
+validateSolverState :: Solver ()
+validateSolverState = do
+    bs <- get
+    unless (C.all isSpace bs) $ do
+        liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
+
+line :: Parser a -> Solver a
+line p = do
+    bs <- takeLine @IO
+    maybe (error "parse error") return
+        $ evalStateT p bs
+{-# INLINE line #-}
+
+linesN :: Int -> Parser a -> Solver a
+linesN n p = do
+    bs <- takeLines @IO n
+    maybe (error "parse error") return
+        $ evalStateT p bs
+{-# INLINE linesN #-}
+
+putBuilder :: (MonadIO m) => B.Builder -> m ()
+putBuilder = liftIO . B.hPutBuilder stdout
+
+putBuilderLn :: (MonadIO m) => B.Builder -> m ()
+putBuilderLn b = putBuilder b *> putBuilder (B.char7 '\n')
 
 type Parser a = StateT C.ByteString Maybe a
 
@@ -163,55 +207,51 @@ skipSpaces = modify' (C.dropWhile isSpace)
 {-# INLINE skipSpaces #-}
 
 vector :: (G.Vector v a) => Parser a -> Parser (v a)
-vector p = G.unfoldr (runParser p) <$> takeLine
+vector p = G.unfoldr (runParser p) <$> get
 {-# INLINE vector #-}
 
 vectorN :: (G.Vector v a) => Int -> Parser a -> Parser (v a)
-vectorN n p = G.unfoldrN n (runParser p) <$> takeLine
+vectorN n p = G.unfoldrN n (runParser p) <$> get
 {-# INLINE vectorN #-}
 
-vectorH :: (G.Vector v a) => Int -> Parser a -> Parser (v a)
-vectorH h p = G.unfoldrN h (runParser p) <$> takeLines h
-{-# INLINE vectorH #-}
-
-vectorW :: (G.Vector v a) => Int -> Parser a -> Parser (v a)
-vectorW = vectorN
-{-# INLINE vectorW #-}
-
 vectorHW :: (G.Vector v a) => Int -> Int -> Parser a -> Parser (v a)
-vectorHW h w p = G.unfoldrN (h * w) (runParser p) <$> takeLines h
+vectorHW h w = vectorN (h * w)
 {-# INLINE vectorHW #-}
 
 gridHW :: Int -> Int -> Parser (U.Vector Char)
-gridHW h w = U.unfoldrN (h * w) (runParser char) . C.filter (/= '\n') <$> takeLines h
+gridHW h w = U.unfoldrN (h * w) (runParser char) . C.filter (/= '\n') <$> get
 {-# INLINE gridHW #-}
 
--- >>> runStateT takeLine (C.pack "abc")
--- Just ("abc","")
--- >>> runStateT takeLine (C.pack "abc\n")
--- Just ("abc","")
--- >>> runStateT takeLine (C.pack "abc\r\n")
--- Just ("abc\r","")
--- >>> runStateT takeLine C.empty
--- Just ("","")
--- >>> runStateT takeLine (C.pack "\n")
--- Just ("","")
--- >>> runStateT takeLine (C.pack "\n\n")
--- Just ("","\n")
-takeLine :: Parser C.ByteString
+-- |
+-- >>> runStateT @_ @Identity takeLine (C.pack "abc")
+-- Identity ("abc","")
+-- >>> runStateT @_ @Identity takeLine (C.pack "abc\n")
+-- Identity ("abc","")
+-- >>> runStateT @_ @Identity takeLine (C.pack "abc\r\n")
+-- Identity ("abc\r","")
+-- >>> runStateT @_ @Identity takeLine C.empty
+-- Identity ("","")
+-- >>> runStateT @_ @Identity takeLine (C.pack "\n")
+-- Identity ("","")
+-- >>> runStateT @_ @Identity takeLine (C.pack "\n\n")
+-- Identity ("","\n")
+
+takeLine :: (Monad m) => StateT C.ByteString m C.ByteString
 takeLine = state $
     fmap (B.drop 1) . C.span (/= '\n')
 {-# INLINE takeLine #-}
 
--- >>> runStateT (takeLines 1) (C.pack "abc\ndef\n")
--- Just ("abc\n","def\n")
--- >>> runStateT (takeLines 2) (C.pack "abc\ndef\n")
--- Just ("abc\ndef\n","")
--- >>> runStateT (takeLines 0) (C.pack "abc\ndef\n")
--- Just ("","abc\ndef\n")
--- >>> runStateT (takeLines 999) (C.pack "abc")
--- Just ("abc","")
-takeLines :: Int -> Parser C.ByteString
+-- |
+-- >>> runStateT @_ @Identity (takeLines 1) (C.pack "abc\ndef\n")
+-- Identity ("abc\n","def\n")
+-- >>> runStateT @_ @Identity (takeLines 2) (C.pack "abc\ndef\n")
+-- Identity ("abc\ndef\n","")
+-- >>> runStateT @_ @Identity (takeLines 0) (C.pack "abc\ndef\n")
+-- Identity ("","abc\ndef\n")
+-- >>> runStateT @_ @Identity (takeLines 999) (C.pack "abc")
+-- Identity ("abc","")
+
+takeLines :: (Monad m) => Int -> StateT C.ByteString m C.ByteString
 takeLines n
     | n > 0 = do
         gets (drop (n - 1) . C.elemIndices '\n') >>= \case
