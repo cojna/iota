@@ -114,6 +114,11 @@ sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
 yesnoB :: Bool -> B.Builder
 yesnoB = bool (B.string7 "No") (B.string7 "Yes")
 
+-- |
+-- >>> B.toLazyByteString . pairB B.intDec B.intDec $ (0, 1)
+-- "0 1"
+-- >>> B.toLazyByteString . pairB B.intDec (pairB B.intDec B.intDec) $ (0, (1, 2))
+-- "0 1 2"
 pairB :: (a -> B.Builder) -> (b -> B.Builder) -> (a, b) -> B.Builder
 pairB f g (x, y) = f x <> B.char7 ' ' <> g y
 
