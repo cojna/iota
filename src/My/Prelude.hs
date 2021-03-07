@@ -137,8 +137,7 @@ validateSolverState :: Solver ()
 validateSolverState = do
     bs <- get
     unless (C.all isSpace bs) $ do
-        liftIO $ hPutStrLn stderr "[\ESC[33m[WARNING]\ESC[0m"
-        liftIO $ C.hPutStrLn stderr bs
+        liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
 
 line :: Parser a -> Solver a
 line p = do
