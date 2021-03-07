@@ -140,19 +140,19 @@ validateSolverState = do
         liftIO $ hPutStrLn stderr "[\ESC[33m[WARNING]\ESC[0m"
         liftIO $ C.hPutStrLn stderr bs
 
-lineP :: Parser a -> Solver a
-lineP p = do
+line :: Parser a -> Solver a
+line p = do
     bs <- takeLine @IO
     maybe (error "parse error") return
         $ evalStateT p bs
-{-# INLINE lineP #-}
+{-# INLINE line #-}
 
-linesP :: Int -> Parser a -> Solver a
-linesP n p = do
+linesN :: Int -> Parser a -> Solver a
+linesN n p = do
     bs <- takeLines @IO n
     maybe (error "parse error") return
         $ evalStateT p bs
-{-# INLINE linesP #-}
+{-# INLINE linesN #-}
 
 putBuilder :: (MonadIO m) => B.Builder -> m ()
 putBuilder = liftIO . B.hPutBuilder stdout
