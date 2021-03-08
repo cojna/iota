@@ -6,7 +6,7 @@ module Data.LatticeSpec (main, spec) where
 
 import           Data.Lattice
 import qualified Data.Vector.Unboxed as U
-import           Math.Prime          (withPrimes)
+import           Math.Prime.Sieve    (withPrimes)
 import           Test.Prelude
 
 #define MAX_PRIME 46337

@@ -2,10 +2,6 @@
 
 module Math.PrimeSpec (main, spec) where
 
-import           Data.Int
-import qualified Data.List           as L
-import qualified Data.Vector.Unboxed as U
-import           Data.Word
 import           Math.Prime
 import           Test.Prelude
 
@@ -26,9 +22,6 @@ spec = do
         prop "same to naive" prop_totientSameToNaive
     describe "divisors" $
         prop "same to naive" prop_divisorsSameToNaive
-    describe "withPrimes 46337 generates smallPrimes" $
-        it "equal to smallPrimes" $
-            withPrimes 46337 U.toList `shouldBe` smallPrimes
 
 prop_primeFactorsFactorize :: Positive Int -> Bool
 prop_primeFactorsFactorize (getPositive -> x)
