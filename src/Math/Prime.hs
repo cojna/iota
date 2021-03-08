@@ -18,7 +18,7 @@ primeFactors n = go n smallPrimes
         | otherwise = p : go q pps
       where
         (q, r) = quotRem n p
-    go n [] = [n]
+    go n [] = go n [46339,46341..]
 {-# SPECIALIZE primeFactors :: Int -> [Int] #-}
 
 isPrime :: Integral i => i -> Bool
