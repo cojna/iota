@@ -37,14 +37,6 @@ spec = do
         it "recipMod 10 1000000007 = 700000005" $ do
             recipMod 10 1000000007 `shouldBe` 700000005
         prop "x * recip x == 1" prop_recipMod
-    describe "logMod" $ do
-        it "logMod 3 27 998244353 = Just 3" $ do
-            logMod 3 27 998244353 `shouldBe` Just 3
-        it "logMod 3 123456789 998244353 = Just 772453214" $ do
-            logMod 3 123456789 998244353 `shouldBe` Just 772453214
-        it "logMod 1 2 1000000007 = Nothing" $ do
-            logMod 1 2 1000000007 `shouldBe` Nothing
-        prop "a ^ logMod a (a ^ x) == a ^ x" prop_logMod
     describe "crt" $ do
         it "crt (10, 20) (10, 30) = Just (10, 60)" $ do
             crt (10, 20) (10, 30) `shouldBe` Just (10, 60)
@@ -67,8 +59,6 @@ spec = do
             crts [] `shouldBe` Just (0, 1)
         it "crts [(1, 10), (2, 20), (3, 30)] = Nothing" $ do
             crts [(1, 10), (2, 20), (3, 30)] `shouldBe` Nothing
-
-
     describe "garner" $ do
         it "garner [(2, 3), (3, 5), (2, 7)] 999 = 23" $ do
             garner [(2, 3), (3, 5), (2, 7)] 999 `shouldBe` 23
@@ -95,14 +85,6 @@ prop_recipMod
     (getPositive -> x)
     (getPrime -> m)
     = x `mod` m == 0 || x * recipMod x m `mod` m == 1
-
-prop_logMod :: Int -> NonNegative Int -> Prime Int -> Bool
-prop_logMod a0 (getNonNegative -> x) (getPrime -> modulus)
-    | Just x' <- logMod (mod a modulus) ax modulus = powMod a x' modulus == ax
-    | otherwise = False
-  where
-    a = mod a0 modulus
-    !ax = powMod a x modulus
 
 validateCRT' :: (Int, Prime Int) -> (Int, Prime Int) -> Bool
 validateCRT' (r0, p0) (r1, p1)
