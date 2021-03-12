@@ -4,7 +4,6 @@ import           Control.Monad.Primitive
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-
 data Deque s a = Deque
     { dequeVars :: !(UM.MVector s Int)
     , getDeque  :: !(UM.MVector s a)
@@ -25,14 +24,47 @@ defaultDequeSize = 1024 * 1024
 type Queue s a = Deque s a
 
 newQueue :: (PrimMonad m, U.Unbox a) => Int -> m (Deque (PrimState m) a)
-newQueue n = Deque <$> UM.replicate 2 0 <*> UM.unsafeNew n
+newQueue = newBuffer
+
+clearQueue :: (U.Unbox a, PrimMonad m) => Deque (PrimState m) a -> m ()
+clearQueue = clearBuffer
 
 type Stack s a = Deque s a
 
 newStack :: (PrimMonad m, U.Unbox a) => Int -> m (Deque (PrimState m) a)
-newStack n = Deque <$> UM.replicate 2 0 <*> UM.unsafeNew n
+newStack = newBuffer
 
-lengthDeque :: (PrimMonad m, U.Unbox a) => Deque (PrimState m) a -> m Int
+clearStack :: (U.Unbox a, PrimMonad m) => Deque (PrimState m) a -> m ()
+clearStack = clearBuffer
+
+type Buffer s a = Deque s a
+
+newBuffer :: (PrimMonad m, U.Unbox a) => Int -> m (Deque (PrimState m) a)
+newBuffer n = Deque <$> UM.replicate 2 0 <*> UM.unsafeNew n
+
+lengthBuffer :: (PrimMonad m) => Deque (PrimState m) a -> m Int
+lengthBuffer = lengthDeque
+
+clearBuffer :: (PrimMonad m) => Deque (PrimState m) a -> m ()
+clearBuffer (Deque vars _) = do
+    UM.unsafeWrite vars _dequeFrontPos 0
+    UM.unsafeWrite vars _dequeBackPos 0
+
+freezeBuffer
+    :: (PrimMonad m, U.Unbox a)
+    => Deque (PrimState m) a -> m (U.Vector a)
+freezeBuffer (Deque info v) = do
+    b <- UM.unsafeRead info _dequeBackPos
+    U.freeze $ UM.unsafeTake b v
+
+unsafeFreezeBuffer
+    :: (PrimMonad m, U.Unbox a)
+    => Deque (PrimState m) a -> m (U.Vector a)
+unsafeFreezeBuffer (Deque info v) = do
+    b <- UM.unsafeRead info _dequeBackPos
+    U.unsafeFreeze $ UM.unsafeTake b v
+
+lengthDeque :: (PrimMonad m) => Deque (PrimState m) a -> m Int
 lengthDeque (Deque info _)
     = (-) <$> UM.unsafeRead info _dequeBackPos
         <*> UM.unsafeRead info _dequeFrontPos
@@ -56,7 +88,7 @@ popBack (Deque info v) = do
     if f < b
     then do
         UM.unsafeWrite info _dequeBackPos (b - 1)
-        pure <$> UM.unsafeRead v b
+        pure <$> UM.unsafeRead v (b - 1)
     else return Nothing
 {-# INLINE popBack #-}
 
