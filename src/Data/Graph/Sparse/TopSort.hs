@@ -8,29 +8,29 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.Graph.Sparse
-import           Data.VecQueue
+import           Data.Deque
 
 topSort :: SparseGraph w -> Maybe (U.Vector Int)
 topSort gr = runST $ do
     let n = numVerticesCSR gr
-    q <- newVecQueue n
+    q <- newQueue n
     let inDegree = U.unsafeAccumulate (+) (U.replicate n (0 :: Int))
             . U.map (flip (,) 1)
             $ adjacentCSR gr
-    U.mapM_ (flip enqueueVQ q . fst)
+    U.mapM_ (flip pushBack q . fst)
         . U.filter ((== 0) . snd)
         $ U.indexed inDegree
     inDeg <- U.unsafeThaw inDegree
     fix $ \loop -> do
-        dequeueVQ q >>= \case
+        popFront q >>= \case
             Just v -> do
                 U.forM_ (gr `adj` v) $ \u -> do
                     UM.unsafeRead inDeg u >>= \case
-                        1 -> enqueueVQ u q
+                        1 -> pushBack u q
                         i -> UM.unsafeWrite inDeg u (i - 1)
                 loop
             Nothing -> return ()
-    enqueueCount <- UM.unsafeRead (intVarsVQ q) _enqueueCount
+    enqueueCount <- UM.unsafeRead (dequeVars q) _dequeBackPos
     if enqueueCount == n
-    then Just <$> U.unsafeFreeze (internalVecQueue q)
+    then Just <$> U.unsafeFreeze (getDeque q)
     else return Nothing

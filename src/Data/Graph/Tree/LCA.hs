@@ -10,7 +10,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 --
 import           Data.Graph.Sparse
 import           Data.SparseTable
-import           Data.VecQueue
+import           Data.Deque
 
 data LCA = LCA
     { firstIndexLCA :: U.Vector Int      -- ^ first index in Euler Tour
@@ -19,20 +19,20 @@ data LCA = LCA
 
 buildLCA :: (U.Unbox w) => SparseGraph w -> Vertex -> LCA
 buildLCA gr root = runST $ do
-    met <- newVecQueue (2 * numVerticesCSR gr - 1)
+    met <- newBuffer (2 * numVerticesCSR gr - 1)
     mfv <- UM.unsafeNew (numVerticesCSR gr)
 
     fix (\dfs !p !d !v -> do
-        lengthVQ met >>= UM.unsafeWrite mfv v
-        enqueueVQ (d, v) met
+        lengthBuffer met >>= UM.unsafeWrite mfv v
+        pushBack (d, v) met
 
         U.forM_ (gr `adj` v) $ \nv -> do
             when (nv /= p) $ do
                 dfs v (d + 1) nv
-                enqueueVQ (d, v) met
+                pushBack (d, v) met
         ) (-1) 0 root
 
-    eulertour <- freezeVecQueue met
+    eulertour <- unsafeFreezeBuffer met
     firstVisit <- U.unsafeFreeze mfv
     pure $ LCA firstVisit (buildRMQ eulertour)
 

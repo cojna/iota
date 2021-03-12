@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.Graph.Sparse
-import           Data.VecStack
+import           Data.Deque
 
 
 shortestPath :: (U.Unbox w, Num w) => SparseGraph w -> Vertex -> U.Vector w
@@ -19,23 +19,23 @@ shortestPath gr root = U.create $ do
     let n = numVerticesCSR gr
     dist <- UM.unsafeNew n
     UM.unsafeWrite dist root 0
-    stack <- newVecStack n
+    stack <- newStack n
     parent <- UM.unsafeNew n
 
     U.forM_ (gr `iadjW` root) $ \(ei, v, d) -> do
-        pushVS ei stack
+        pushBack ei stack
         UM.unsafeWrite parent v root
         UM.unsafeWrite dist v d
 
     fix $ \loop ->
-        popVS stack >>= \case
+        popBack stack >>= \case
             Just ei -> do
                 let v = adjacentCSR gr `U.unsafeIndex` ei
                 pv <- UM.unsafeRead parent v
                 dv <- UM.unsafeRead dist v
                 U.forM_ (gr `iadjW` v) $ \(nei, nv, d) -> do
                     when (pv /= nv) $ do
-                        pushVS nei stack
+                        pushBack nei stack
                         UM.unsafeWrite parent nv v
                         UM.unsafeWrite dist nv $ dv + d
                 loop

@@ -9,7 +9,7 @@ import           Data.Function
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Data.VecQueue
+import           Data.Deque
 
 nothingMF :: Int
 nothingMF = -1
@@ -55,7 +55,7 @@ data MaxFlow s cap = MaxFlow
     , levelMF       :: UM.MVector s Int
     , revEdgeMF     :: U.Vector Int
     , iterMF        :: UM.MVector s Int
-    , queueMF       :: VecQueue s Vertex
+    , queueMF       :: Queue s Vertex
     }
 
 
@@ -64,7 +64,7 @@ runMaxFlow :: (U.Unbox cap, Num cap, Ord cap, Bounded cap, PrimMonad m)
 runMaxFlow src sink mf@MaxFlow{..} = do
     flip fix 0 $ \loopBFS !flow -> do
         UM.set levelMF nothingMF
-        clearVQ queueMF
+        clearQueue queueMF
         bfsMF src sink mf
         lsink <- UM.unsafeRead levelMF sink
         if lsink == nothingMF
@@ -82,9 +82,9 @@ bfsMF :: (Num cap, Ord cap, U.Unbox cap, PrimMonad m)
     => Vertex -> Vertex -> MaxFlow (PrimState m) cap -> m ()
 bfsMF src sink MaxFlow{..} = do
     UM.unsafeWrite levelMF src 0
-    enqueueVQ src queueMF
+    pushBack src queueMF
     fix $ \loop -> do
-        dequeueVQ queueMF >>= \case
+        popFront queueMF >>= \case
             Just v -> do
                 lsink <- UM.unsafeRead levelMF sink
                 when (lsink == nothingMF) $ do
@@ -97,7 +97,7 @@ bfsMF src sink MaxFlow{..} = do
                         lnv <- UM.unsafeRead levelMF nv
                         when (res > 0 && lnv == nothingMF) $ do
                             UM.unsafeWrite levelMF nv (lv + 1)
-                            enqueueVQ nv queueMF
+                            pushBack nv queueMF
                     loop
             Nothing -> return ()
 {-# INLINE bfsMF #-}
@@ -134,15 +134,15 @@ dfsMF v0 sink flow0 MaxFlow{..} = dfs v0 flow0 return
 data MaxFlowBuilder s cap = MaxFlowBuilder
     { numVerticesMFB :: !Int
     , inDegreeMFB    :: UM.MVector s Int
-    -- | default queue size: /1024 * 1024/
-    , edgesMFB       :: VecQueue s (Vertex, Vertex, cap)
+    -- | default buffer size: /1024 * 1024/
+    , edgesMFB       :: Buffer s (Vertex, Vertex, cap)
     }
 
 newMaxFlowBuilder :: (U.Unbox cap, PrimMonad m)
     => Int -> m (MaxFlowBuilder (PrimState m) cap)
 newMaxFlowBuilder n = MaxFlowBuilder n
     <$> UM.replicate n 0
-    <*> newVecQueue (1024 * 1024)
+    <*> newBuffer (1024 * 1024)
 
 buildMaxFlow :: (Num cap, U.Unbox cap, PrimMonad m)
     => MaxFlowBuilder (PrimState m) cap -> m (MaxFlow (PrimState m) cap)
@@ -156,7 +156,7 @@ buildMaxFlow MaxFlowBuilder{..} = do
     mrevEdgeMF <- UM.replicate numEdgesMF nothingMF
     residualMF <- UM.replicate numEdgesMF 0
 
-    edges <- freezeVecQueue edgesMFB
+    edges <- unsafeFreezeBuffer edgesMFB
     U.forM_ edges $ \(src, dst, cap) -> do
         srcOffset <- UM.unsafeRead moffset src
         dstOffset <- UM.unsafeRead moffset dst
@@ -173,7 +173,7 @@ buildMaxFlow MaxFlowBuilder{..} = do
     revEdgeMF <- U.unsafeFreeze mrevEdgeMF
     iterMF <- UM.replicate numVerticesMF 0
     U.unsafeCopy iterMF offsetMF
-    queueMF <- newVecQueue numVerticesMF
+    queueMF <- newQueue numVerticesMF
     return MaxFlow{..}
 
 addEdgeMFB :: (U.Unbox cap, PrimMonad m)
@@ -181,5 +181,5 @@ addEdgeMFB :: (U.Unbox cap, PrimMonad m)
 addEdgeMFB MaxFlowBuilder{..} (!src, !dst, !cap) = do
     UM.unsafeModify inDegreeMFB (+1) src
     UM.unsafeModify inDegreeMFB (+1) dst
-    enqueueVQ (src, dst, cap) edgesMFB
+    pushBack (src, dst, cap) edgesMFB
 {-# INLINE addEdgeMFB #-}

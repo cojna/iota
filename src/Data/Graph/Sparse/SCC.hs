@@ -10,7 +10,7 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import           Data.Graph.Sparse
-import           Data.VecStack
+import           Data.Deque
 import           My.Prelude                  (rep)
 
 type ComponentId = Int
@@ -20,7 +20,7 @@ stronglyConnectedComponents gr = runST $ do
     let numV = numVerticesCSR gr
     low <- UM.replicate numV nothing
     preord <- UM.replicate numV nothing
-    stack <- newVecStack numV
+    stack <- newStack numV
     component <- UM.replicate numV nothing
     vars <- UM.replicate 2 0
 
@@ -34,7 +34,7 @@ stronglyConnectedComponents gr = runST $ do
                 UM.unsafeWrite preord v preordId
                 UM.unsafeWrite low v preordId
 
-                pushVS v stack
+                pushBack v stack
 
                 U.forM_ (adj gr v) $ \u -> do
                     ordU <- UM.unsafeRead preord u
@@ -50,7 +50,7 @@ stronglyConnectedComponents gr = runST $ do
                 when (lowV == ordV) $ do
                     compId <- UM.unsafeRead vars _compId
                     fix $ \loop -> do
-                        popVS stack >>= \case
+                        popBack stack >>= \case
                             Just x -> do
                                 UM.unsafeWrite preord x numV
                                 UM.unsafeWrite component x compId

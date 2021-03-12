@@ -11,7 +11,7 @@ import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 --
-import           Data.VecQueue
+import           Data.Deque
 
 type Vertex = Int
 type Edge = (Vertex, Vertex)
@@ -27,22 +27,22 @@ data SparseGraph w = CSR
 
 data SparseGraphBuilder s w = SparseGraphBuilder
     { numVerticesSGB :: !Int
-    , queueSGB :: VecQueue s (EdgeWith w)
+    , bufferSGB :: Buffer s (EdgeWith w)
     , outDegSGB :: UM.MVector s Int
     }
 
 buildSparseGraph :: (U.Unbox w)
     => Int -> (forall s.SparseGraphBuilder s w -> ST s ()) -> SparseGraph w
 buildSparseGraph numVerticesCSR run = runST $ do
-    queueSGB <- newVecQueue (1024 * 1024)
+    bufferSGB <- newBuffer (1024 * 1024)
     outDegSGB <- UM.replicate numVerticesCSR 0
     run SparseGraphBuilder{numVerticesSGB = numVerticesCSR,..}
-    numEdgesCSR <- lengthVQ queueSGB
+    numEdgesCSR <- lengthBuffer bufferSGB
     offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDegSGB
     moffset <- U.thaw offsetCSR
     madj <- UM.unsafeNew numEdgesCSR
     mectx <- UM.unsafeNew numEdgesCSR
-    edges <- freezeVecQueue queueSGB
+    edges <- unsafeFreezeBuffer bufferSGB
     U.forM_ edges $ \(src, dst, w) -> do
         pos <- UM.unsafeRead moffset src
         UM.unsafeWrite moffset src (pos + 1)
@@ -56,15 +56,15 @@ buildSparseGraph numVerticesCSR run = runST $ do
 addDirectedEdge :: (U.Unbox w, PrimMonad m)
     => SparseGraphBuilder (PrimState m) w -> EdgeWith w -> m ()
 addDirectedEdge SparseGraphBuilder{..} (src, dst, w) = do
-    enqueueVQ (src, dst, w) queueSGB
+    pushBack(src, dst, w) bufferSGB
     UM.unsafeModify outDegSGB (+1) src
 {-# INLINE addDirectedEdge #-}
 
 addUndirectedEdge :: (U.Unbox w, PrimMonad m)
     => SparseGraphBuilder (PrimState m) w -> EdgeWith w -> m ()
 addUndirectedEdge SparseGraphBuilder{..} (src, dst, w) = do
-    enqueueVQ (src, dst, w) queueSGB
-    enqueueVQ (dst, src, w) queueSGB
+    pushBack (src, dst, w) bufferSGB
+    pushBack (dst, src, w) bufferSGB
     UM.unsafeModify outDegSGB (+1) src
     UM.unsafeModify outDegSGB (+1) dst
 {-# INLINE addUndirectedEdge #-}
@@ -72,15 +72,15 @@ addUndirectedEdge SparseGraphBuilder{..} (src, dst, w) = do
 addDirectedEdge_ :: (PrimMonad m)
     => SparseGraphBuilder (PrimState m) () -> Edge -> m ()
 addDirectedEdge_ SparseGraphBuilder{..} (src, dst) = do
-    enqueueVQ (src, dst, ()) queueSGB
+    pushBack (src, dst, ()) bufferSGB
     UM.unsafeModify outDegSGB (+1) src
 {-# INLINE addDirectedEdge_ #-}
 
 addUndirectedEdge_ :: (PrimMonad m)
     => SparseGraphBuilder (PrimState m) () -> Edge -> m ()
 addUndirectedEdge_ SparseGraphBuilder{..} (src, dst) = do
-    enqueueVQ (src, dst, ()) queueSGB
-    enqueueVQ (dst, src, ()) queueSGB
+    pushBack (src, dst, ()) bufferSGB
+    pushBack (dst, src, ()) bufferSGB
     UM.unsafeModify outDegSGB (+1) src
     UM.unsafeModify outDegSGB (+1) dst
 {-# INLINE addUndirectedEdge_ #-}
