@@ -15,7 +15,7 @@ import           Data.Word
 import           Unsafe.Coerce
 
 import           Data.Heap.Binary
-import           Data.VecQueue
+import           Data.Deque
 import           My.Prelude                  (rep)
 
 nothingMCF :: Int
@@ -155,15 +155,15 @@ updateResidualMCF sink flow MinCostFlow{..} = go sink flow return
 data MinCostFlowBuilder s = MinCostFlowBuilder
     { numVerticesMCFB :: !Int
     , inDegreeMCFB    :: UM.MVector s Int
-    -- | default queue size: /1024 * 1024/
-    , edgesMCFB       :: VecQueue s (Vertex, Vertex, Cost, Capacity)
+    -- | default buffer size: /1024 * 1024/
+    , edgesMCFB       :: Buffer s (Vertex, Vertex, Cost, Capacity)
     }
 
 newMinCostFlowBuilder :: (PrimMonad m)
     => Int -> m (MinCostFlowBuilder (PrimState m))
 newMinCostFlowBuilder n = MinCostFlowBuilder n
     <$> UM.replicate n 0
-    <*> newVecQueue (1024 * 1024)
+    <*> newBuffer (1024 * 1024)
 
 -- | /cost >= 0/
 addEdgeMCFB :: (PrimMonad m)
@@ -173,7 +173,7 @@ addEdgeMCFB MinCostFlowBuilder{..} src dst cost capacity
     = assert (cost >= 0) $ do
         UM.unsafeModify inDegreeMCFB (+1) src
         UM.unsafeModify inDegreeMCFB (+1) dst
-        enqueueVQ (src, dst, cost, capacity) edgesMCFB
+        pushBack (src, dst, cost, capacity) edgesMCFB
 
 buildMinCostFlow :: (PrimMonad m)
     => MinCostFlowBuilder (PrimState m) -> m (MinCostFlow (PrimState m))
@@ -188,7 +188,7 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
     mrevEdgeMCF <- UM.replicate numEdgesMCF nothingMCF
     residualMCF <- UM.replicate numEdgesMCF 0
 
-    edges <- freezeVecQueue edgesMCFB
+    edges <- unsafeFreezeBuffer edgesMCFB
     U.forM_ edges $ \(src, dst, cost, capacity) -> do
         srcOffset <- UM.unsafeRead moffset src
         dstOffset <- UM.unsafeRead moffset dst

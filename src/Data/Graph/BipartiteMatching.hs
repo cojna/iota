@@ -9,7 +9,7 @@ import           Data.Function
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 --
-import           Data.VecStack
+import           Data.Deque
 import           My.Prelude                  (rep)
 
 type Vertex = Int
@@ -88,20 +88,20 @@ runBipartiteMatching bm@BipartiteMatching{..} = do
 data BipartiteMatchingBuilder s = BipartiteMatchingBuilder
     { numVerticesBMB :: !Int
     , inDegreeBMB    :: UM.MVector s Int
-    , edgesBMB       :: VecStack s (Vertex, Vertex)
+    , edgesBMB       :: Buffer s (Vertex, Vertex)
     }
 
 newBipartiteMatchingBuilder :: (PrimMonad m)
     => Int -> m (BipartiteMatchingBuilder (PrimState m))
 newBipartiteMatchingBuilder n = BipartiteMatchingBuilder n
     <$> UM.replicate n 0
-    <*> newVecStack (1024 * 1024)
+    <*> newBuffer (1024 * 1024)
 
 addEdgeBMB :: (PrimMonad m)
     => BipartiteMatchingBuilder (PrimState m) -> Vertex -> Vertex -> m ()
 addEdgeBMB BipartiteMatchingBuilder{..} !src !dst = do
     UM.unsafeModify inDegreeBMB (+1) src
-    pushVS (src, dst) edgesBMB
+    pushBack (src, dst) edgesBMB
 {-# INLINE addEdgeBMB #-}
 
 buildBipartiteMatching :: (PrimMonad m)
@@ -114,7 +114,7 @@ buildBipartiteMatching BipartiteMatchingBuilder{..} = do
     offsetBM <- U.scanl' (+) 0 <$!> U.unsafeFreeze inDegreeBMB
     madjacentBM <- UM.unsafeNew (U.last offsetBM)
     moffset <- U.thaw offsetBM
-    edges <- freezeVecStack edgesBMB
+    edges <- unsafeFreezeBuffer edgesBMB
     U.forM_ edges $ \(src, dst) -> do
         offset <- UM.unsafeRead moffset src
         UM.unsafeWrite moffset src (offset + 1)
