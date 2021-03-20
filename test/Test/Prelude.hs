@@ -6,6 +6,7 @@ module Test.Prelude
     , module Data.Proxy
     , module Test.Hspec
     , module Test.Hspec.QuickCheck
+    , module Test.Prelude.Compat
     , module Test.QuickCheck
     , module Test.QuickCheck.Arbitrary
     , module Test.QuickCheck.Monadic
@@ -30,6 +31,7 @@ import           GHC.TypeLits
 import           Math.Prime                (smallPrimes)
 import           System.Timeout            (timeout)
 import           Test.Hspec                hiding (Arg)
+import           Test.Prelude.Compat
 import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 import           Test.QuickCheck.Arbitrary
