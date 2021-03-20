@@ -1,6 +1,6 @@
-{-# LANGUAGE BangPatterns, CPP, DerivingStrategies, DerivingVia, LambdaCase #-}
-{-# LANGUAGE OverloadedLists, StandaloneDeriving, TypeApplications          #-}
-{-# LANGUAGE ViewPatterns                                                   #-}
+{-# LANGUAGE BangPatterns, CPP, LambdaCase     #-}
+{-# LANGUAGE OverloadedLists, TypeApplications #-}
+{-# LANGUAGE ViewPatterns                      #-}
 
 module Data.SegTree.GenericSpec (main, spec) where
 
@@ -16,6 +16,8 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           GHC.Exts
 import           Test.Prelude
+
+import 　　　　　　Data.Vector.Unboxed.Instances ()
 
 main :: IO ()
 main = hspec spec

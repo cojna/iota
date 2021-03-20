@@ -12,6 +12,8 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import           Data.Word
 
+import Data.Vector.Unboxed.Instances ()
+
 newtype FenwickTree s a = FenwickTree {getFenwickTree :: UM.MVector s a}
 
 newFenwickTree :: (U.Unbox a, Monoid a, PrimMonad m)
