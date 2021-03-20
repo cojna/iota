@@ -86,9 +86,11 @@ prop_recipMod
     (getPrime -> m)
     = x `mod` m == 0 || x * recipMod x m `mod` m == 1
 
+-- >>> validateCRT' (0, Prime 2) (1, Prime 2)
+-- False
 validateCRT' :: (Int, Prime Int) -> (Int, Prime Int) -> Bool
 validateCRT' (r0, p0) (r1, p1)
-    = r0 /= r1 || p0 == p1
+    = r0 == r1 || p0 /= p1
 
 prop_crt' :: (Int, Prime Int) -> (Int, Prime Int) -> Bool
 prop_crt' (r0, Prime p0) (r1, Prime p1)
