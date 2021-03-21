@@ -5,7 +5,7 @@ module Math.SternBrocot where
 sternBrocot :: (Frac -> Ordering) -> Frac
 sternBrocot approx = go (0 :/ 1) (1 :/ 0)
   where
-    go !l@(lp :/ lq) !r@(rp :/ rq) = case approx m of
+    go l@(lp :/ lq) r@(rp :/ rq) = case approx m of
       LT -> go m r
       GT -> go l m
       EQ -> m
