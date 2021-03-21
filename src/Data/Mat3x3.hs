@@ -35,10 +35,10 @@ instance (Prim a) => IsList (Mat3x3 a) where
   type Item (Mat3x3 a) = a
 
 #if MIN_VERSION_primitive(7,0,0)
-    fromList = Mat3x3 0 . byteArrayFromListN 9
+  fromList = Mat3x3 0 . byteArrayFromListN 9
 #else
-    fromList xs = createMat3x3 $ \mba -> do
-        zipWithM_ (writeByteArray mba) [0..] xs
+  fromList xs = createMat3x3 $ \mba -> do
+    zipWithM_ (writeByteArray mba) [0..] xs
 #endif
   toList (Mat3x3 o ba) = map (indexByteArray ba) [o .. o + 8]
 
