@@ -1,0 +1,7 @@
+- ignore: {name: Redundant lambda}
+- ignore: {name: Use lambda-case}
+- ignore: {name: Use tuple-section}
+- ignore: {name: Use uncurry}
+- ignore: {name: Use <}
+
+- ignore: {name: Use fmap}
