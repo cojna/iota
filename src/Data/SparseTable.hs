@@ -49,7 +49,7 @@ buildSparseTable vec =
 
 -- | /O(1)/
 readSparseTable :: (U.Unbox a) => SparseTable f a -> Int -> a
-readSparseTable st i = U.unsafeIndex (V.unsafeIndex (getSparseTable st) 0) i
+readSparseTable st = U.unsafeIndex (V.unsafeIndex (getSparseTable st) 0)
 
 {- | append[l..r)
 

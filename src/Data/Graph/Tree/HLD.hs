@@ -25,7 +25,7 @@ data HLD = HLD
 
 -- | /O(log V)/
 lcaHLD :: HLD -> Vertex -> Vertex -> Vertex
-lcaHLD HLD{..} u v = go u v
+lcaHLD HLD{..} = go
   where
     go !x !y
       | ix > iy = go y x
