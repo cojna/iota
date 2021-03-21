@@ -9,7 +9,7 @@ import Test.Prelude
 main :: IO ()
 main = hspec spec
 
-spec :: Specs
+spec :: Spec
 spec = do
   describe "decode64 . encode64 = id" $ do
     prop "Int" $ prop_decodeEncode (Proxy :: Proxy Int)
