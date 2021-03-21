@@ -58,7 +58,7 @@ spec = do
       res <- readSegTree seg (n - 1)
       res `shouldBe` v
   describe "runSegTree" $ do
-    prop "naive" $ prop_runNaiveSegTree
+    prop "naive" prop_runNaiveSegTree
     it "minimum [0, 5) for [0..4]" $
       runSegTree [0 .. 4] [SegQuery 0 5] `shouldBe` U.fromList [0 :: Min Int]
     it "minimum [3, 4) for [0..4]" $
@@ -80,9 +80,9 @@ spec = do
     it "f 1 == 1" $ extendToPowerOfTwo 1 `shouldBe` 1
     it "f 2 == 2" $ extendToPowerOfTwo 2 `shouldBe` 2
     it "f 3 == 4" $ extendToPowerOfTwo 3 `shouldBe` 4
-    prop "popCount (f x) == 1" $ prop_powerOfTwo
-    prop "x <= f x" $ prop_greaterThanOrEqual
-    prop "popCount (f x / 2) /= 1 || f x / 2 < x" $ prop_least
+    prop "popCount (f x) == 1" prop_powerOfTwo
+    prop "x <= f x" prop_greaterThanOrEqual
+    prop "popCount (f x / 2) /= 1 || f x / 2 < x" prop_least
 
 data SegTreeQuery a
   = SegUpdate !Int !a

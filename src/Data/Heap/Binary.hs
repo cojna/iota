@@ -159,7 +159,7 @@ viewBH bh = do
   size <- getBinaryHeapSize bh
   if size > 0
     then Just <$!> unsafeViewBH bh
-    else return $! Nothing
+    else return Nothing
 {-# INLINE viewBH #-}
 
 insertBH ::

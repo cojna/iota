@@ -74,7 +74,7 @@ extGCD a b = go a b 1 0
 -}
 crt :: (Integral a) => (a, a) -> (a, a) -> Maybe (a, a)
 crt (!r0, !m0) (!r1, !m1)
-  | mod (r1 - r0) g == 0 = Just $! (r, m)
+  | mod (r1 - r0) g == 0 = Just (r, m)
   | otherwise = Nothing
   where
     -- m0 * p + m1 * q == g
@@ -105,7 +105,7 @@ crt' (r0, p0) (r1, p1) =
  Nothing
 -}
 crts :: (Integral a) => [(a, a)] -> Maybe (a, a)
-crts cs = foldr ((>=>) . crt) return cs $ (0, 1)
+crts cs = foldr ((>=>) . crt) return cs (0, 1)
 
 {- |
  x (mod m) (x = r[i] (mod m[i]))
