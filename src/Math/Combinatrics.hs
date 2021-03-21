@@ -2,9 +2,9 @@
 
 module Math.Combinatrics where
 
-import           Control.Exception
-import           Data.Coerce
-import           Data.IntMod
+import Control.Exception
+import Data.Coerce
+import Data.IntMod
 import qualified Data.Vector.Unboxed as U
 
 #define FACT_CACHE_SIZE 100100
@@ -30,10 +30,11 @@ factCacheSize = min (modulus - 1) FACT_CACHE_SIZE
 {-# INLINE factCacheSize #-}
 
 factCache :: U.Vector IntMod
-factCache = U.scanl' (\x y -> x * coerce y) (1 :: IntMod) $ U.generate factCacheSize (+1)
+factCache = U.scanl' (\x y -> x * coerce y) (1 :: IntMod) $ U.generate factCacheSize (+ 1)
 {-# NOINLINE factCache #-}
 
 recipFactCache :: U.Vector IntMod
-recipFactCache = U.scanr' ((*).coerce) (1 / factCache U.! factCacheSize)
-    $ U.generate factCacheSize (+1)
+recipFactCache =
+  U.scanr' ((*) . coerce) (1 / factCache U.! factCacheSize) $
+    U.generate factCacheSize (+ 1)
 {-# NOINLINE recipFactCache #-}

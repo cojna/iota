@@ -1,19 +1,20 @@
-{-# LANGUAGE BangPatterns, Safe #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE Safe #-}
 
 module My.Prelude.Safe where
 
-import           Control.Monad.State.Strict
-import qualified Data.ByteString            as B
-import qualified Data.ByteString.Char8      as C
-import           Data.Char
-import           Data.Word
+import Control.Monad.State.Strict
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+import Data.Char
+import Data.Word
 
 rep :: Monad m => Int -> (Int -> m ()) -> m ()
-rep !n f = foldr ((>>).f) (return ()) [0..n-1]
+rep !n f = foldr ((>>) . f) (return ()) [0 .. n -1]
 {-# INLINE rep #-}
 
 rev :: Monad m => Int -> (Int -> m ()) -> m ()
-rev !n f = foldr ((>>).f.negate) (return ()) [1-n..0]
+rev !n f = foldr ((>>) . f . negate) (return ()) [1 - n .. 0]
 {-# INLINE rev #-}
 
 type Parser a = StateT C.ByteString Maybe a

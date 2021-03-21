@@ -7,8 +7,9 @@ import qualified Data.Vector.Unboxed as U
 #define LOG_FACT_CACHE_SIZE 1024
 
 logFactCache :: U.Vector Double
-logFactCache = U.scanl' (+) 0.0
-    $ U.generate LOG_FACT_CACHE_SIZE (log . fromIntegral . (+1))
+logFactCache =
+  U.scanl' (+) 0.0 $
+    U.generate LOG_FACT_CACHE_SIZE (log . fromIntegral . (+ 1))
 {-# NOINLINE logFactCache #-}
 
 logFact :: Int -> Double

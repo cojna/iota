@@ -1,11 +1,12 @@
-{-# LANGUAGE BangPatterns, MagicHash #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE MagicHash #-}
 
 module Data.Bits.Utils where
 
-import           Data.Bits
-import           Data.Word
-import           GHC.Exts
-import           Unsafe.Coerce
+import Data.Bits
+import Data.Word
+import GHC.Exts
+import Unsafe.Coerce
 
 infixl 8 .<<., .>>., .>>>.
 infixl 6 .^.
@@ -26,14 +27,15 @@ infixl 6 .^.
 (.^.) = xor
 {-# INLINE (.^.) #-}
 
--- |
--- >>> bitReverse 0x000f00f60000f6f6
--- 8029636662487216128
--- >>> 0x6f6f00006f00f000
--- 8029636662487216128
+{- |
+ >>> bitReverse 0x000f00f60000f6f6
+ 8029636662487216128
+ >>> 0x6f6f00006f00f000
+ 8029636662487216128
+-}
 bitReverse :: Int -> Int
-bitReverse
-    = unsafeCoerce
+bitReverse =
+  unsafeCoerce
     . step 32 0xffffffff00000000 0x00000000ffffffff
     . step 16 0xffff0000ffff0000 0x0000ffff0000ffff
     . step 08 0xff00ff00ff00ff00 0x00ff00ff00ff00ff

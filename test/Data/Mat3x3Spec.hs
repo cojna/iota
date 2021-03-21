@@ -13,7 +13,7 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-    numSpec (Proxy :: Proxy (Mat3x3 IntMod))
+  numSpec (Proxy :: Proxy (Mat3x3 IntMod))
 
 instance (Arbitrary a, Prim a) => Arbitrary (Mat3x3 a) where
-    arbitrary = fromList <$> replicateM 9 arbitrary
+  arbitrary = fromList <$> replicateM 9 arbitrary
