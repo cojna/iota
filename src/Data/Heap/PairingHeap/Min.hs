@@ -38,7 +38,7 @@ deleteMinPH MinEmpty = Nothing
 
 deleteFindMinPH :: Ord a => MinHeap a -> Maybe (a, MinHeap a)
 deleteFindMinPH (MinFork x hs) = case mergePairsMinPH hs of
-  merged -> Just $! (x, merged)
+  merged -> Just (x, merged)
 deleteFindMinPH MinEmpty = Nothing
 {-# INLINE deleteFindMinPH #-}
 

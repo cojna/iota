@@ -39,7 +39,7 @@ deleteMaxPH MaxEmpty = Nothing
 
 deleteFindMaxPH :: Ord a => MaxHeap a -> Maybe (a, MaxHeap a)
 deleteFindMaxPH (MaxFork x hs) = case mergePairsMaxPH hs of
-  merged -> Just $! (x, merged)
+  merged -> Just (x, merged)
 deleteFindMaxPH MaxEmpty = Nothing
 {-# INLINE deleteFindMaxPH #-}
 
