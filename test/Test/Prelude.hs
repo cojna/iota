@@ -40,7 +40,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Monadic
 
-data TimeLimitExceeded = TimeLimitExceeded Int
+newtype TimeLimitExceeded = TimeLimitExceeded Int
 
 instance Show TimeLimitExceeded where
   show (TimeLimitExceeded msec) =

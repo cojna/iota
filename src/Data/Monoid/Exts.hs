@@ -29,11 +29,6 @@ instance (Num a, Integral a) => Monoid (GCD a) where
   mconcat = F.foldl' mappend mempty
   {-# INLINE mconcat #-}
 
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce (gcd @a)
-    {-# INLINE mappend #-}
-#endif
-
 {- |
  >>> mempty :: LCM Int
  LCM {getLCM = 1}
@@ -54,11 +49,6 @@ instance (Num a, Integral a) => Monoid (LCM a) where
   mconcat = F.foldl' mappend mempty
   {-# INLINE mconcat #-}
 
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce (lcm @a)
-    {-# INLINE mappend #-}
-#endif
-
 {- |
  >>> mempty :: BitAnd Int
  BitAnd {getBitAnd = -1}
@@ -77,11 +67,6 @@ instance (Bits a) => Monoid (BitAnd a) where
   mconcat = F.foldl' mappend mempty
   {-# INLINE mconcat #-}
 
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce ((.&.) @a)
-    {-# INLINE mappend #-}
-#endif
-
 {- |
  >>> mempty :: BitOr Int
  BitOr {getBitOr = 0}
@@ -98,11 +83,6 @@ instance (Bits a) => Monoid (BitOr a) where
   mconcat = F.foldl' mappend mempty
   {-# INLINE mconcat #-}
 
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce ((.|.) @a)
-    {-# INLINE mappend #-}
-#endif
-
 {- |
  >>> mempty :: BitXor Int
  BitXor {getBitXor = 0}
@@ -118,8 +98,3 @@ instance (Bits a) => Monoid (BitXor a) where
   {-# INLINE mempty #-}
   mconcat = F.foldl' mappend mempty
   {-# INLINE mconcat #-}
-
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = coerce (xor @a)
-    {-# INLINE mappend #-}
-#endif

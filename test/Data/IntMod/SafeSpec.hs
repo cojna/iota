@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 module Data.IntMod.SafeSpec (main, spec) where
 
 import Data.Coerce

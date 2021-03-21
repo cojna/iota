@@ -113,25 +113,25 @@ timesMod2 :: Int -> Int -> Int
 timesMod2 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
   z# -> case timesWord2# z# INV_MOD## of
     (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
-      v# -> I# (word2Int# v# +# (leWord# MOD## v#) *# MOD#)
+      v# -> I# (word2Int# v# +# leWord# MOD## v# *# MOD#)
 
 timesMod3 :: Int -> Int -> Int
 timesMod3 (I# x#) (I# y#) = case int2Word# (x# *# y#) of
   z# -> case timesWord2# z# INV_MOD## of
     (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
-      v# -> I# (word2Int# v# +# (leWord# MOD## v#) *# MOD#)
+      v# -> I# (word2Int# v# +# leWord# MOD## v# *# MOD#)
 
 timesMod4 :: Int -> Int -> Int
 timesMod4 (I# x#) (I# y#) = case int2Word# (x# *# y#) of
   z# -> case timesWord2# z# INV_MOD## of
     (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
-      v# -> I# ((geWord# v# MOD##) *# MOD# +# word2Int# v#)
+      v# -> I# (geWord# v# MOD## *# MOD# +# word2Int# v#)
 
 timesMod5 :: Int -> Int -> Int
 timesMod5 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
   z# -> case timesWord2# z# im# of
     (# q#, _ #) -> case minusWord# z# (timesWord# q# MOD##) of
-      v# -> I# (word2Int# v# +# (leWord# MOD## v#) *# MOD#)
+      v# -> I# (word2Int# v# +# leWord# MOD## v# *# MOD#)
   where
     im# = plusWord# (quotWord# 0xffffffffffffffff## MOD##) 1##
 

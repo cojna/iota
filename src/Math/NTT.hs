@@ -40,7 +40,7 @@ ntt ::
   -- | n = 2 ^ i, n < 2 ^ k
   U.Vector Int ->
   U.Vector Int
-ntt p g f = U.modify (butterfly nr) f
+ntt p g = U.modify (butterfly nr)
   where
     nr = buildNTTRunner p g
 {-# INLINE ntt #-}

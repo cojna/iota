@@ -26,7 +26,7 @@ buildLCPArray bs sa = LCPArray $
   U.create $ do
     let !n = B.length bs
         rank =
-          U.unsafeAccumulate (flip const) (U.generate (n + 1) id)
+          U.unsafeAccumulate (const id) (U.generate (n + 1) id)
             . U.imap (flip (,))
             $ getSuffixArray sa
     lcp <- UM.replicate (n + 1) (0 :: Int)

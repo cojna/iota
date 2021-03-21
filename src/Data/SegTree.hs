@@ -1,7 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Data.SegTree where
 
@@ -24,7 +23,7 @@ class (Monoid f) => MonoidAction f a where
   appMonoid :: f -> a -> a
 
 instance MonoidAction () m where
-  appMonoid = flip const
+  appMonoid = const id
   {-# INLINE appMonoid #-}
 
 instance MonoidAction (Sum Int) (Min Int) where

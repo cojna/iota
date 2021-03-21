@@ -38,7 +38,7 @@ deleteMinPH MinEmpty = Nothing
 
 deleteFindMinPH :: Ord a => MinHeap a -> Maybe (a, MinHeap a)
 deleteFindMinPH (MinFork x hs) = case mergePairsMinPH hs of
-  merged -> Just $! (x, merged)
+  merged -> Just (x, merged)
 deleteFindMinPH MinEmpty = Nothing
 {-# INLINE deleteFindMinPH #-}
 
@@ -78,8 +78,3 @@ instance Ord a => Semigroup (MinHeap a) where
 instance Ord a => Monoid (MinHeap a) where
   mempty = emptyMinPH
   {-# INLINE mempty #-}
-
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = mergeMinPH
-    {-# INLINE mappend #-}
-#endif

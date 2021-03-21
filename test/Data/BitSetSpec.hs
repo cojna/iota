@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Data.BitSetSpec (main, spec) where
 

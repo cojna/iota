@@ -123,7 +123,7 @@ buildBinaryHeapVia ::
   (a -> f a) ->
   U.Vector a ->
   m (BinaryHeap f (PrimState m) a)
-buildBinaryHeapVia ~priorityBH vec = do
+buildBinaryHeapVia priorityBH vec = do
   intVarsBH <- UM.replicate 1 $ U.length vec
   internalVecBH <- U.thaw vec
   heapifyBy (compareVia priorityBH) internalVecBH
@@ -159,7 +159,7 @@ viewBH bh = do
   size <- getBinaryHeapSize bh
   if size > 0
     then Just <$!> unsafeViewBH bh
-    else return $! Nothing
+    else return Nothing
 {-# INLINE viewBH #-}
 
 insertBH ::

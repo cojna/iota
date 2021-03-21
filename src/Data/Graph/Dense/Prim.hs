@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Data.Graph.Dense.Prim where
 
@@ -47,7 +46,7 @@ primDense n root gr
                     return $! min acc (d, i)
                   True -> return acc
             )
-            (inf, (-1))
+            (inf, -1)
             $ stream 0 n
       UM.write used v True
       rep n $ \u -> do

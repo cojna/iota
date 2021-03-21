@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 module Data.Word64Spec (main, spec) where
 
 import Data.Int
@@ -27,7 +25,7 @@ spec = do
       decode64 (encode64 (- pow 10 9, pow 10 9)) `shouldBe` (- pow 10 9, pow 10 9)
   describe "Word64Encode (Int, Int, Int)" $ do
     it "decode64 (encode64 (-10^6, 0, 10^6)) == (-10^6, 0, 10^6)" $ do
-      decode64 (encode64 (- pow 10 6, (0 :: Int), pow 10 6)) `shouldBe` (- pow 10 6, (0 :: Int), pow 10 6)
+      decode64 (encode64 (- pow 10 6, 0 :: Int, pow 10 6)) `shouldBe` (- pow 10 6, 0 :: Int, pow 10 6)
 
 pow :: Int -> Int -> Int
 pow = (^)
