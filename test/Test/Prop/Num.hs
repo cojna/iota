@@ -59,6 +59,7 @@ prop_addCommutative x y = x + y == y + x
 prop_subInverse :: (Num a, Eq a) => a -> Bool
 prop_subInverse x = x - x == 0
 
+{-# ANN prop_mulUnit "HLint: ignore Evaluate" #-}
 prop_mulUnit :: (Num a, Eq a) => a -> Bool
 prop_mulUnit x = x * 1 == x && 1 * x == x
 
@@ -114,5 +115,6 @@ prop_powMul
   (getNonNegative -> n) =
     x ^ n * y ^ n == (x * y) ^ n
 
+{-# ANN prop_zeroPow "HLint: ignore Use 1" #-}
 prop_zeroPow :: (Num a, Eq a) => a -> Bool
 prop_zeroPow x = x ^ 0 == 1

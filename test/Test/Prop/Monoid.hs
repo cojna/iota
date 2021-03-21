@@ -14,6 +14,8 @@ monoidSpec _ = do
     prop "mempty <> x == x <> mempty == x" $ prop_unit @a
     prop "(x <> y) <> z == x <> (y <> z)" $ prop_associative @a
 
+{-# ANN prop_unit "HLint: ignore Monoid law, left identity" #-}
+{-# ANN prop_unit "HLint: ignore Monoid law, right identity" #-}
 prop_unit :: (Monoid a, Eq a) => a -> Bool
 prop_unit x = mempty <> x == x && x <> mempty == x
 
