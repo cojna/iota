@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 module Data.Word64Spec (main, spec) where
 
 import Data.Int

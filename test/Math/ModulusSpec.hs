@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Math.ModulusSpec (main, spec) where
