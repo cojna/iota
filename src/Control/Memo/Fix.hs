@@ -4,6 +4,7 @@ module Control.Memo.Fix where
 
 import Control.Monad.State
 import Data.Function
+import Data.Functor (($>))
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
 import qualified Data.Vector as V
@@ -46,7 +47,7 @@ memoFixMap f k = flip evalState M.empty $ do
       Just fx -> pure fx
       Nothing ->
         f memo x >>= \fx ->
-          modify' (M.insert x fx) *> pure fx
+          modify' (M.insert x fx) $> fx
 
 {- |
  >>>  :{
@@ -68,4 +69,4 @@ memoFixIntMap f n = flip evalState IM.empty $ do
       Just fx -> pure fx
       Nothing ->
         f memo x >>= \fx ->
-          modify' (IM.insert x fx) *> pure fx
+          modify' (IM.insert x fx) $> fx
