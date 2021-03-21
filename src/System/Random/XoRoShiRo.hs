@@ -50,7 +50,7 @@ nextWord (RNG mba) = do
   writeByteArray mba 0 $
     (unsafeShiftL s0 24 .|. unsafeShiftR s0 40)
       `xor` s1
-      `xor` (unsafeShiftL s1 16)
+      `xor` unsafeShiftL s1 16
   writeByteArray mba 1 $ unsafeShiftL s1 37 .|. unsafeShiftR s1 27
   let s05 = s0 * 5
   return $! (unsafeShiftL s05 7 .|. unsafeShiftR s05 57) * 9

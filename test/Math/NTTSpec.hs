@@ -33,8 +33,8 @@ spec = do
 
 prop_nttintt :: [NonNegative Int] -> Bool
 prop_nttintt (growToPowerOfTwo . U.fromList . map getNonNegative -> v) =
-  (intt 998244353 3 (ntt 998244353 3 v)) == v
+  intt 998244353 3 (ntt 998244353 3 v) == v
 
 prop_inttntt :: [NonNegative Int] -> Bool
 prop_inttntt (growToPowerOfTwo . U.fromList . map getNonNegative -> v) =
-  (ntt 998244353 3 (intt 998244353 3 v)) == v
+  ntt 998244353 3 (intt 998244353 3 v) == v

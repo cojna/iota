@@ -62,7 +62,7 @@ querySparseTable ::
   Int ->
   Int ->
   a
-querySparseTable st l r = (coerce ((<>) @(f a))) x y
+querySparseTable st l r = coerce ((<>) @(f a)) x y
   where
     logStep = floorLog2 $ r - l
     row = V.unsafeIndex (getSparseTable st) logStep

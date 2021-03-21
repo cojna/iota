@@ -42,7 +42,7 @@ singletonBS (I# i#) = BitSet (I# (uncheckedIShiftL# 1# i#))
 -}
 insertBS :: Int -> BitSet -> BitSet
 insertBS (I# i#) (BitSet (I# bs#)) =
-  BitSet (I# ((uncheckedIShiftL# 1# i#) `orI#` bs#))
+  BitSet (I# (uncheckedIShiftL# 1# i# `orI#` bs#))
 
 {- |
  >>> deleteBS 2 [1,2,3]

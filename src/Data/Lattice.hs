@@ -112,7 +112,7 @@ instance (Bits a) => Poset (SetOrd a) where
   (.<.) (SetOrd x) (SetOrd y) = x .&. y == x
   {-# INLINE (.<.) #-}
   moebius (SetOrd x) (SetOrd y)
-    | not $ (SetOrd x) .<. (SetOrd y) = 0
+    | not $ SetOrd x .<. SetOrd y = 0
     | testBit (popCount $ complement x .&. y) 0 = -1
     | otherwise = 1
 
