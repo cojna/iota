@@ -79,8 +79,3 @@ instance Ord a => Semigroup (MaxHeap a) where
 instance Ord a => Monoid (MaxHeap a) where
   mempty = emptyMaxPH
   {-# INLINE mempty #-}
-
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = mergeMaxPH
-    {-# INLINE mappend #-}
-#endif

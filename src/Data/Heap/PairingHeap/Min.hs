@@ -78,8 +78,3 @@ instance Ord a => Semigroup (MinHeap a) where
 instance Ord a => Monoid (MinHeap a) where
   mempty = emptyMinPH
   {-# INLINE mempty #-}
-
-#if !MIN_VERSION_GLASGOW_HASKELL(8,4,2,0)
-    mappend = mergeMinPH
-    {-# INLINE mappend #-}
-#endif
