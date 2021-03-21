@@ -48,7 +48,7 @@ createInteractiveHandle =
             , std_out = CreatePipe
             }
       let mherr
-            | elem "--verbose" args = Just stderr
+            | "--verbose" `elem` args = Just stderr
             | otherwise = Nothing
       return $ InteractiveHandle{..}
 
