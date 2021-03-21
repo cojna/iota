@@ -123,7 +123,7 @@ buildBinaryHeapVia ::
   (a -> f a) ->
   U.Vector a ->
   m (BinaryHeap f (PrimState m) a)
-buildBinaryHeapVia ~priorityBH vec = do
+buildBinaryHeapVia priorityBH vec = do
   intVarsBH <- UM.replicate 1 $ U.length vec
   internalVecBH <- U.thaw vec
   heapifyBy (compareVia priorityBH) internalVecBH
