@@ -1,9 +1,10 @@
 module Main where
 
-import           Criterion.Main
+import Criterion.Main
 import qualified Data.IntModBench as IntMod
 
 main :: IO ()
-main = defaultMain
+main =
+  defaultMain
     [ IntMod.benchMain
     ]

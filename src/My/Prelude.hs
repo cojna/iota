@@ -43,8 +43,8 @@ stream :: (Monad m) => Int -> Int -> MS.Stream m Int
 stream !l !r = MS.Stream step l
   where
     step x
-        | x < r = return $ MS.Yield x (x + 1)
-        | otherwise = return MS.Done
+      | x < r = return $ MS.Yield x (x + 1)
+      | otherwise = return MS.Done
     {-# INLINE [0] step #-}
 {-# INLINE [1] stream #-}
 
@@ -52,8 +52,8 @@ streamR :: (Monad m) => Int -> Int -> MS.Stream m Int
 streamR !l !r = MS.Stream step (r - 1)
   where
     step x
-        | x >= l = return $ MS.Yield x (x - 1)
-        | otherwise = return MS.Done
+      | x >= l = return $ MS.Yield x (x - 1)
+      | otherwise = return MS.Done
     {-# INLINE [0] step #-}
 {-# INLINE [1] streamR #-}
 
@@ -61,8 +61,8 @@ stream' :: (Monad m) => Int -> Int -> Int -> MS.Stream m Int
 stream' !l !r !d = MS.Stream step l
   where
     step x
-        | x < r = return $ MS.Yield x (x + d)
-        | otherwise = return MS.Done
+      | x < r = return $ MS.Yield x (x + d)
+      | otherwise = return MS.Done
     {-# INLINE [0] step #-}
 {-# INLINE [1] stream' #-}
 
@@ -81,32 +81,35 @@ unlinesB f = G.foldr' ((<>) . (<> endlB) . f) mempty
 
 unwordsB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unwordsB f vec
-    | G.null vec = mempty
-    | otherwise =
-        f (G.head vec)
-            <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
+  | G.null vec = mempty
+  | otherwise =
+    f (G.head vec)
+      <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
 
 concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
-concatB f = G.foldr ((<>).f) mempty
+concatB f = G.foldr ((<>) . f) mempty
 
--- |
--- >>> B.toLazyByteString . matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
--- "1 2 3\n4 5 6\n"
+{- |
+ >>> B.toLazyByteString . matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+ "1 2 3\n4 5 6\n"
+-}
 matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 matrixB h w f mat =
-    F.foldMap
-        ((<> endlB) . unwordsB f)
-        [G.slice (i * w) w mat | i <- [0 .. h -1]]
--- |
--- >>> B.toLazyByteString . gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
--- ".#.\n#.#\n"
--- >>> B.toLazyByteString . gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
--- "123\n456\n"
+  F.foldMap
+    ((<> endlB) . unwordsB f)
+    [G.slice (i * w) w mat | i <- [0 .. h -1]]
+
+{- |
+ >>> B.toLazyByteString . gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
+ ".#.\n#.#\n"
+ >>> B.toLazyByteString . gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+ "123\n456\n"
+-}
 gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 gridB h w f mat =
-    F.foldMap
-        ((<> endlB) . concatB f)
-        [G.slice (i * w) w mat | i <- [0 .. h -1]]
+  F.foldMap
+    ((<> endlB) . concatB f)
+    [G.slice (i * w) w mat | i <- [0 .. h -1]]
 
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
 sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
@@ -114,11 +117,12 @@ sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
 yesnoB :: Bool -> B.Builder
 yesnoB = bool (B.string7 "No") (B.string7 "Yes")
 
--- |
--- >>> B.toLazyByteString . pairB B.intDec B.intDec $ (0, 1)
--- "0 1"
--- >>> B.toLazyByteString . pairB B.intDec (pairB B.intDec B.intDec) $ (0, (1, 2))
--- "0 1 2"
+{- |
+ >>> B.toLazyByteString . pairB B.intDec B.intDec $ (0, 1)
+ "0 1"
+ >>> B.toLazyByteString . pairB B.intDec (pairB B.intDec B.intDec) $ (0, (1, 2))
+ "0 1 2"
+-}
 pairB :: (a -> B.Builder) -> (b -> B.Builder) -> (a, b) -> B.Builder
 pairB f g (x, y) = f x <> B.char7 ' ' <> g y
 
@@ -135,27 +139,28 @@ endlB = B.char7 '\n'
 type Solver a = StateT C.ByteString IO a
 
 runSolver :: Solver () -> IO ()
-runSolver solver = C.getContents
+runSolver solver =
+  C.getContents
     >>= evalStateT (solver <* validateSolverState)
 
 validateSolverState :: Solver ()
 validateSolverState = do
-    bs <- get
-    unless (C.all isSpace bs) $ do
-        liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
+  bs <- get
+  unless (C.all isSpace bs) $ do
+    liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
 
 line :: Parser a -> Solver a
 line p = do
-    bs <- takeLine @IO
-    maybe (error "parse error") return
-        $ evalStateT p bs
+  bs <- takeLine @IO
+  maybe (error "parse error") return $
+    evalStateT p bs
 {-# INLINE line #-}
 
 linesN :: Int -> Parser a -> Solver a
 linesN n p = do
-    bs <- takeLines @IO n
-    maybe (error "parse error") return
-        $ evalStateT p bs
+  bs <- takeLines @IO n
+  maybe (error "parse error") return $
+    evalStateT p bs
 {-# INLINE linesN #-}
 
 lineP :: Parser a -> Parser a
@@ -183,7 +188,7 @@ int1 = fmap (subtract 1) int
 {-# INLINE int1 #-}
 
 integer :: Parser Integer
-integer = coerce $ C.readInteger. C.dropWhile isSpace
+integer = coerce $ C.readInteger . C.dropWhile isSpace
 {-# INLINE integer #-}
 
 integral :: (Integral a) => Parser a
@@ -200,10 +205,10 @@ byte = coerce B.uncons
 
 bytestring :: Parser C.ByteString
 bytestring = do
-    skipSpaces
-    gets (C.findIndex isSpace) >>= \case
-        Just i -> state (C.splitAt i)
-        Nothing -> state (flip (,) C.empty)
+  skipSpaces
+  gets (C.findIndex isSpace) >>= \case
+    Just i -> state (C.splitAt i)
+    Nothing -> state (flip (,) C.empty)
 {-# INLINE bytestring #-}
 
 skipSpaces :: Parser ()
@@ -226,50 +231,51 @@ gridHW :: Int -> Int -> Parser (U.Vector Char)
 gridHW h w = U.unfoldrN (h * w) (runParser char) . C.filter (/= '\n') <$> get
 {-# INLINE gridHW #-}
 
--- |
--- >>> runStateT @_ @Identity takeLine (C.pack "abc")
--- Identity ("abc","")
--- >>> runStateT @_ @Identity takeLine (C.pack "abc\n")
--- Identity ("abc","")
--- >>> runStateT @_ @Identity takeLine (C.pack "abc\r\n")
--- Identity ("abc\r","")
--- >>> runStateT @_ @Identity takeLine C.empty
--- Identity ("","")
--- >>> runStateT @_ @Identity takeLine (C.pack "\n")
--- Identity ("","")
--- >>> runStateT @_ @Identity takeLine (C.pack "\n\n")
--- Identity ("","\n")
-
+{- |
+ >>> runStateT @_ @Identity takeLine (C.pack "abc")
+ Identity ("abc","")
+ >>> runStateT @_ @Identity takeLine (C.pack "abc\n")
+ Identity ("abc","")
+ >>> runStateT @_ @Identity takeLine (C.pack "abc\r\n")
+ Identity ("abc\r","")
+ >>> runStateT @_ @Identity takeLine C.empty
+ Identity ("","")
+ >>> runStateT @_ @Identity takeLine (C.pack "\n")
+ Identity ("","")
+ >>> runStateT @_ @Identity takeLine (C.pack "\n\n")
+ Identity ("","\n")
+-}
 takeLine :: (Monad m) => StateT C.ByteString m C.ByteString
-takeLine = state $
+takeLine =
+  state $
     fmap (B.drop 1) . C.span (/= '\n')
 {-# INLINE takeLine #-}
 
--- |
--- >>> runStateT @_ @Identity (takeLines 1) (C.pack "abc\ndef\n")
--- Identity ("abc\n","def\n")
--- >>> runStateT @_ @Identity (takeLines 2) (C.pack "abc\ndef\n")
--- Identity ("abc\ndef\n","")
--- >>> runStateT @_ @Identity (takeLines 0) (C.pack "abc\ndef\n")
--- Identity ("","abc\ndef\n")
--- >>> runStateT @_ @Identity (takeLines 999) (C.pack "abc")
--- Identity ("abc","")
-
+{- |
+ >>> runStateT @_ @Identity (takeLines 1) (C.pack "abc\ndef\n")
+ Identity ("abc\n","def\n")
+ >>> runStateT @_ @Identity (takeLines 2) (C.pack "abc\ndef\n")
+ Identity ("abc\ndef\n","")
+ >>> runStateT @_ @Identity (takeLines 0) (C.pack "abc\ndef\n")
+ Identity ("","abc\ndef\n")
+ >>> runStateT @_ @Identity (takeLines 999) (C.pack "abc")
+ Identity ("abc","")
+-}
 takeLines :: (Monad m) => Int -> StateT C.ByteString m C.ByteString
 takeLines n
-    | n > 0 = do
-        gets (drop (n - 1) . C.elemIndices '\n') >>= \case
-            (i : _) -> state (C.splitAt (i + 1))
-            [] -> state (flip (,) C.empty)
-    | otherwise = pure C.empty
+  | n > 0 = do
+    gets (drop (n - 1) . C.elemIndices '\n') >>= \case
+      (i : _) -> state (C.splitAt (i + 1))
+      [] -> state (flip (,) C.empty)
+  | otherwise = pure C.empty
 {-# INLINE takeLines #-}
 
 neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
 neighbor4 h w xy f =
-    when (x /= 0) (f $ xy - w)
-        *> when (y /= 0) (f $ xy - 1)
-        *> when (y /= w - 1) (f $ xy + 1)
-        *> when (x /= h - 1) (f $ xy + w)
+  when (x /= 0) (f $ xy - w)
+    *> when (y /= 0) (f $ xy - 1)
+    *> when (y /= w - 1) (f $ xy + 1)
+    *> when (x /= h - 1) (f $ xy + w)
   where
     (!x, !y) = quotRem xy w
 {-# INLINE neighbor4 #-}
@@ -278,8 +284,8 @@ binarySearchM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
 binarySearchM low high p = go low high
   where
     go !low !high
-        | high <= low = return high
-        | otherwise = p mid >>= bool (go (mid + 1) high) (go low mid)
+      | high <= low = return high
+      | otherwise = p mid >>= bool (go (mid + 1) high) (go low mid)
       where
         mid = low + unsafeShiftRL (high - low) 1
 {-# INLINE binarySearchM #-}
@@ -293,20 +299,20 @@ radixSort v = F.foldl' step v [0, 16, 32, 48]
   where
     mask k x = unsafeShiftRL x k .&. 0xffff
     step v k = U.create $ do
-        pos <- UM.unsafeNew 0x10001
-        UM.set pos 0
-        U.forM_ v $ \x -> do
-            UM.unsafeModify pos (+ 1) (mask k x + 1)
-        rep 0xffff $ \i -> do
-            fi <- UM.unsafeRead pos i
-            UM.unsafeModify pos (+ fi) (i + 1)
-        res <- UM.unsafeNew $ U.length v
-        U.forM_ v $ \x -> do
-            let !masked = mask k x
-            i <- UM.unsafeRead pos masked
-            UM.unsafeWrite pos masked $ i + 1
-            UM.unsafeWrite res i x
-        return res
+      pos <- UM.unsafeNew 0x10001
+      UM.set pos 0
+      U.forM_ v $ \x -> do
+        UM.unsafeModify pos (+ 1) (mask k x + 1)
+      rep 0xffff $ \i -> do
+        fi <- UM.unsafeRead pos i
+        UM.unsafeModify pos (+ fi) (i + 1)
+      res <- UM.unsafeNew $ U.length v
+      U.forM_ v $ \x -> do
+        let !masked = mask k x
+        i <- UM.unsafeRead pos masked
+        UM.unsafeWrite pos masked $ i + 1
+        UM.unsafeWrite res i x
+      return res
 {-# INLINE radixSort #-}
 
 encode32x2 :: Int -> Int -> Int
@@ -315,7 +321,7 @@ encode32x2 x y = unsafeShiftL x 32 .|. y
 
 decode32x2 :: Int -> (Int, Int)
 decode32x2 xy =
-    let !x = unsafeShiftRL xy 32
-        !y = xy .&. 0xffffffff
-     in (x, y)
+  let !x = unsafeShiftRL xy 32
+      !y = xy .&. 0xffffffff
+   in (x, y)
 {-# INLINE decode32x2 #-}

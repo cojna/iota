@@ -1,49 +1,51 @@
-{-# LANGUAGE BangPatterns, LambdaCase, RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.Graph.Tree.DFS where
 
-import           Control.Monad
-import           Control.Monad.ST
-import           Data.Bits
-import           Data.Function
-import qualified Data.Vector                 as V
-import qualified Data.Vector.Unboxed         as U
+import Control.Monad
+import Control.Monad.ST
+import Data.Bits
+import Data.Function
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import           Data.Graph.Sparse
-import           Data.Deque
-
+import Data.Deque
+import Data.Graph.Sparse
 
 shortestPath :: (U.Unbox w, Num w) => SparseGraph w -> Vertex -> U.Vector w
 shortestPath gr root = U.create $ do
-    let n = numVerticesCSR gr
-    dist <- UM.unsafeNew n
-    UM.unsafeWrite dist root 0
-    stack <- newStack n
-    parent <- UM.unsafeNew n
+  let n = numVerticesCSR gr
+  dist <- UM.unsafeNew n
+  UM.unsafeWrite dist root 0
+  stack <- newStack n
+  parent <- UM.unsafeNew n
 
-    U.forM_ (gr `iadjW` root) $ \(ei, v, d) -> do
-        pushBack ei stack
-        UM.unsafeWrite parent v root
-        UM.unsafeWrite dist v d
+  U.forM_ (gr `iadjW` root) $ \(ei, v, d) -> do
+    pushBack ei stack
+    UM.unsafeWrite parent v root
+    UM.unsafeWrite dist v d
 
-    fix $ \loop ->
-        popBack stack >>= \case
-            Just ei -> do
-                let v = adjacentCSR gr `U.unsafeIndex` ei
-                pv <- UM.unsafeRead parent v
-                dv <- UM.unsafeRead dist v
-                U.forM_ (gr `iadjW` v) $ \(nei, nv, d) -> do
-                    when (pv /= nv) $ do
-                        pushBack nei stack
-                        UM.unsafeWrite parent nv v
-                        UM.unsafeWrite dist nv $ dv + d
-                loop
-            Nothing -> return ()
-    return dist
+  fix $ \loop ->
+    popBack stack >>= \case
+      Just ei -> do
+        let v = adjacentCSR gr `U.unsafeIndex` ei
+        pv <- UM.unsafeRead parent v
+        dv <- UM.unsafeRead dist v
+        U.forM_ (gr `iadjW` v) $ \(nei, nv, d) -> do
+          when (pv /= nv) $ do
+            pushBack nei stack
+            UM.unsafeWrite parent nv v
+            UM.unsafeWrite dist nv $ dv + d
+        loop
+      Nothing -> return ()
+  return dist
 
 diameter :: (U.Unbox w, Ord w, Num w) => SparseGraph w -> w
-diameter tree = U.maximum
+diameter tree =
+  U.maximum
     . shortestPath tree
     . U.maxIndex
     $ shortestPath tree 0
