@@ -1,2 +1,12 @@
 cradle:
   stack:
+    stackYaml: ./stack.yaml
+    components:
+      - path: ./src
+        component: "iota:lib"
+      - path: ./app
+        component: "iota:exe:iota"
+      - path: ./test
+        component: "iota:test:iota-test"
+      - path: ./benchmark
+        component: "iota:bench:iota-benchmark"
