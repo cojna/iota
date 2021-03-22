@@ -3,6 +3,8 @@ iota.cabal
 *~
 *.yaml.lock
 
+.vscode/
+
 # Created by https://www.gitignore.io/api/haskell,osx
 
 ### Haskell ###
