@@ -37,6 +37,7 @@ main = do
       [dst] -> do
         appendFile dst $ header name
         appendFile dst $ pretty ast
+      _ -> pure ()
     failed -> print failed
 
 installPath :: FilePath
@@ -72,6 +73,7 @@ pretty :: H.Module -> String
 pretty (H.Module _ _ _ _ _ _ decls) = unlines
 #endif
     $ map (H.prettyPrintWithMode pphsMode) decls
+pretty _ = ""
 
 removeDefineMacros :: String -> String
 removeDefineMacros = unlines . filter (not . L.isPrefixOf "#define") . lines
