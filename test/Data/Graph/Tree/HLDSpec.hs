@@ -39,7 +39,7 @@ spec = do
 
   describe "buildUndirectedGraph 5 [(0,1),(1,2),(2,3),(1,4)]" $ do
     let n = 5
-    let gr = buildUndirectedGraph 5 [(0, 1), (1, 2), (2, 3), (1, 4)]
+    let gr = buildUndirectedGraph n [(0, 1), (1, 2), (2, 3), (1, 4)]
     describe "buildHLD 0 gr" $ do
       let hld = buildHLD 0 gr
       it "pathHLD hld 0 1 = [(1,2)]" $ do
