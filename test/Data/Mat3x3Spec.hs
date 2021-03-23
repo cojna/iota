@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.Mat3x3Spec (main, spec) where
 
 import Control.Monad
