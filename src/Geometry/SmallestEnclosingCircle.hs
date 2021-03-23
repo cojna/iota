@@ -14,7 +14,7 @@ smallestEnclosingCircle ::
   (Floating a, Ord a, G.Vector v (Point a)) => v (Point a) -> Circle a
 smallestEnclosingCircle = welzl [] . G.toList . shuffle
   where
-    welzl rs@[_, _, _] ps = trivial rs
+    welzl rs@[_, _, _] _ = trivial rs
     welzl rs [] = trivial rs
     welzl rs (p : ps)
       | inCircle p c = c

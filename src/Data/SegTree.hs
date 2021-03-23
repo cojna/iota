@@ -265,7 +265,7 @@ evalAt ::
   f ->
   m ()
 evalAt st k f = do
-  tk <- UM.unsafeModify (getSegTree st) (appMonoid f) k
+  UM.unsafeModify (getSegTree st) (appMonoid f) k
   when (k < sizeSegTree st) $ do
     UM.unsafeModify (getDualSegTree st) (f <>) k
 {-# INLINE evalAt #-}
