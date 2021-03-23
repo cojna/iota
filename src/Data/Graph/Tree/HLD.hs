@@ -63,7 +63,7 @@ pathHLD HLD{..} = go
 -- | /O(V)/
 buildHLD :: Vertex -> SparseGraph w -> HLD
 buildHLD root gr@CSR{..}
-  | numEdgesCSR == 2 * (numVerticesCSR - 1) = error "not undirected tree"
+  | numEdgesCSR /= 2 * (numVerticesCSR - 1) = error "not undirected tree"
   | otherwise = runST $ do
     mindexHLD <- UM.unsafeNew numVerticesCSR
     mparentHLD <- UM.replicate numVerticesCSR nothing
