@@ -38,7 +38,8 @@ executables:
   iota:
     main: Main.hs
     source-dirs: app
-    ghc-options: []
+    ghc-options:
+      - -Wall
     dependencies:
       - directory
       - haskell-src-exts
@@ -54,6 +55,7 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
     dependencies:
     - iota
     - hspec
@@ -66,6 +68,7 @@ benchmarks:
         source-dirs:     benchmark
         ghc-options:
         - -O2
+        - -Wall
         dependencies:
         - iota
         - criterion
