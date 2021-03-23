@@ -35,7 +35,7 @@ moAlgorithm ::
   m (U.Vector a)
 moAlgorithm add delete acc0 blockSize lrs = do
   result <- UM.unsafeNew (U.length lrs)
-  U.foldM'
+  U.foldM'_
     ( \(MoState l r acc) (qi, (ql, qr)) -> do
         !addR <- MS.foldM' add acc $ stream r qr
         !deleteR <- MS.foldM' delete addR $ streamR qr r
