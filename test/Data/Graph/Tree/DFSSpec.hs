@@ -47,7 +47,7 @@ spec = do
           tree =
             buildUndirectedGraphW 10 $
               U.fromList [(i, i + 1, 1) | i <- [0 .. 8]]
-      diameter tree `shouldBe` sum [1 | i <- [0 .. 8]]
+      diameter tree `shouldBe` sum [1 | _ <- [0 .. 8]]
     it "binary tree" $ do
       let tree :: SparseGraph Int
           tree =
