@@ -66,7 +66,7 @@ articulations gr = U.findIndices id isArticulation
     !Lowlink{..} = buildLowlink gr
     !isArticulation = U.create $ do
       isa <- UM.replicate (numVerticesCSR gr) False
-      flip U.imapM parentLL $ \v pv -> when (pv /= nothing) $ do
+      flip U.imapM_ parentLL $ \v pv -> when (pv /= nothing) $ do
         when (U.unsafeIndex preordLL pv <= U.unsafeIndex lowlinkLL v) $ do
           UM.unsafeWrite isa pv True
       U.forM_ (U.findIndices (== nothing) parentLL) $ \root -> do
