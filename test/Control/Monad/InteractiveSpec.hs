@@ -24,9 +24,6 @@ accepted = Judge (\ac _ _ -> ac)
 failed :: MockJudge a
 failed = Judge (\_ wa _ -> wa)
 
-running :: a -> MockJudge a
-running x = Judge (\_ _ k -> k x)
-
 running_ :: MockJudge ()
 running_ = Judge (\_ _ k -> k ())
 
