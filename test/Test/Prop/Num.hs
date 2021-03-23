@@ -117,4 +117,4 @@ prop_powMul
 
 {-# ANN prop_zeroPow "HLint: ignore Use 1" #-}
 prop_zeroPow :: (Num a, Eq a) => a -> Bool
-prop_zeroPow x = x ^ 0 == 1
+prop_zeroPow x = x ^ (0 :: Int) == 1

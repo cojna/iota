@@ -41,10 +41,10 @@ spec = do
         `shouldSatisfy` approx eps (Arg (-3.0) (1.0, 2.0)) . getMax
 
 f :: Double -> Double
-f x = (x - 1) ^ 2 + 2
+f x = (x - 1) ^ (2 :: Int) + 2
 
 g :: Double -> Double -> Double
-g x y = (x - 1) ^ 2 + (y - 2) ^ 2 + 3
+g x y = (x - 1) ^ (2 :: Int) + (y - 2) ^ (2 :: Int) + 3
 
 prop_mid1mid1 :: Double -> Double -> Bool
 prop_mid1mid1 x y = approx eps (mid1 (mid1 low high) high) (mid2 low high)

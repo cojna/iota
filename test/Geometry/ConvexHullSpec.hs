@@ -21,28 +21,31 @@ spec :: Spec
 spec = do
   describe "convexHull" $ do
     it "convexHull [] = []" $ do
-      convexHull [] `shouldBe` []
+      convexHull @(EPS Double) [] `shouldBe` []
     it "convexHull [(0, 0)] = [(0, 0)]" $ do
-      convexHull [P 0 0] `shouldBe` [P 0 0]
+      convexHull @(EPS Double) [P 0 0] `shouldBe` [P 0 0]
     it "convexHull [(0, 0), (1, 0)] = [(0, 0), (1, 0)]" $ do
-      convexHull [P 0 0, P 1 0] `shouldBe` [P 0 0, P 1 0]
+      convexHull @(EPS Double) [P 0 0, P 1 0] `shouldBe` [P 0 0, P 1 0]
     it "convexHull [(1, 0), (0, 0)] = [(0, 0), (1, 0)]" $ do
-      convexHull [P 1 0, P 0 0] `shouldBe` [P 0 0, P 1 0]
+      convexHull @(EPS Double) [P 1 0, P 0 0] `shouldBe` [P 0 0, P 1 0]
     it "convexHull [P (-1) 0, P 0 1, P 1 0]" $ do
-      convexHull [P (-1) 0, P 0 1, P 1 0]
+      convexHull @(EPS Double) [P (-1) 0, P 0 1, P 1 0]
         `shouldBe` [P (-1) 0, P 1 0, P 0 1]
     it "convexHull on x-axis" $ do
-      let n = 100
+      let n :: Int
+          n = 100
           maxX = fromIntegral n - 1
           points = shuffleList [P (fromIntegral x) 0 | x <- [0 .. n -1]]
-      convexHull points `shouldBe` [P 0 0, P maxX 0]
+      convexHull @(EPS Double) points `shouldBe` [P 0 0, P maxX 0]
     it "convexHull on y-axis" $ do
-      let n = 100
+      let n :: Int
+          n = 100
           maxY = fromIntegral n - 1
           points = shuffleList [P 0 (fromIntegral y) | y <- [0 .. n -1]]
-      convexHull points `shouldBe` [P 0 0, P 0 maxY]
+      convexHull @(EPS Double) points `shouldBe` [P 0 0, P 0 maxY]
     it "convexHull dense square" $ do
-      let n = 10
+      let n :: Int
+          n = 10
           lim = fromIntegral n - 1
           points =
             shuffleList
@@ -50,7 +53,7 @@ spec = do
               | x <- [0 .. n -1]
               , y <- [0 .. n -1]
               ]
-      convexHull points `shouldBe` [P 0 0, P lim 0, P lim lim, P 0 lim]
+      convexHull @(EPS Double) points `shouldBe` [P 0 0, P lim 0, P lim lim, P 0 lim]
     describe "convexHull . convexHull = convexHull" $ do
       prop "Int" (prop_convexHullConvexHull @Int)
       prop "Double" (prop_convexHullConvexHull @(EPS Double))

@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Geometry.SmallestEnclosingCircleSpec (main, spec) where
@@ -27,11 +28,11 @@ spec = do
     describe "corner cases" $ do
       it "only two points on boundary" $ do
         let points = map (uncurry P) [(-1, 0), (1, 0), (0, 0.5)]
-        smallestEnclosingCircle (V.fromList points)
+        smallestEnclosingCircle @(EPS Double) (V.fromList points)
           `shouldBe` Circle (P 0 0) 1
       it "on boundary invaliant" $ do
         let points = map (uncurry P) [(7, 6), (5, -7), (8, -2), (-3, -6), (-7, 6)]
-        smallestEnclosingCircle (V.fromList points)
+        smallestEnclosingCircle @(EPS Double) (V.fromList points)
           `shouldBe` Circle (P 0.0 0.4230769230769231) 8.949976033818032
 
 byGoldenSectionSearch :: V.Vector (Point Double) -> Circle Double
