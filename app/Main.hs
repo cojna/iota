@@ -20,9 +20,10 @@ main = do
     let originalPath = tmpDir ++ "/define-removed.hs"
     let processedPath = tmpDir ++ "/cpp-processed.hs"
     writeFile originalPath $ removeDefineMacros code
-    rawSystem
-      "stack"
-      ["ghc", "--", "-E", originalPath, "-o", processedPath]
+    _exitCode <-
+      rawSystem
+        "stack"
+        ["ghc", "--", "-E", originalPath, "-o", processedPath]
     removeMacros <$> readFile processedPath
   let Just (_, exts) = H.readExtensions processed
   let parseOption =
