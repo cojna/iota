@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 module Geometry.ConvexHull where
 
 import qualified Data.List as L
@@ -7,9 +5,10 @@ import qualified Data.List as L
 import Geometry
 
 convexHull :: (Num a, Ord a) => [Point a] -> [Point a]
-convexHull [] = []
-convexHull (L.sort -> (leftest : sorted)) =
-  reverse . go [leftest] $ L.sortBy (compareCCW leftest) sorted
+convexHull points = case L.sort points of
+  [] -> []
+  (leftest : sorted) ->
+    reverse . go [leftest] $ L.sortBy (compareCCW leftest) sorted
   where
     go (p : q : conv) (r : rs) = case compareCCW q p r of
       LT -> go (r : p : q : conv) rs
