@@ -78,7 +78,7 @@ newtype Prime a = Prime {getPrime :: a}
   deriving (Eq, Ord, Show)
 
 instance (Integral a) => Arbitrary (Prime a) where
-  arbitrary = Prime <$> elements smallPrimes
+  arbitrary = Prime . fromIntegral <$> elements (smallPrimes @Int)
 
 newtype Modulo (n :: Nat) a = Moddulo {getModulo :: a}
   deriving (Eq, Ord, Show)
