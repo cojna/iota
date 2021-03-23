@@ -3,7 +3,6 @@
 
 module Data.SegTreeSpec (main, spec) where
 
-import Data.Bits
 import Data.IntMod
 import Data.Monoid hiding (First (..), Last (..))
 import Data.SegTree

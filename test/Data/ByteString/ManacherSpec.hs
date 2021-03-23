@@ -6,7 +6,6 @@
 module Data.ByteString.ManacherSpec (main, spec) where
 
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
 import Data.ByteString.Manacher
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Vector.Unboxed as U

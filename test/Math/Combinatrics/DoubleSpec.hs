@@ -1,6 +1,5 @@
 module Math.Combinatrics.DoubleSpec where
 
-import Math.Combinatrics
 import Math.Combinatrics.Double
 import Test.Prelude
 

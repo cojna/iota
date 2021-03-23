@@ -10,7 +10,7 @@ sternBrocot approx = go (0 :/ 1) (1 :/ 0)
       GT -> go l m
       EQ -> m
       where
-        !m@(mp :/ mq) = (lp + rp) :/ (lq + rq)
+        !m = (lp + rp) :/ (lq + rq)
 
 data Frac = !Int :/ !Int deriving (Eq)
 
@@ -20,9 +20,11 @@ instance Show Frac where
 instance Ord Frac where
   compare (x0 :/ y0) (x1 :/ y1) = compare (x0 * y1) (x1 * y0)
 
+frac :: Int -> Int -> Frac
 frac x y = case gcd x y of
   g -> (signum y * quot x g) :/ quot (abs y) g
 
+reduceFrac :: Int -> Int -> Frac
 reduceFrac x y = case gcd x y of
   g -> quot x g :/ quot y g
 

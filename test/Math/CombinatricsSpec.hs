@@ -2,7 +2,6 @@
 
 module Math.CombinatricsSpec (main, spec) where
 
-import Data.IntMod
 import qualified Data.Vector.Unboxed as U
 import Math.Combinatrics
 import Test.Prelude
@@ -38,7 +37,8 @@ spec = do
   describe "comb" $ do
     prop "comb n 0 = 1" prop_combN0
     prop "comb n n = 1" prop_combNN
-    prop "comb n k = comb (n - 1) (k - 1) + comb (n - 1) k"
+    prop
+      "comb n k = comb (n - 1) (k - 1) + comb (n - 1) k"
       prop_constructPascal'sTriangle
     prop "comb n k = comb n (n - k)" prop_combSym
     prop "comb n k = perm n k / fact k" prop_combByPerm

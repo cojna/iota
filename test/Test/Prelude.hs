@@ -1,15 +1,19 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Test.Prelude (
   module GHC.TypeLits,
   module Data.Proxy,
   module Test.Hspec,
   module Test.Hspec.QuickCheck,
+#if !MIN_VERSION_QuickCheck(2,13,0)
   module Test.Prelude.Compat,
+#endif
   module Test.QuickCheck,
   module Test.QuickCheck.Arbitrary,
   module Test.QuickCheck.Monadic,
@@ -35,7 +39,10 @@ import Math.Prime (smallPrimes)
 import System.Timeout (timeout)
 import Test.Hspec hiding (Arg)
 import Test.Hspec.QuickCheck
+
+#if !MIN_VERSION_QuickCheck(2,13,0)
 import Test.Prelude.Compat
+#endif
 import Test.QuickCheck
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Monadic
@@ -71,7 +78,7 @@ newtype Prime a = Prime {getPrime :: a}
   deriving (Eq, Ord, Show)
 
 instance (Integral a) => Arbitrary (Prime a) where
-  arbitrary = Prime . fromIntegral <$> elements smallPrimes
+  arbitrary = Prime . fromIntegral <$> elements (smallPrimes @Int)
 
 newtype Modulo (n :: Nat) a = Moddulo {getModulo :: a}
   deriving (Eq, Ord, Show)

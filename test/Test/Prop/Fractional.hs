@@ -53,4 +53,4 @@ prop_mulPow x n m =
   x ^^ (n * m) == (x ^^ n) ^^ m
 
 prop_zeroPow :: (Fractional a, Eq a) => a -> Bool
-prop_zeroPow x = x ^^ 0 == 1
+prop_zeroPow x = x ^^ (0 :: Int) == 1

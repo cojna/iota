@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Math.PrimeSpec (main, spec) where
@@ -13,24 +14,24 @@ spec = do
   describe "primeFactors" $ do
     prop "factorize" prop_primeFactorsFactorize
     prop "factorize by prime" prop_primeFactctorsFactorizeByPrime
-    it "primeFactors 0 == []" $ primeFactors 0 `shouldBe` []
-    it "primeFactors 1 == []" $ primeFactors 1 `shouldBe` []
-    it "primeFactors 2 == [2]" $ primeFactors 2 `shouldBe` [2]
+    it "primeFactors 0 == []" $ primeFactors @Int 0 `shouldBe` []
+    it "primeFactors 1 == []" $ primeFactors @Int 1 `shouldBe` []
+    it "primeFactors 2 == [2]" $ primeFactors @Int 2 `shouldBe` [2]
     it "primeFactors 60 == [2,2,3,5]" $
-      primeFactors 60 `shouldBe` [2, 2, 3, 5]
+      primeFactors @Int 60 `shouldBe` [2, 2, 3, 5]
     it "primeFactors 2147483647 == [2147483647]" $
-      primeFactors 2147483647 `shouldBe` [2147483647]
+      primeFactors @Int 2147483647 `shouldBe` [2147483647]
     it "primeFactors 999999999989 == [999999999989]" $
-      primeFactors 999999999989 `shouldBe` [999999999989]
+      primeFactors @Int 999999999989 `shouldBe` [999999999989]
     it "primeFactors 999999999997 == [5507,181587071]" $
-      primeFactors 999999999997 `shouldBe` [5507, 181587071]
+      primeFactors @Int 999999999997 `shouldBe` [5507, 181587071]
   describe "isPrime" $ do
-    it "0 is not prime" $ isPrime 0 `shouldBe` False
-    it "1 is not prime" $ isPrime 1 `shouldBe` False
-    it "2 is prime" $ isPrime 2 `shouldBe` True
-    it "2147483647 is prime" $ isPrime 2147483647 `shouldBe` True
-    it "999999999989 is prime" $ isPrime 999999999989 `shouldBe` True
-    it "999999999997 is not prime" $ isPrime 999999999997 `shouldBe` False
+    it "0 is not prime" $ isPrime @Int 0 `shouldBe` False
+    it "1 is not prime" $ isPrime @Int 1 `shouldBe` False
+    it "2 is prime" $ isPrime @Int 2 `shouldBe` True
+    it "2147483647 is prime" $ isPrime @Int 2147483647 `shouldBe` True
+    it "999999999989 is prime" $ isPrime @Int 999999999989 `shouldBe` True
+    it "999999999997 is not prime" $ isPrime @Int 999999999997 `shouldBe` False
   describe "totient" $ do
     prop "same to naive" prop_totientSameToNaive
     it "totient 0 == 0" $ totient 0 `shouldBe` 0

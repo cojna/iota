@@ -16,7 +16,7 @@ radixSortInt :: U.Vector Int -> U.Vector Int
 radixSortInt = unsafeCoerce . radixSort64 . unsafeCoerce
 
 radixSort32 :: U.Vector Word32 -> U.Vector Word32
-radixSort32 v = F.foldl' step v [0, 16]
+radixSort32 v0 = F.foldl' step v0 [0, 16]
   where
     mask k x = fromIntegral $ unsafeShiftR x k .&. 0xffff
     step v k = U.create $ do
@@ -35,7 +35,7 @@ radixSort32 v = F.foldl' step v [0, 16]
 {-# INLINE radixSort32 #-}
 
 radixSort64 :: U.Vector Word64 -> U.Vector Word64
-radixSort64 v = F.foldl' step v [0, 16, 32, 48]
+radixSort64 v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
     mask k x = fromIntegral $ unsafeShiftR x k .&. 0xffff
     step v k = U.create $ do

@@ -9,7 +9,6 @@ module Math.Matrix where
 
 import Control.Monad
 import Control.Monad.ST
-import Data.Function
 import Data.Primitive
 import Data.Proxy
 import qualified Data.Vector.Fusion.Bundle.Monadic as MB
@@ -64,15 +63,15 @@ createSqMat proxy fill = runST $ do
 reifyMatDim :: (Integral i) => i -> (forall n. KnownNat n => Proxy n -> a) -> a
 reifyMatDim n f = case someNatVal (fromIntegral n) of
   Just (SomeNat proxy) -> f proxy
-  Nothing -> error $ "reifyMatDim: " <> show (fromIntegral n)
+  Nothing -> error $ "reifyMatDim: " <> show (toInteger n)
 {-# INLINE reifyMatDim #-}
 
 streamSqMat :: (Prim a, Monad m) => SqMat n a -> MS.Stream m a
 streamSqMat (SqMat n ba) = MS.generateM (n * n) $ return . indexByteArray ba
 {-# INLINE [1] streamSqMat #-}
 
-unstreamSqMat :: forall n a m. (KnownNat n, Prim a) => MS.Stream Id a -> SqMat n a
-unstreamSqMat s = createSqMat Proxy $ \n mba -> do
+unstreamSqMat :: forall n a. (KnownNat n, Prim a) => MS.Stream Id a -> SqMat n a
+unstreamSqMat s = createSqMat Proxy $ \_ mba -> do
   MS.mapM_ (\(i, x) -> writeByteArray mba i x) $
     MS.trans (return . unId) $ MS.indexed s
 {-# INLINE [1] unstreamSqMat #-}

@@ -12,7 +12,6 @@ import Data.Bits
 import Data.Primitive.ByteArray
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
-import Data.Word
 import Unsafe.Coerce
 
 import My.Prelude (rev)

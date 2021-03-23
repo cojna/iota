@@ -2,15 +2,12 @@
 
 module Data.ByteString.SuffixArray where
 
-import Control.Monad
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Foldable as F
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-
-import My.Prelude
 
 newtype SuffixArray = SuffixArray {getSuffixArray :: U.Vector Int} deriving (Show)
 
@@ -59,7 +56,7 @@ buildSuffixArray bs =
           return mv
 
 radixSort64 :: U.Vector Int -> U.Vector Int
-radixSort64 v = F.foldl' step v [0, 16, 32, 48]
+radixSort64 v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
     mask k x = fromIntegral $ unsafeShiftR x k .&. 0xffff
     step v k = U.create $ do

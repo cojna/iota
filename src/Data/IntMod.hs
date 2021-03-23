@@ -12,7 +12,6 @@
 module Data.IntMod where
 
 import Control.Monad
-import Control.Monad.Primitive
 import Data.Bits
 import Data.Coerce
 import Data.Primitive
@@ -83,7 +82,7 @@ newtype IntMod = IntMod {getIntMod :: Int}
   deriving newtype (Eq, Ord, Read, Show, Real, Prim)
 
 intMod :: (Integral a) => a -> IntMod
-intMod x = fromIntegral $ mod (fromIntegral x) MOD
+intMod x = fromIntegral $ mod (toInteger x) MOD
 {-# INLINE intMod #-}
 
 intModValidate :: IntMod -> Bool

@@ -11,7 +11,6 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.Bits
 import Data.Function
-import Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Word

@@ -27,7 +27,7 @@ smallPrimes = 2 : [n | n <- [3, 5 .. 46337], all ((> 0) . rem n) $ takeWhile (\x
 -}
 primeFactors :: (Integral i) => i -> [i]
 primeFactors n | n < 2 = []
-primeFactors n = go n smallPrimes
+primeFactors n0 = go n0 smallPrimes
   where
     go !n pps@(p : ps)
       | n < p * p = [n]

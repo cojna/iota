@@ -5,10 +5,6 @@ module Data.Graph.Sparse where
 
 import Control.Monad.Primitive
 import Control.Monad.ST
-import Data.Bits
-import Data.Function
-import Data.Tuple
-import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 

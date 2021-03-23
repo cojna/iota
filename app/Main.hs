@@ -20,9 +20,10 @@ main = do
     let originalPath = tmpDir ++ "/define-removed.hs"
     let processedPath = tmpDir ++ "/cpp-processed.hs"
     writeFile originalPath $ removeDefineMacros code
-    rawSystem
-      "stack"
-      ["ghc", "--", "-E", originalPath, "-o", processedPath]
+    _exitCode <-
+      rawSystem
+        "stack"
+        ["ghc", "--", "-E", originalPath, "-o", processedPath]
     removeMacros <$> readFile processedPath
   let Just (_, exts) = H.readExtensions processed
   let parseOption =
@@ -36,6 +37,7 @@ main = do
       [dst] -> do
         appendFile dst $ header name
         appendFile dst $ pretty ast
+      _ -> pure ()
     failed -> print failed
 
 installPath :: FilePath
@@ -71,6 +73,7 @@ pretty :: H.Module -> String
 pretty (H.Module _ _ _ _ _ _ decls) = unlines
 #endif
     $ map (H.prettyPrintWithMode pphsMode) decls
+pretty _ = ""
 
 removeDefineMacros :: String -> String
 removeDefineMacros = unlines . filter (not . L.isPrefixOf "#define") . lines

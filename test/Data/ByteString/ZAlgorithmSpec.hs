@@ -6,7 +6,6 @@
 module Data.ByteString.ZAlgorithmSpec (main, spec) where
 
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 import Data.ByteString.ZAlgorithm
 import qualified Data.Vector.Unboxed as U

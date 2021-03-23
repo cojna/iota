@@ -14,21 +14,19 @@ smallestEnclosingCircle ::
   (Floating a, Ord a, G.Vector v (Point a)) => v (Point a) -> Circle a
 smallestEnclosingCircle = welzl [] . G.toList . shuffle
   where
-    welzl rs@[_, _, _] ps = trivial rs
-    welzl rs [] = trivial rs
+    welzl [p0, p1, p2] _ =
+      -- not equal to the smallest enclosing circle
+      let c = circumcenter p0 p1 p2
+       in Circle c (norm (p0 - c))
+    welzl [] [] = Circle (P 0.0 0.0) 0.0
+    welzl [p] [] = Circle p 0.0
+    welzl [p0, p1] [] = Circle (fmap (0.5 *) (p0 + p1)) (norm (p1 - p0) * 0.5)
     welzl rs (p : ps)
       | inCircle p c = c
       | otherwise = welzl (p : rs) ps
       where
         !c = welzl rs ps
-
-    trivial [] = Circle (P 0.0 0.0) 0.0
-    trivial [p] = Circle p 0.0
-    trivial [p0, p1] = Circle (fmap (0.5 *) (p0 + p1)) (norm (p1 - p0) * 0.5)
-    -- not equal to the smallest enclosing circle
-    trivial [p0, p1, p2] = Circle c (norm (p0 - c))
-      where
-        c = circumcenter p0 p1 p2
+    welzl _ [] = error "unreachable"
 
 naiveSmallestEnclosingCircle :: (Floating a, Ord a) => [Point a] -> Circle a
 naiveSmallestEnclosingCircle [] = Circle (P 0.0 0.0) 0.0

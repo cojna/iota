@@ -7,7 +7,6 @@
 module Control.Monad.Interactive where
 
 import Control.Applicative
-import Control.Monad.Fail
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import qualified Data.List as L

@@ -3,7 +3,6 @@
 
 module Test.Prop.Monoid where
 
-import Data.Monoid
 import Test.Prelude
 
 monoidSpec ::

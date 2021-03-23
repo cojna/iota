@@ -10,7 +10,7 @@ import My.Prelude (unsafeShiftRL)
 
 -- | assert (p high)
 lowerBoundM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
-lowerBoundM low high p = go low high
+lowerBoundM low0 high0 p = go low0 high0
   where
     go !low !high
       | high <= low = return high
@@ -52,7 +52,7 @@ upperBoundInteger low high p =
 
 lowerBoundIntegerM ::
   (Monad m) => Integer -> Integer -> (Integer -> m Bool) -> m Integer
-lowerBoundIntegerM low high p = go low high
+lowerBoundIntegerM low0 high0 p = go low0 high0
   where
     go !low !high
       | high <= low = return high
@@ -78,8 +78,9 @@ upperBoundIntegerM low high p = do
 
 -- | assert (p high)
 lowerBoundDouble :: Double -> Double -> (Double -> Bool) -> Double
-lowerBoundDouble low high p = go 50 low high
+lowerBoundDouble low0 high0 p = go 50 low0 high0
   where
+    go :: Int -> Double -> Double -> Double
     go !n !low !high
       | n == 0 = high
       | p mid = go (n - 1) low mid
@@ -89,8 +90,9 @@ lowerBoundDouble low high p = go 50 low high
 
 -- | assert (p low)
 upperBoundDouble :: Double -> Double -> (Double -> Bool) -> Double
-upperBoundDouble low high p = go 50 low high
+upperBoundDouble low0 high0 p = go 50 low0 high0
   where
+    go :: Int -> Double -> Double -> Double
     go !n !low !high
       | n == 0 = low
       | p mid = go (n - 1) mid high

@@ -67,7 +67,7 @@ cipolla a p = fst $ pow (ns, 1) (quot (p + 1) 2)
         !y' = x0 *% y1 +% y0 *% x1
 
     pow _ 0 = (1, 0)
-    pow xy n = go (1, 0) xy n
+    pow xy0 n = go (1, 0) xy0 n
       where
         go !acc !xy !i
           | i .&. 1 == 0 = go acc (mul xy xy) (unsafeShiftR i 1)

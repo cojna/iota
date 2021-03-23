@@ -1,10 +1,11 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.Mat3x3Spec (main, spec) where
 
 import Control.Monad
 import Data.IntMod
 import Data.Mat3x3
 import Data.Primitive
-import GHC.Exts (fromList)
 import Test.Prelude
 import Test.Prop.Num
 

@@ -6,6 +6,7 @@ module Test.Prop.Num (
   numSpec,
   additiveAbelianGroupSpec,
   numClosedSpec,
+  commutativeRingSpec,
 ) where
 
 import Test.Prelude
@@ -46,6 +47,15 @@ numClosedSpec validate = do
     prop "-" $ \x y -> validate (x - y)
     prop "*" $ \x y -> validate (x * y)
     prop "negate" $ \x -> validate (negate x)
+
+commutativeRingSpec ::
+  forall a. (Arbitrary a, Num a, Show a, Eq a) => Proxy a -> Spec
+commutativeRingSpec proxy = do
+  numSpec proxy
+  describe "*" $ do
+    prop "x * y == y * x" $ prop_mulCommutative @a
+  describe "^" $ do
+    prop "x ^ n * y ^ n == (x * y) ^ n" $ prop_powMul @a
 
 prop_addUnit :: (Num a, Eq a) => a -> Bool
 prop_addUnit x = x + 0 == x && 0 + x == x
@@ -102,7 +112,6 @@ prop_mulPow
   (getNonNegative -> m) =
     x ^ (n * m) == (x ^ n) ^ m
 
--- need (*) commutativity
 prop_powMul ::
   (Num a, Eq a) =>
   NonZero a ->
@@ -117,4 +126,4 @@ prop_powMul
 
 {-# ANN prop_zeroPow "HLint: ignore Use 1" #-}
 prop_zeroPow :: (Num a, Eq a) => a -> Bool
-prop_zeroPow x = x ^ 0 == 1
+prop_zeroPow x = x ^ (0 :: Int) == 1

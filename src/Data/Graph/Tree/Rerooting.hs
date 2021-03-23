@@ -25,16 +25,17 @@ rerootingDP gr toM foldChildren = dp2
     dp1 :: U.Vector a
     !dp1 = U.create $ do
       dp <- UM.unsafeNew (numVerticesCSR gr)
-      fix
-        ( \dfs p v -> do
-            res <-
-              foldChildren v . U.foldl' (<>) mempty . U.map toM
-                <$> U.mapM (dfs v) (U.filter (/= p) $ gr `adj` v)
-            UM.write dp v res
-            return res
-        )
-        (-1)
-        root
+      _ <-
+        fix
+          ( \dfs p v -> do
+              res <-
+                foldChildren v . U.foldl' (<>) mempty . U.map toM
+                  <$> U.mapM (dfs v) (U.filter (/= p) $ gr `adj` v)
+              UM.write dp v res
+              return res
+          )
+          (-1)
+          root
       return dp
 
     dp2 :: U.Vector a

@@ -19,7 +19,7 @@ freezeUnionFind :: PrimMonad m => UnionFind (PrimState m) -> m (U.Vector Int)
 freezeUnionFind = U.freeze . getUnionFind
 
 findUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
-findUF uf x = go x return
+findUF uf x0 = go x0 return
   where
     go !x k = do
       px <- UM.unsafeRead (getUnionFind uf) x

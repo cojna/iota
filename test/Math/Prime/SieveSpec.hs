@@ -1,9 +1,6 @@
 module Math.Prime.SieveSpec (main, spec) where
 
-import Data.Int
-import qualified Data.List as L
 import qualified Data.Vector.Unboxed as U
-import Data.Word
 import Math.Prime
 import Math.Prime.Sieve
 import Test.Prelude

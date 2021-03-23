@@ -63,7 +63,7 @@ x ^% n
 newtype IntMod = IntMod {getIntMod :: Int64} deriving (Eq, Ord)
 
 intMod :: (Integral a) => a -> IntMod
-intMod x = fromIntegral $ mod (fromIntegral x) MOD
+intMod x = fromIntegral $ mod (toInteger x) MOD
 {-# INLINE intMod #-}
 
 intModValidate :: IntMod -> Bool

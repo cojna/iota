@@ -126,20 +126,20 @@ instance (Prim a) => GM.MVector UM.MVector (Mat3x3 a) where
     where
       sz = sizeOf @a undefined
   {-# INLINE basicInitialize #-}
-  basicUnsafeRead (MV_Mat3x3 o n mba) i = do
+  basicUnsafeRead (MV_Mat3x3 o _ mba) i = do
     dst <- newByteArray (sz * 9)
-    copyMutableByteArray dst 0 mba (sz * o) (sz * 9)
+    copyMutableByteArray dst 0 mba (sz * (o + 9 * i)) (sz * 9)
     Mat3x3 0 <$> unsafeFreezeByteArray dst
     where
       sz = sizeOf @a undefined
   {-# INLINE basicUnsafeRead #-}
   basicUnsafeWrite (MV_Mat3x3 o _ mba) i (Mat3x3 o' ba) =
-    copyByteArray mba (sz * o) ba (sz * o') (sz * 9)
+    copyByteArray mba (sz * (o + 9 * i)) ba (sz * o') (sz * 9)
     where
       sz = sizeOf @a undefined
   {-# INLINE basicUnsafeWrite #-}
-  basicUnsafeCopy (MV_Mat3x3 o n dst) (MV_Mat3x3 o' n' src) =
-    copyMutableByteArray dst (sz * o) src (sz * o') (sz * n')
+  basicUnsafeCopy (MV_Mat3x3 o n dst) (MV_Mat3x3 o' _ src) =
+    copyMutableByteArray dst (sz * o) src (sz * o') (sz * n)
     where
       sz = sizeOf @a undefined
   {-# INLINE basicUnsafeCopy #-}
@@ -153,10 +153,10 @@ instance (Prim a) => G.Vector U.Vector (Mat3x3 a) where
   {-# INLINE basicLength #-}
   basicUnsafeSlice i n (V_Mat3x3 o _ ba) = V_Mat3x3 (o + 9 * i) (9 * n) ba
   {-# INLINE basicUnsafeSlice #-}
-  basicUnsafeIndexM (V_Mat3x3 o n ba) i = return $! Mat3x3 (o + 9 * i) ba
+  basicUnsafeIndexM (V_Mat3x3 o _ ba) i = return $! Mat3x3 (o + 9 * i) ba
   {-# INLINE basicUnsafeIndexM #-}
-  basicUnsafeCopy (MV_Mat3x3 o n dst) (V_Mat3x3 o' n' src) =
-    copyByteArray dst (sz * o) src (sz * o') (sz * n')
+  basicUnsafeCopy (MV_Mat3x3 o n dst) (V_Mat3x3 o' _ src) =
+    copyByteArray dst (sz * o) src (sz * o') (sz * n)
     where
       sz = sizeOf @a undefined
   elemseq _ = seq

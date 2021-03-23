@@ -2,7 +2,6 @@
 
 module Math.Combinatrics where
 
-import Control.Exception
 import Data.Coerce
 import Data.IntMod
 import qualified Data.Vector.Unboxed as U

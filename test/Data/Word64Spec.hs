@@ -1,8 +1,6 @@
 module Data.Word64Spec (main, spec) where
 
-import Data.Int
 import Data.Proxy
-import Data.Word
 import Data.Word64
 import Test.Prelude
 

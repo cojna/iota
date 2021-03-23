@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Data.IntMod.SafeSpec (main, spec) where
 
 import Data.Coerce

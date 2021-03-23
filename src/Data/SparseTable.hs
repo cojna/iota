@@ -10,7 +10,6 @@ import Data.Coerce
 import Data.Semigroup
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Math.Utils (floorLog2)
 

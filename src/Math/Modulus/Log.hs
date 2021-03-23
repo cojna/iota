@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Math.Modulus.Log where
 
@@ -23,7 +24,7 @@ import Math.Modulus (powMod)
 logMod :: Int -> Int -> Int -> Maybe Int
 logMod a b p = go 0 b
   where
-    !sqrtP = ceiling . sqrt $ fromIntegral p
+    !sqrtP = ceiling . sqrt @Double $ fromIntegral p
     !g = powMod a (- sqrtP) p
     babyStep x = a * x `rem` p
     giantStep x = g * x `rem` p

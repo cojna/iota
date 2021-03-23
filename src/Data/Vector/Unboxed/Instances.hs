@@ -4,14 +4,13 @@
 
 module Data.Vector.Unboxed.Instances where
 
+#if !MIN_VERSION_vector(0,12,1)
 import Control.Monad (liftM)
 import Data.Coerce (coerce)
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-
-#if !MIN_VERSION_vector(0,12,1)
 import Data.Monoid (Dual(..),Sum(..),Product(..))
 import Data.Semigroup (Min(..),Max(..),First(..),Last(..))
 #endif

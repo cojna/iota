@@ -4,7 +4,6 @@
 module Data.Graph.Sparse.Dijkstra where
 
 import Control.Monad
-import Control.Monad.ST
 import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM

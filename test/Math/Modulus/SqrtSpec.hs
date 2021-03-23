@@ -2,7 +2,6 @@
 
 module Math.Modulus.SqrtSpec (main, spec) where
 
-import Math.Modulus
 import Math.Modulus.Sqrt
 import Test.Prelude
 
