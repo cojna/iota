@@ -63,7 +63,7 @@ spec = do
       garner [(2, 3), (3, 5), (2, 7)] 10 `shouldBe` 3
 
 naivePowMod :: Integer -> Int -> Integer -> Integer
-naivePowMod x n m = L.foldl' (\acc x -> acc * x `mod` m) 1 $ replicate n x
+naivePowMod x n m = L.foldl' (\acc y -> acc * y `mod` m) 1 $ replicate n x
 
 prop_powModSameToNaive :: NonNegative Integer -> Small Word -> Prime Integer -> Bool
 prop_powModSameToNaive

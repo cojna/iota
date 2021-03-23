@@ -56,7 +56,7 @@ buildSuffixArray bs =
           return mv
 
 radixSort64 :: U.Vector Int -> U.Vector Int
-radixSort64 v = F.foldl' step v [0, 16, 32, 48]
+radixSort64 v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
     mask k x = fromIntegral $ unsafeShiftR x k .&. 0xffff
     step v k = U.create $ do
