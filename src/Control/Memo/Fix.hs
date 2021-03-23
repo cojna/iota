@@ -3,7 +3,6 @@
 module Control.Memo.Fix where
 
 import Control.Monad.State
-import Data.Function
 import Data.Functor (($>))
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M

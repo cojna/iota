@@ -3,10 +3,7 @@
 module Data.Graph.Tree.DFS where
 
 import Control.Monad
-import Control.Monad.ST
-import Data.Bits
 import Data.Function
-import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 

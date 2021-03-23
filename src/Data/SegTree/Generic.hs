@@ -10,13 +10,10 @@ module Data.SegTree.Generic where
 
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Bits
 import Data.Function
-import Data.Monoid
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
-import Data.Word
 import Unsafe.Coerce
 
 newtype SegTree mv s a = SegTree {getSegTree :: mv s a}

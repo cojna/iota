@@ -12,7 +12,6 @@
 module Data.IntMod where
 
 import Control.Monad
-import Control.Monad.Primitive
 import Data.Bits
 import Data.Coerce
 import Data.Primitive

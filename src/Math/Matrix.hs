@@ -9,7 +9,6 @@ module Math.Matrix where
 
 import Control.Monad
 import Control.Monad.ST
-import Data.Function
 import Data.Primitive
 import Data.Proxy
 import qualified Data.Vector.Fusion.Bundle.Monadic as MB

@@ -3,11 +3,8 @@
 module Control.GCJ where
 
 import Control.Applicative
-import Control.Monad
 import Control.Monad.Trans
 import System.Environment
-import System.IO
-import System.Process
 
 import Control.Monad.Interactive
 

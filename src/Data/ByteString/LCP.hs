@@ -2,14 +2,12 @@
 
 module Data.ByteString.LCP where
 
-import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.ByteString.SuffixArray
-import My.Prelude
 
 newtype LCPArray = LCPArray {getLCPArray :: U.Vector Int} deriving (Show)
 

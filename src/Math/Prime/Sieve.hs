@@ -8,7 +8,6 @@ import Control.Monad (when)
 import Control.Monad.ST (runST)
 import Data.Bits (Bits (clearBit, testBit, unsafeShiftR, (.&.)))
 import Data.Function (fix)
-import qualified Data.List as L
 import Data.Primitive (
   ByteArray,
   fillByteArray,

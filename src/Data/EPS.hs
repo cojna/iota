@@ -7,7 +7,6 @@ module Data.EPS where
 
 import Control.Monad
 import Data.Coerce
-import Data.Semigroup
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U

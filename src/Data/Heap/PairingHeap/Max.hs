@@ -5,7 +5,6 @@ module Data.Heap.PairingHeap.Max where
 
 import Data.Function
 import qualified Data.List as L
-import Data.Monoid
 import GHC.Exts
 
 data MaxHeap a = MaxFork !a [MaxHeap a] | MaxEmpty

@@ -3,11 +3,9 @@
 
 module Algorithm.TwoSat where
 
-import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.Graph.Sparse
 import Data.Graph.Sparse.SCC

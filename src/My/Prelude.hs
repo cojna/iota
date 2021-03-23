@@ -21,7 +21,7 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Word
 import GHC.Exts (Int (..), uncheckedIShiftRL#)
-import System.IO (hPutStrLn, stderr, stdout)
+import System.IO (stderr, stdout)
 
 rep :: (Monad m) => Int -> (Int -> m ()) -> m ()
 rep n = flip MS.mapM_ (stream 0 n)

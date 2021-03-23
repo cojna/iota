@@ -7,9 +7,7 @@ module Math.NTT where
 
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.Bits
-import Data.Function
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
