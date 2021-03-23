@@ -10,7 +10,7 @@ sternBrocot approx = go (0 :/ 1) (1 :/ 0)
       GT -> go l m
       EQ -> m
       where
-        !m@(mp :/ mq) = (lp + rp) :/ (lq + rq)
+        !m = (lp + rp) :/ (lq + rq)
 
 data Frac = !Int :/ !Int deriving (Eq)
 
