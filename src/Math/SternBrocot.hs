@@ -20,9 +20,11 @@ instance Show Frac where
 instance Ord Frac where
   compare (x0 :/ y0) (x1 :/ y1) = compare (x0 * y1) (x1 * y0)
 
+frac :: Int -> Int -> Frac
 frac x y = case gcd x y of
   g -> (signum y * quot x g) :/ quot (abs y) g
 
+reduceFrac :: Int -> Int -> Frac
 reduceFrac x y = case gcd x y of
   g -> quot x g :/ quot y g
 
