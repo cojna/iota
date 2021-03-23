@@ -71,7 +71,7 @@ streamSqMat (SqMat n ba) = MS.generateM (n * n) $ return . indexByteArray ba
 {-# INLINE [1] streamSqMat #-}
 
 unstreamSqMat :: forall n a m. (KnownNat n, Prim a) => MS.Stream Id a -> SqMat n a
-unstreamSqMat s = createSqMat Proxy $ \n mba -> do
+unstreamSqMat s = createSqMat Proxy $ \_ mba -> do
   MS.mapM_ (\(i, x) -> writeByteArray mba i x) $
     MS.trans (return . unId) $ MS.indexed s
 {-# INLINE [1] unstreamSqMat #-}

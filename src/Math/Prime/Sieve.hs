@@ -35,7 +35,6 @@ sieve n = runST $ do
   let lim = ((n + 1) + 63) `quot` 64 * 64
   isp <- newByteArray (lim * 8)
   fillByteArray isp 0 (lim * 8) 0b10101010
-  seg0 <- readByteArray @Word64 isp 0
   writeByteArray @Word8 isp 0 0b10101100
   let !sqrtLim = floor . sqrt @Double $ fromIntegral lim
   flip fix 3 $ \loop !p -> do
