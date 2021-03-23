@@ -78,7 +78,7 @@ crt (!r0, !m0) (!r1, !m1)
   | otherwise = Nothing
   where
     -- m0 * p + m1 * q == g
-    (p, q, g) = extGCD m0 m1
+    (p, _q, g) = extGCD m0 m1
     !m = m0 * quot m1 g
     !r = mod (r0 + m0 * quot (r1 - r0) g * p) m
 
