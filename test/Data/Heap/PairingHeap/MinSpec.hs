@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Data.Heap.PairingHeap.MinSpec (main, spec) where
 
@@ -14,15 +15,15 @@ spec :: Spec
 spec = do
   describe "deleteFindMinPH" $ do
     it "deleteFindMinPH [1, 2] == Just (1, [2])" $ do
-      deleteFindMinPH [1, 2] `shouldBe` Just (1, [2])
+      deleteFindMinPH @Int [1, 2] `shouldBe` Just (1, [2])
     it "deleteFindMinPH [2, 1] == Just (1, [2])" $ do
-      deleteFindMinPH [2, 1] `shouldBe` Just (1, [2])
+      deleteFindMinPH @Int [2, 1] `shouldBe` Just (1, [2])
     it "deleteFindMinPH [1, 1] == Just (1, [1])" $ do
-      deleteFindMinPH [1, 1] `shouldBe` Just (1, [1])
+      deleteFindMinPH @Int [1, 1] `shouldBe` Just (1, [1])
     it "deleteFindMinPH [1] == Just (1, MinEmpty)" $ do
-      deleteFindMinPH [1] `shouldBe` Just (1, MinEmpty)
+      deleteFindMinPH @Int [1] `shouldBe` Just (1, MinEmpty)
     it "deleteFindMinPH [] == Nothing" $ do
-      deleteFindMinPH ([] :: MinHeap Int) `shouldBe` Nothing
+      deleteFindMinPH @Int ([] :: MinHeap Int) `shouldBe` Nothing
   prop "heap sort" prop_priority
 
 prop_priority :: [Int] -> Bool
