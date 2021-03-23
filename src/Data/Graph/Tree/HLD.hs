@@ -62,56 +62,58 @@ pathHLD HLD{..} = go
 
 -- | /O(V)/
 buildHLD :: Vertex -> SparseGraph w -> HLD
-buildHLD root gr@CSR{..} | numEdgesCSR == 2 * (numVerticesCSR - 1) = runST $ do
-  mindexHLD <- UM.unsafeNew numVerticesCSR
-  mparentHLD <- UM.replicate numVerticesCSR nothing
-  mpathHeadHLD <- UM.replicate numVerticesCSR nothing
+buildHLD root gr@CSR{..}
+  | numEdgesCSR == 2 * (numVerticesCSR - 1) = error "not undirected tree"
+  | otherwise = runST $ do
+    mindexHLD <- UM.unsafeNew numVerticesCSR
+    mparentHLD <- UM.replicate numVerticesCSR nothing
+    mpathHeadHLD <- UM.replicate numVerticesCSR nothing
 
-  madjacent <- U.thaw adjacentCSR
-  void $
-    fix
-      ( \dfs pv v -> do
-          UM.write mparentHLD v pv
-          (size, (_, heavyId)) <-
-            U.foldM'
-              ( \(!sz, !mm) (ei, nv) -> do
-                  sz' <- dfs v nv
-                  return (sz + sz', max mm (sz', ei))
+    madjacent <- U.thaw adjacentCSR
+    void $
+      fix
+        ( \dfs pv v -> do
+            UM.write mparentHLD v pv
+            (size, (_, heavyId)) <-
+              U.foldM'
+                ( \(!sz, !mm) (ei, nv) -> do
+                    sz' <- dfs v nv
+                    return (sz + sz', max mm (sz', ei))
+                )
+                (1, (0, nothing))
+                . U.filter ((/= pv) . snd)
+                $ gr `iadj` v
+            when (heavyId /= nothing) $ do
+              UM.swap madjacent heavyId (offsetCSR U.! v)
+            return size
+        )
+        nothing
+        root
+    void $
+      fix
+        ( \dfs i h pv v -> do
+            UM.write mindexHLD v i
+            UM.write mpathHeadHLD v h
+            let o = offsetCSR U.! v
+            nv0 <- UM.read madjacent o
+            acc0 <- if nv0 /= pv then dfs (i + 1) h v nv0 else pure i
+            MS.foldM'
+              ( \acc j -> do
+                  nv <- UM.read madjacent j
+                  if nv /= pv
+                    then dfs (acc + 1) nv v nv
+                    else pure acc
               )
-              (1, (0, nothing))
-              . U.filter ((/= pv) . snd)
-              $ gr `iadj` v
-          when (heavyId /= nothing) $ do
-            UM.swap madjacent heavyId (offsetCSR U.! v)
-          return size
-      )
-      nothing
-      root
-  void $
-    fix
-      ( \dfs i h pv v -> do
-          UM.write mindexHLD v i
-          UM.write mpathHeadHLD v h
-          let o = offsetCSR U.! v
-          nv0 <- UM.read madjacent o
-          acc0 <- if nv0 /= pv then dfs (i + 1) h v nv0 else pure i
-          MS.foldM'
-            ( \acc j -> do
-                nv <- UM.read madjacent j
-                if nv /= pv
-                  then dfs (acc + 1) nv v nv
-                  else pure acc
-            )
-            acc0
-            $ stream (o + 1) (offsetCSR U.! (v + 1))
-      )
-      0
-      root
-      nothing
-      root
+              acc0
+              $ stream (o + 1) (offsetCSR U.! (v + 1))
+        )
+        0
+        root
+        nothing
+        root
 
-  HLD <$> U.unsafeFreeze mindexHLD
-    <*> U.unsafeFreeze mparentHLD
-    <*> U.unsafeFreeze mpathHeadHLD
+    HLD <$> U.unsafeFreeze mindexHLD
+      <*> U.unsafeFreeze mparentHLD
+      <*> U.unsafeFreeze mpathHeadHLD
   where
     nothing = -1
