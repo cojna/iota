@@ -281,7 +281,7 @@ neighbor4 h w xy f =
 {-# INLINE neighbor4 #-}
 
 binarySearchM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
-binarySearchM low high p = go low high
+binarySearchM low0 high0 p = go low0 high0
   where
     go !low !high
       | high <= low = return high
@@ -295,7 +295,7 @@ binarySearch low high p = runIdentity $ binarySearchM low high (return . p)
 {-# INLINE binarySearch #-}
 
 radixSort :: U.Vector Int -> U.Vector Int
-radixSort v = F.foldl' step v [0, 16, 32, 48]
+radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
     mask k x = unsafeShiftRL x k .&. 0xffff
     step v k = U.create $ do

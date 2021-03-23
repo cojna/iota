@@ -110,7 +110,7 @@ mappendFromTo ::
   Int ->
   Int ->
   m a
-mappendFromTo segtree l r = do
+mappendFromTo segtree l0 r0 = do
   let tree = getSegTree segtree
   let n = unsafeShiftR (GM.length tree) 1
   fix
@@ -134,8 +134,8 @@ mappendFromTo segtree l r = do
     )
     mempty
     mempty
-    (l + n)
-    (r + n)
+    (l0 + n)
+    (r0 + n)
 {-# INLINE mappendFromTo #-}
 
 {- | mappend [0..k)
@@ -205,24 +205,24 @@ minLeftSegTree ::
   Int ->
   (a -> Bool) ->
   m Int
-minLeftSegTree segtree r p = do
+minLeftSegTree segtree r0 p = do
   let tree = getSegTree segtree
   let !n = unsafeShiftR (GM.length tree) 1
   fix
-    ( \oloop !oacc !or -> do
-        let or' =
+    ( \loop !acc !r -> do
+        let r' =
               fix
-                ( \loop !r ->
-                    if r > 1 && r .&. 1 == 1
-                      then loop (unsafeShiftR r 1)
-                      else r
+                ( \iloop !ir ->
+                    if ir > 1 && ir .&. 1 == 1
+                      then iloop (unsafeShiftR ir 1)
+                      else ir
                 )
-                (or - 1)
-        oacc' <- (<> oacc) <$> GM.unsafeRead tree or'
-        if p oacc'
+                (r - 1)
+        acc' <- (<> acc) <$> GM.unsafeRead tree r'
+        if p acc'
           then do
-            if (or' .&. (- or')) /= or'
-              then oloop oacc' or'
+            if (r' .&. (- r')) /= r'
+              then loop acc' r'
               else return 0
           else do
             fix
@@ -236,11 +236,11 @@ minLeftSegTree segtree r p = do
                         else iloop iacc ir'
                     else return $! ir + 1 - n
               )
-              oacc
-              or'
+              acc
+              r'
     )
     mempty
-    (r + n)
+    (r0 + n)
 {-# INLINE minLeftSegTree #-}
 
 {- |

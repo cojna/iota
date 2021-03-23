@@ -33,10 +33,10 @@ epsGS = 1e-12
 goldenSectionSearchMin ::
   (Ord a) => Double -> Double -> (Double -> a) -> ArgMin a Double
 goldenSectionSearchMin low high f =
-  go (72 :: Int) low x1 x2 high (f x1) (f x2)
+  go (72 :: Int) low x01 x02 high (f x01) (f x02)
   where
-    !x1 = mid1 low high
-    !x2 = mid2 low high
+    !x01 = mid1 low high
+    !x02 = mid2 low high
     go !n !x0 !x1 !x2 !x3 !fx1 !fx2
       | n == 0 || abs (x3 - x0) < epsGS = Min (Arg fx1 x1)
       | fx1 < fx2 =
