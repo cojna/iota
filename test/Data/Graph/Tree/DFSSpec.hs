@@ -43,11 +43,12 @@ spec = do
       shortestPath tree 0 `shouldBe` U.singleton 0
   describe "diameter" $ do
     it "sequence" $ do
-      let tree :: SparseGraph Int
+      let n = 10
+          tree :: SparseGraph Int
           tree =
-            buildUndirectedGraphW 10 $
-              U.fromList [(i, i + 1, 1) | i <- [0 .. 8]]
-      diameter tree `shouldBe` sum [1 | _ <- [0 .. 8]]
+            buildUndirectedGraphW n $
+              U.fromList [(i, i + 1, 1) | i <- [0 .. n - 2]]
+      diameter tree `shouldBe` (n - 1)
     it "binary tree" $ do
       let tree :: SparseGraph Int
           tree =
