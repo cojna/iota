@@ -80,6 +80,7 @@ upperBoundIntegerM low high p = do
 lowerBoundDouble :: Double -> Double -> (Double -> Bool) -> Double
 lowerBoundDouble low high p = go 50 low high
   where
+    go :: Int -> Double -> Double -> Double
     go !n !low !high
       | n == 0 = high
       | p mid = go (n - 1) low mid
@@ -91,6 +92,7 @@ lowerBoundDouble low high p = go 50 low high
 upperBoundDouble :: Double -> Double -> (Double -> Bool) -> Double
 upperBoundDouble low high p = go 50 low high
   where
+    go :: Int -> Double -> Double -> Double
     go !n !low !high
       | n == 0 = low
       | p mid = go (n - 1) mid high

@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Math.Utils where
 
 import Data.Bits
@@ -5,7 +7,7 @@ import Data.Word
 import Unsafe.Coerce
 
 floorSqrt :: Int -> Int
-floorSqrt = floor . sqrt . fromIntegral
+floorSqrt = floor . sqrt @Double . fromIntegral
 
 {- |
  >>> floorLog2 0

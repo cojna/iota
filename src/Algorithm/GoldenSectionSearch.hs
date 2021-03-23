@@ -32,7 +32,8 @@ epsGS = 1e-12
 
 goldenSectionSearchMin ::
   (Ord a) => Double -> Double -> (Double -> a) -> ArgMin a Double
-goldenSectionSearchMin low high f = go 72 low x1 x2 high (f x1) (f x2)
+goldenSectionSearchMin low high f =
+  go (72 :: Int) low x1 x2 high (f x1) (f x2)
   where
     !x1 = mid1 low high
     !x2 = mid2 low high

@@ -63,7 +63,7 @@ createSqMat proxy fill = runST $ do
 reifyMatDim :: (Integral i) => i -> (forall n. KnownNat n => Proxy n -> a) -> a
 reifyMatDim n f = case someNatVal (fromIntegral n) of
   Just (SomeNat proxy) -> f proxy
-  Nothing -> error $ "reifyMatDim: " <> show (fromIntegral n)
+  Nothing -> error $ "reifyMatDim: " <> show (toInteger n)
 {-# INLINE reifyMatDim #-}
 
 streamSqMat :: (Prim a, Monad m) => SqMat n a -> MS.Stream m a

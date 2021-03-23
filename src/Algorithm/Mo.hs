@@ -50,7 +50,7 @@ moAlgorithm add delete acc0 blockSize lrs = do
 {-# INLINE moAlgorithm #-}
 
 moBlockSize :: Int -> Int
-moBlockSize = ceiling . sqrt . fromIntegral
+moBlockSize = ceiling . sqrt @Double . fromIntegral
 
 data MoState a = MoState !Int !Int !a deriving (Eq)
 

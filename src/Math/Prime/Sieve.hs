@@ -37,7 +37,7 @@ sieve n = runST $ do
   fillByteArray isp 0 (lim * 8) 0b10101010
   seg0 <- readByteArray @Word64 isp 0
   writeByteArray @Word8 isp 0 0b10101100
-  let !sqrtLim = floor . sqrt $ fromIntegral lim
+  let !sqrtLim = floor . sqrt @Double $ fromIntegral lim
   flip fix 3 $ \loop !p -> do
     seg <- readByteArray @Word64 isp (unsafeShiftR p 6)
     when (testBit seg (p .&. 0x3f)) $ do
