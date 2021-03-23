@@ -53,7 +53,7 @@ recipMod x m = go x m 1 0
  (x, y, g) = extGCD a b (a * x + b * y = g)
 -}
 extGCD :: (Integral a) => a -> a -> (a, a, a)
-extGCD a b = go a b 1 0
+extGCD a0 b0 = go a0 b0 1 0
   where
     go !a !b !u !v
       | b > 0 = case a `quot` b of
