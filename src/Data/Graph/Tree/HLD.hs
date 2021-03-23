@@ -80,7 +80,7 @@ buildHLD root gr@CSR{..}
                     sz' <- dfs v nv
                     return (sz + sz', max mm (sz', ei))
                 )
-                (1, (0, nothing))
+                (1 :: Int, (0, nothing))
                 . U.filter ((/= pv) . snd)
                 $ gr `iadj` v
             when (heavyId /= nothing) $ do
