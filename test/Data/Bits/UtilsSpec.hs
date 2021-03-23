@@ -1,6 +1,5 @@
 module Data.Bits.UtilsSpec (main, spec) where
 
-import Data.Bits
 import Data.Bits.Utils
 import Test.Prelude
 

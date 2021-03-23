@@ -2,15 +2,12 @@
 
 module Data.ByteString.SuffixArray where
 
-import Control.Monad
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Foldable as F
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-
-import My.Prelude
 
 newtype SuffixArray = SuffixArray {getSuffixArray :: U.Vector Int} deriving (Show)
 

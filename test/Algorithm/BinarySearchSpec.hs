@@ -3,9 +3,6 @@
 module Algorithm.BinarySearchSpec (main, spec) where
 
 import Algorithm.BinarySearch
-import Data.Functor.Identity
-import Debug.Trace
-import GHC.Exts
 import Test.Prelude
 
 main :: IO ()

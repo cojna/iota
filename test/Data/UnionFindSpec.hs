@@ -1,7 +1,6 @@
 module Data.UnionFindSpec (main, spec) where
 
 import Data.UnionFind
-import GHC.Exts
 import Test.Prelude
 
 main :: IO ()

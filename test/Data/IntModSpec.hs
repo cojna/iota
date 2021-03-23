@@ -1,6 +1,5 @@
 module Data.IntModSpec (main, spec) where
 
-import Data.Coerce
 import Data.IntMod
 import Data.Proxy
 import Test.Prelude

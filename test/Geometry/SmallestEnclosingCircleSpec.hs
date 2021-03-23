@@ -11,7 +11,7 @@ import Data.Semigroup
 import qualified Data.Vector as V
 import Geometry
 import Geometry.Circle
-import Geometry.Instances
+import Geometry.Instances ()
 import Geometry.SmallestEnclosingCircle
 import Test.Prelude
 

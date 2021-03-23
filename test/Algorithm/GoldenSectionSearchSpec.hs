@@ -2,7 +2,7 @@ module Algorithm.GoldenSectionSearchSpec where
 
 import Algorithm.GoldenSectionSearch
 import Data.Semigroup
-import Test.Prelude hiding (Arg)
+import Test.Prelude
 
 main :: IO ()
 main = hspec spec

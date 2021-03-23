@@ -3,7 +3,6 @@
 module Algorithm.LISSpec where
 
 import Algorithm.LIS
-import qualified Data.Vector.Unboxed as U
 import Test.Prelude
 
 main :: IO ()

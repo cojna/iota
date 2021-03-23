@@ -8,7 +8,6 @@
 module Data.SegTree.GenericSpec (main, spec) where
 
 import Data.Bits
-import Data.Monoid
 import Data.SegTree.Generic
 import Data.Semigroup
 import qualified Data.Vector as V
@@ -16,8 +15,6 @@ import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as UM
-import GHC.Exts
 import Test.Prelude
 
 import Data.Vector.Unboxed.Instances ()

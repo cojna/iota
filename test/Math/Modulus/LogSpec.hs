@@ -3,8 +3,6 @@
 
 module Math.Modulus.LogSpec (main, spec) where
 
-import qualified Data.List as L
-
 import Math.Modulus (powMod)
 import Math.Modulus.Log
 import Test.Prelude

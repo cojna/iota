@@ -7,7 +7,7 @@ import qualified Data.Vector as V
 import Data.EPS
 import Geometry
 import Geometry.ConvexHull
-import Geometry.Instances
+import Geometry.Instances ()
 import qualified System.Random.XoRoShiRo as Random
 import Test.Prelude hiding (shuffle)
 
