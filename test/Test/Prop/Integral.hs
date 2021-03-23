@@ -8,7 +8,7 @@ import Test.Prelude
 
 integralSpec ::
   forall a. (Arbitrary a, Integral a, Show a, Eq a) => Proxy a -> Spec
-integralSpec proxy = do
+integralSpec _ = do
   describe "divMod" $
     prop "(x `div` y) * y + (x `mod` y) == x" $ prop_divMod @a
   describe "quotRem" $
