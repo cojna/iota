@@ -2,11 +2,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 module Data.GaloisField where
 
@@ -17,54 +20,84 @@ import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import GHC.Exts
 import GHC.TypeLits
 
 newtype GF (p :: Nat) = GF {unGF :: Int}
   deriving (Eq)
-  deriving newtype (Show)
+  deriving newtype (Read, Show)
+
+pattern GF# :: Int# -> GF p
+pattern GF# x# = GF (I# x#)
+{-# COMPLETE GF# #-}
 
 mkGF :: forall p. KnownNat p => Int -> GF p
-mkGF x = GF (x `mod` modulusVal (Proxy @p))
+mkGF x = GF (x `mod` natValAsInt (Proxy @p))
 
-modulusVal :: KnownNat n => proxy n -> Int
-modulusVal = fromIntegral . natVal
-{-# INLINE modulusVal #-}
+validateGF :: forall p. KnownNat p => GF p -> Bool
+validateGF (GF x) = 0 <= x && x < natValAsInt (Proxy @p)
+
+natValAsInt :: KnownNat n => proxy n -> Int
+natValAsInt = fromIntegral . natVal
+{-# INLINE natValAsInt #-}
+
+natValAsWord :: KnownNat n => proxy n -> Word
+natValAsWord = fromIntegral . natVal
+{-# INLINE natValAsWord #-}
 
 {- |
- >>> reifyModulus 998244353 $ \proxy -> print (modulusVal proxy)
- 998244353
+>>> reifyNat (998244353 :: Int) natValAsInt
+998244353
 -}
-reifyModulus :: (Integral i) => i -> (forall n. KnownNat n => Proxy n -> a) -> a
-reifyModulus n f = case someNatVal (fromIntegral n) of
+reifyNat :: (Integral i) => i -> (forall n. KnownNat n => Proxy n -> a) -> a
+reifyNat n f = case someNatVal (fromIntegral n) of
   Just (SomeNat proxy) -> f proxy
-  Nothing -> error "reifyModulus failed"
+  Nothing -> error "reifyNat failed"
+{-# INLINE reifyNat #-}
+
+asGFOf :: GF p -> Proxy p -> GF p
+asGFOf = const
+{-# INLINE asGFOf #-}
+
+instance (KnownNat p) => Bounded (GF p) where
+  minBound = GF 0
+  maxBound = GF (natValAsInt (Proxy @p) - 1)
 
 instance (KnownNat p) => Num (GF p) where
-  x + y = case coerce x + coerce y of
-    xy
-      | xy < m -> coerce xy
-      | otherwise -> coerce (xy - m)
+  (GF# x#) + (GF# y#) = case x# +# y# of
+    xy# -> GF# (xy# -# ((xy# >=# m#) *# m#))
     where
-      m = modulusVal (Proxy @p)
-  x - y = case coerce x - coerce y of
-    xy
-      | xy < 0 -> coerce $ xy + modulusVal (Proxy @p)
-      | otherwise -> coerce xy
-  x * y = GF $ coerce x * coerce y `rem` modulusVal (Proxy @p)
+      !(I# m#) = natValAsInt (Proxy @p)
+  {-# INLINE (+) #-}
+  (GF# x#) - (GF# y#) = case x# -# y# of
+    xy# -> GF# (xy# +# ((xy# <# 0#) *# m#))
+    where
+      !(I# m#) = natValAsInt (Proxy @p)
+  {-# INLINE (-) #-}
+  (GF# x#) * (GF# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
+    z# -> case timesWord2# z# im# of
+      (# q#, _ #) -> case minusWord# z# (timesWord# q# m#) of
+        v#
+          | isTrue# (geWord# v# m#) -> GF# (word2Int# (plusWord# v# m#))
+          | otherwise -> GF# (word2Int# v#)
+    where
+      !(W# m#) = natValAsWord (Proxy @p)
+      im# = plusWord# (quotWord# 0xffffffffffffffff## m#) 1##
+  {-# INLINE (*) #-}
   abs = id
   signum = const (GF 1)
-  fromInteger x = GF . fromIntegral $ x `mod` fromIntegral m
+  fromInteger x = GF . fromIntegral $ x `mod` m
     where
-      m = modulusVal (Proxy @p)
+      m = natVal (Proxy @p)
 
 instance (KnownNat p) => Fractional (GF p) where
-  recip x = coerce $ go (coerce x) m 1 0
+  (GF# x#) / (GF# y#) = go# y# m# 1# 0#
     where
-      !m = modulusVal (Proxy @p)
-      go !a !b !u !v
-        | b > 0 = case a `quot` b of
-          q -> go b (a - (q * b)) v (u - (q * v))
-        | otherwise = u `mod` m
+      !(I# m#) = natValAsInt (Proxy @p)
+      go# a# b# u# v#
+        | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
+          q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
+        | otherwise = GF# (x# *# (u# +# m#) `remInt#` m#)
   fromRational _ = undefined
 
 newtype instance UM.MVector s (GF p) = MV_GF (UM.MVector s Int)
