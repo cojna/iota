@@ -1,10 +1,13 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Data.IntModBench (benchMain) where
 
 import Criterion
+import Data.GaloisField
 import Data.IntMod
 import qualified Data.Vector.Unboxed as U
 import GHC.Exts
@@ -17,6 +20,7 @@ benchMain =
     [ bgroup
         "(+%)"
         [ bench "(+%)" $ whnf (U.foldl' (+%) 0) randoms
+        , bench "addModGF" $ whnf (U.foldl' addModGF 0) randoms
         , bench "addMod1" $ whnf (U.foldl' addMod1 0) randoms
         , bench "addMod2" $ whnf (U.foldl' addMod2 0) randoms
         , bench "addMod3" $ whnf (U.foldl' addMod3 0) randoms
@@ -26,6 +30,7 @@ benchMain =
     , bgroup
         "(-%)"
         [ bench "(-%)" $ whnf (U.foldl' (-%) 0) randoms
+        , bench "subModGF" $ whnf (U.foldl' subModGF 0) randoms
         , bench "subMod1" $ whnf (U.foldl' subMod1 0) randoms
         , bench "subMod2" $ whnf (U.foldl' subMod2 0) randoms
         , bench "subMod3" $ whnf (U.foldl' subMod3 0) randoms
@@ -37,6 +42,7 @@ benchMain =
     , bgroup
         "(*%)"
         [ bench "(*%)" $ whnf (U.foldl' (*%) 1) randoms
+        , bench "timesModGF" $ whnf (U.foldl' timesModGF 1) randoms
         , bench "timesMod1" $ whnf (U.foldl' timesMod1 1) randoms
         , bench "timesMod2" $ whnf (U.foldl' timesMod2 1) randoms
         , bench "timesMod3" $ whnf (U.foldl' timesMod3 1) randoms
@@ -53,6 +59,9 @@ benchMain =
       U.replicateM n (getIntMod . intMod <$> nextInt rng)
 
 #define MOD 1000000007
+
+addModGF :: Int -> Int -> Int
+addModGF = coerce ((+) @(GF MOD))
 
 addMod1 :: Int -> Int -> Int
 addMod1 (I# x#) (I# y#) = I# ((x# +# y#) `remInt#` MOD#)
@@ -74,6 +83,9 @@ addMod4 (I# x#) (I# y#) = case x# +# y# of
 
 addMod5 :: Int -> Int -> Int
 addMod5 (I# x#) (I# y#) = I# (x# +# y# -# (MOD# *# (x# +# y# >=# MOD#)))
+
+subModGF :: Int -> Int -> Int
+subModGF = coerce ((-) @(GF MOD))
 
 subMod1 :: Int -> Int -> Int
 subMod1 (I# x#) (I# y#) = I# ((x# -# y# +# MOD#) `remInt#` MOD#)
@@ -105,6 +117,9 @@ subMod7 :: Int -> Int -> Int
 subMod7 (I# x#) (I# y#) = I# (x# -# y# +# (MOD# *# (x# <# y#)))
 
 #define INV_MOD 18446743945
+
+timesModGF :: Int -> Int -> Int
+timesModGF = coerce ((*) @(GF MOD))
 
 timesMod1 :: Int -> Int -> Int
 timesMod1 (I# x#) (I# y#) = I# (x# *# y# `remInt#` MOD#)
