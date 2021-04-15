@@ -1,19 +1,22 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Math.NTT where
 
 import Control.Monad
 import Control.Monad.Primitive
 import Data.Bits
+import qualified Data.List as L
+import Data.Proxy (Proxy (..))
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-import GHC.Exts
+import GHC.TypeLits (KnownNat)
 
-import Math.Modulus (powMod, recipMod)
+import Data.GaloisField (GF (GF), natValAsInt, reifyNat)
+import Math.Prime (primeFactors)
 import My.Prelude (
   rep,
   stream,
@@ -22,114 +25,90 @@ import My.Prelude (
  )
 
 {- | Number Theoretic Transform
+p: prime (c * 2 ^ k + 1)
+n = 2 ^ i, n < 2 ^ k
 
  /O(n log n)/
-
- >>> ntt 998244353 3 [1,1,1,1]
- [4,0,0,0]
- >>> ntt 469762049 3 [123,0,0,0]
- [123,123,123,123]
+>>> ntt @998244353 [1,1,1,1]
+[4,0,0,0]
+>>> ntt @469762049 [123,0,0,0]
+[123,123,123,123]
 -}
 ntt ::
-  -- | prime (c * 2 ^ k + 1)
-  Int ->
-  -- | primitive root
-  Int ->
-  -- | n = 2 ^ i, n < 2 ^ k
-  U.Vector Int ->
-  U.Vector Int
-ntt p g = U.modify (butterfly nr)
-  where
-    nr = buildNTTRunner p g
+  forall p.
+  (KnownNat p) =>
+  U.Vector (GF p) ->
+  U.Vector (GF p)
+ntt = U.modify butterfly
 {-# INLINE ntt #-}
 
-intt :: Int -> Int -> U.Vector Int -> U.Vector Int
-intt p g f = U.map (mulNR nr invn) $ U.modify (invButterfly nr) f
+intt :: forall p. (KnownNat p) => U.Vector (GF p) -> U.Vector (GF p)
+intt f = U.map (* invn) $ U.modify invButterfly f
   where
-    nr = buildNTTRunner p g
-    !invn = recipMod (U.length f) p
+    !invn = recip (GF $ U.length f)
 {-# INLINE intt #-}
 
 {- |
- >>> convolute 998244353 3 [1,1,1,0] [1,1,1,0]
- [1,2,3,2,1,0,0]
- >>> convolute 998244353 3 [1,1,1] [1,1,1,0]
- [1,2,3,2,1,0]
+>>> convolute @998244353 [1,1,1,0] [1,1,1,0]
+[1,2,3,2,1,0,0]
+>>> convolute @998244353 [1,1,1] [1,1,1,0]
+[1,2,3,2,1,0]
 -}
-convolute :: Int -> Int -> U.Vector Int -> U.Vector Int -> U.Vector Int
-convolute p g xs ys = U.create $ do
-  mxs <- UM.replicate len 0
+convolute ::
+  forall p.
+  (KnownNat p) =>
+  U.Vector (GF p) ->
+  U.Vector (GF p) ->
+  U.Vector (GF p)
+convolute xs ys = U.create $ do
+  mxs <- UM.replicate len (GF 0)
   U.unsafeCopy (UM.take n mxs) xs
-  butterfly nr mxs
-  mys <- UM.replicate len 0
+  butterfly mxs
+  mys <- UM.replicate len (GF 0)
   U.unsafeCopy (UM.take m mys) ys
-  butterfly nr mys
+  butterfly mys
   rep len $ \i -> do
     yi <- UM.unsafeRead mys i
-    UM.unsafeModify mxs (mulNR nr yi) i
-  invButterfly nr mxs
+    UM.unsafeModify mxs (* yi) i
+  invButterfly mxs
   rep (n + m - 1) $ \i -> do
-    UM.unsafeModify mxs (mulNR nr ilen) i
+    UM.unsafeModify mxs (* ilen) i
   return $ UM.take (n + m - 1) mxs
   where
-    !nr = buildNTTRunner p g
     n = U.length xs
     m = U.length ys
     !h = head [i | i <- [0 ..], n + m - 1 <= unsafeShiftL 1 i]
     !len = unsafeShiftL 1 h
-    !ilen = recipMod len p
+    !ilen = recip (GF len)
 {-# INLINE convolute #-}
 
-data NTTRunner = NTTRunner
-  { pNR :: !Int
-  , gNR :: !Int
-  , ipNR :: !Word
-  , sesNR :: !(U.Vector Int)
-  , siesNR :: !(U.Vector Int)
+data NTTRunner p = NTTRunner
+  { sesNR :: !(U.Vector (GF p))
+  , siesNR :: !(U.Vector (GF p))
   }
 
-buildNTTRunner :: Int -> Int -> NTTRunner
-buildNTTRunner pNR gNR = NTTRunner{..}
+nttRunner :: forall p. (KnownNat p) => NTTRunner p
+nttRunner = NTTRunner{..}
   where
-    ipNR = quot (complement 0) (fromIntegral pNR) + 1
+    p = natValAsInt (Proxy @p)
+    g = primitiveRoot p
 
-    ctz = countTrailingZeros (pNR - 1)
-    !e = powMod gNR (unsafeShiftR (pNR - 1) ctz) pNR
-    !ie = recipMod e pNR
+    ctz = countTrailingZeros (p - 1)
+    !e = GF g ^ unsafeShiftR (p - 1) ctz
+    !ie = recip e
 
-    es = U.reverse $ U.iterateN (ctz - 1) (\x -> x *% x) e
-    ies = U.reverse $ U.iterateN (ctz - 1) (\x -> x *% x) ie
+    es = U.reverse $ U.iterateN (ctz - 1) (\x -> x * x) e
+    ies = U.reverse $ U.iterateN (ctz - 1) (\x -> x * x) ie
 
-    sesNR = U.zipWith (*%) es $ U.scanl' (*%) 1 ies
-    siesNR = U.zipWith (*%) ies $ U.scanl' (*%) 1 es
-    x *% y = x * y `rem` pNR
+    sesNR = U.zipWith (*) es $ U.scanl' (*) 1 ies
+    siesNR = U.zipWith (*) ies $ U.scanl' (*) 1 es
+{-# NOINLINE nttRunner #-}
 
-addNR :: NTTRunner -> Int -> Int -> Int
-addNR (NTTRunner (I# m#) _ _ _ _) (I# x#) (I# y#) =
-  case x# +# y# of
-    z# -> I# (z# -# ((z# >=# m#) *# m#))
-{-# INLINE addNR #-}
-
-subNR :: NTTRunner -> Int -> Int -> Int
-subNR (NTTRunner (I# m#) _ _ _ _) (I# x#) (I# y#) =
-  case x# -# y# of
-    z# -> I# (z# +# ((z# <# 0#) *# m#))
-{-# INLINE subNR #-}
-
-mulNR :: NTTRunner -> Int -> Int -> Int
-mulNR (NTTRunner (I# m0#) _ (W# im#) _ _) (I# x#) (I# y#) =
-  case timesWord# (int2Word# x#) (int2Word# y#) of
-    z# -> case timesWord2# z# im# of
-      (# q#, _ #) -> case minusWord# z# (timesWord# q# m#) of
-        v#
-          | isTrue# (geWord# v# m#) -> I# (word2Int# (plusWord# v# m#))
-          | otherwise -> I# (word2Int# v#)
-  where
-    m# = int2Word# m0#
-{-# INLINE mulNR #-}
-
-butterfly :: (PrimMonad m) => NTTRunner -> UM.MVector (PrimState m) Int -> m ()
-butterfly nr@NTTRunner{..} mvec = do
+butterfly ::
+  (KnownNat p, PrimMonad m) =>
+  UM.MVector (PrimState m) (GF p) ->
+  m ()
+butterfly mvec = do
   flip MS.mapM_ (stream 1 (h + 1)) $ \ph -> do
     let !w = unsafeShiftL 1 (ph - 1)
         !p = unsafeShiftL 1 (h - ph)
@@ -139,20 +118,25 @@ butterfly nr@NTTRunner{..} mvec = do
             let offset = unsafeShiftL s (h - ph + 1)
             flip MS.mapM_ (stream offset (offset + p)) $ \i -> do
               l <- UM.unsafeRead mvec i
-              r <- mulNR nr acc <$!> UM.unsafeRead mvec (i + p)
-              UM.unsafeWrite mvec (i + p) $ subNR nr l r
-              UM.unsafeWrite mvec i $ addNR nr l r
-            return $! mulNR nr acc $ U.unsafeIndex siesNR (countTrailingZeros (complement s))
+              r <- (* acc) <$!> UM.unsafeRead mvec (i + p)
+              UM.unsafeWrite mvec (i + p) $ l - r
+              UM.unsafeWrite mvec i $ l + r
+            return $! acc * U.unsafeIndex siesNR (countTrailingZeros (complement s))
         )
         1
         (stream 0 w)
   where
     n = UM.length mvec
     !h = head [i | i <- [0 ..], n <= unsafeShiftL 1 i]
+    NTTRunner{..} = nttRunner
 {-# INLINE butterfly #-}
 
-invButterfly :: (PrimMonad m) => NTTRunner -> UM.MVector (PrimState m) Int -> m ()
-invButterfly nr@NTTRunner{..} mvec = void $ do
+invButterfly ::
+  forall p m.
+  (KnownNat p, PrimMonad m) =>
+  UM.MVector (PrimState m) (GF p) ->
+  m ()
+invButterfly mvec = void $ do
   flip MS.mapM_ (streamR 1 (h + 1)) $ \ph -> do
     let !w = unsafeShiftL 1 (ph - 1)
         !p = unsafeShiftL 1 (h - ph)
@@ -162,22 +146,23 @@ invButterfly nr@NTTRunner{..} mvec = void $ do
           flip MS.mapM_ (stream offset (offset + p)) $ \i -> do
             l <- UM.unsafeRead mvec i
             r <- UM.unsafeRead mvec (i + p)
-            UM.unsafeWrite mvec (i + p) $ mulNR nr acc (pNR + l - r)
-            UM.unsafeWrite mvec i $ addNR nr l r
-          return $! mulNR nr acc $ U.unsafeIndex sesNR (countTrailingZeros (complement s))
+            UM.unsafeWrite mvec (i + p) $ acc * (l - r)
+            UM.unsafeWrite mvec i $ l + r
+          return $! acc * U.unsafeIndex sesNR (countTrailingZeros (complement s))
       )
       1
       (stream 0 w)
   where
     n = UM.length mvec
     !h = head [i | i <- [0 ..], n <= unsafeShiftL 1 i]
+    NTTRunner{..} = nttRunner
 {-# INLINE invButterfly #-}
 
 {- |
  >>> growToPowerOfTwo [1,2,3]
  [1,2,3,0]
 -}
-growToPowerOfTwo :: U.Vector Int -> U.Vector Int
+growToPowerOfTwo :: (Num a, U.Unbox a) => U.Vector a -> U.Vector a
 growToPowerOfTwo v
   | U.null v = U.singleton 0
   | U.length v == 1 = v
@@ -185,10 +170,32 @@ growToPowerOfTwo v
     v U.++ U.replicate (n - U.length v) 0
 
 {- |
- >>> extendToPowerOfTwo 0
- 1
+>>> extendToPowerOfTwo 0
+1
 -}
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
   | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
   | otherwise = 1
+
+{- |
+>>> primitiveRoot 2
+1
+>>> primitiveRoot 998244353
+3
+-}
+primitiveRoot ::
+  -- | prime
+  Int ->
+  Int
+primitiveRoot 2 = 1
+primitiveRoot prime = reifyNat prime $ \proxy ->
+  head [g | g <- [2 ..], all (check (toGF proxy g)) ps]
+  where
+    !ps = map head . L.group $ primeFactors (prime - 1)
+
+    toGF :: Proxy p -> Int -> GF p
+    toGF _ = GF
+
+    check :: (KnownNat p) => GF p -> Int -> Bool
+    check g p = g ^ quot (prime - 1) p /= GF 1
