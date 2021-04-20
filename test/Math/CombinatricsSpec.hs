@@ -1,10 +1,24 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Math.CombinatricsSpec (main, spec) where
 
 import qualified Data.Vector.Unboxed as U
-import Math.Combinatrics
+
+import Data.GaloisField
+import Math.Combinatrics hiding (comb, fact, perm)
+import qualified Math.Combinatrics
 import Test.Prelude
+
+fact :: Int -> GF 1000000007
+fact = Math.Combinatrics.fact
+
+perm :: Int -> Int -> GF 1000000007
+perm = Math.Combinatrics.perm
+
+comb :: Int -> Int -> GF 1000000007
+comb = Math.Combinatrics.comb
 
 main :: IO ()
 main = hspec spec
@@ -44,11 +58,11 @@ spec = do
     prop "comb n k = perm n k / fact k" prop_combByPerm
   describe "fact/recipFact cache" $ do
     it "fact * recipFact = 1" $
-      U.zipWith (*) factCache recipFactCache
+      U.zipWith (*) factCache (recipFactCache @1000000007)
         `shouldSatisfy` U.all (== 1)
 
 normalize :: Int -> Int
-normalize = flip mod factCacheSize
+normalize = flip mod defaultFactCacheSize
 
 prop_permNN :: NonNegative Int -> Bool
 prop_permNN (normalize . getNonNegative -> n) =

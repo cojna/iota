@@ -1,39 +1,58 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Math.Combinatrics where
 
 import Data.Coerce
-import Data.IntMod
+import Data.Proxy
 import qualified Data.Vector.Unboxed as U
+import GHC.TypeLits
 
-#define FACT_CACHE_SIZE 100100
+import Data.GaloisField
 
-fact :: Int -> IntMod
+-- | /O(1)/
+fact :: (KnownNat p) => Int -> GF p
 fact = U.unsafeIndex factCache
 {-# INLINE fact #-}
 
-recipFact :: Int -> IntMod
+-- | /O(1)/
+recipFact :: (KnownNat p) => Int -> GF p
 recipFact = U.unsafeIndex recipFactCache
 {-# INLINE recipFact #-}
 
-perm :: Int -> Int -> IntMod
-perm n k = fact n * recipFact (n - k)
+{- | /O(1)/
+
+ n < p
+-}
+perm :: (KnownNat p) => Int -> Int -> GF p
+perm n k
+  | 0 <= k, k <= n = fact n * recipFact (n - k)
+  | otherwise = GF 0
 {-# INLINE perm #-}
 
-comb :: Int -> Int -> IntMod
-comb n k = fact n * recipFact (n - k) * recipFact k
+{- | /O(1)/
+
+ n < p
+-}
+comb :: (KnownNat p) => Int -> Int -> GF p
+comb n k
+  | 0 <= k, k <= n = fact n * recipFact (n - k) * recipFact k
+  | otherwise = GF 0
 {-# INLINE comb #-}
 
-factCacheSize :: Int
-factCacheSize = min (modulus - 1) FACT_CACHE_SIZE
-{-# INLINE factCacheSize #-}
+defaultFactCacheSize :: Int
+defaultFactCacheSize = 1024 * 1024
 
-factCache :: U.Vector IntMod
-factCache = U.scanl' (\x y -> x * coerce y) (1 :: IntMod) $ U.generate factCacheSize (+ 1)
+factCache :: forall p. (KnownNat p) => U.Vector (GF p)
+factCache = U.scanl' (\x y -> x * coerce y) (GF 1) $ U.generate size (+ 1)
+  where
+    size = min defaultFactCacheSize (natValAsInt (Proxy @p) - 1)
 {-# NOINLINE factCache #-}
 
-recipFactCache :: U.Vector IntMod
+recipFactCache :: forall p. (KnownNat p) => U.Vector (GF p)
 recipFactCache =
-  U.scanr' ((*) . coerce) (1 / factCache U.! factCacheSize) $
-    U.generate factCacheSize (+ 1)
+  U.scanr' ((*) . coerce) (1 / factCache U.! size) $
+    U.generate size (+ 1)
+  where
+    size = min defaultFactCacheSize (natValAsInt (Proxy @p) - 1)
 {-# NOINLINE recipFactCache #-}
