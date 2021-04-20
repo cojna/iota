@@ -97,7 +97,7 @@ instance (KnownNat p) => Fractional (GF p) where
       go# a# b# u# v#
         | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
           q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
-        | otherwise = GF# (x# *# (u# +# m#) `remInt#` m#)
+        | otherwise = GF# ((x# *# (u# +# m#)) `remInt#` m#)
   fromRational _ = undefined
 
 newtype instance UM.MVector s (GF p) = MV_GF (UM.MVector s Int)
