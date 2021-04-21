@@ -60,6 +60,13 @@ spec = do
     it "fact * recipFact = 1" $
       U.zipWith (*) factCache (recipFactCache @1000000007)
         `shouldSatisfy` U.all (== 1)
+  describe "combSmall" $ do
+    prop "combSmall 5 3 (mod 3) == 1" $ do
+      combSmall @3 5 3 `shouldBe` 1
+  describe "combSmallTable" $ do
+    specify "mod 3" $ do
+      combSmallTable @3
+        `shouldBe` U.fromListN 9 [1, 0, 0, 1, 1, 0, 1, 2, 1]
 
 normalize :: Int -> Int
 normalize = flip mod defaultFactCacheSize
