@@ -91,7 +91,7 @@ componentsGF2x64' (GF2x64' basis) v0 =
   where
     step :: (GF2x64, GF2x64) -> Int -> GF2x64 -> (GF2x64, GF2x64)
     step (!acc, !v) i base
-      | v' < base = (setBit acc i, v')
+      | v' < v = (setBit acc i, v')
       | otherwise = (acc, v)
       where
         v' = xor v base
