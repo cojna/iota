@@ -149,23 +149,17 @@ validateSolverState = do
   unless (C.all isSpace bs) $ do
     liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
 
-line :: Parser a -> Solver a
-line p = do
-  bs <- takeLine @IO
-  maybe (error "parse error") return $
-    evalStateT p bs
+line :: (MonadFail m) => Parser a -> StateT C.ByteString m a
+line f =
+  mapStateT (maybe (fail "parse error") return) $
+    takeLine >>= lift . evalStateT f
 {-# INLINE line #-}
 
-linesN :: Int -> Parser a -> Solver a
-linesN n p = do
-  bs <- takeLines @IO n
-  maybe (error "parse error") return $
-    evalStateT p bs
+linesN :: (MonadFail m) => Int -> Parser a -> StateT C.ByteString m a
+linesN n f =
+  mapStateT (maybe (fail "parse error") return) $
+    takeLines n >>= lift . evalStateT f
 {-# INLINE linesN #-}
-
-lineP :: Parser a -> Parser a
-lineP f = takeLine >>= lift . evalStateT f
-{-# INLINE lineP #-}
 
 putBuilder :: (MonadIO m) => B.Builder -> m ()
 putBuilder = liftIO . B.hPutBuilder stdout
