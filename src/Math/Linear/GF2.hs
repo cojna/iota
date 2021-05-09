@@ -8,12 +8,13 @@ module Math.Linear.GF2 where
 
 import Control.Monad
 import Data.Bits
-import Data.Coerce (coerce)
+import Data.Coerce
 import qualified Data.List as L
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import GHC.Exts (IsList (Item, fromList, toList))
 
 {- |
 \(GF(2)^{64}\)
@@ -57,16 +58,42 @@ instance Show GF2x64 where
         | testBit x 0 = Just ('1', unsafeShiftR x 1)
         | otherwise = Just ('0', unsafeShiftR x 1)
 
+instance Num GF2x64 where
+  (+) = xor
+  (-) = xor
+  (*) = (.&.)
+  negate = id
+  abs = id
+  signum = const (complement zeroBits)
+  fromInteger = GF2x64 . fromInteger
+
 -- | subspace of \(GF(2)^{64}\)
 newtype GF2x64' = GF2x64' {basisGF2x64' :: U.Vector GF2x64}
   deriving newtype (Show)
 
+instance Eq GF2x64' where
+  xs == ys =
+    rankGF2x64' xs == rankGF2x64' ys
+      && U.all (`inGF2x64'` xs) (basisGF2x64' ys)
+
+instance IsList GF2x64' where
+  type Item GF2x64' = GF2x64
+  fromList = spanGF2x64' . U.fromList
+  toList = U.toList . basisGF2x64'
+
 zeroGF2x64' :: GF2x64'
 zeroGF2x64' = GF2x64' U.empty
 
-dimGF2x64' :: GF2x64' -> Int
-dimGF2x64' = U.length . basisGF2x64'
+-- | /O(1)/
+rankGF2x64' :: GF2x64' -> Int
+rankGF2x64' = U.length . basisGF2x64'
 
+-- | /O(d)/
+inGF2x64' :: GF2x64 -> GF2x64' -> Bool
+inGF2x64' v (GF2x64' bs) =
+  U.foldl' (\x b -> min (xor x b) x) v bs == GF2x64 0
+
+-- | /O(d)/
 insertGF2x64' :: GF2x64 -> GF2x64' -> GF2x64'
 insertGF2x64' v (GF2x64' bs)
   | v' == GF2x64 0 = GF2x64' bs
@@ -74,15 +101,11 @@ insertGF2x64' v (GF2x64' bs)
   where
     v' = U.foldl' (\x b -> min (xor x b) x) v bs
 
+-- | /O(dN)/
 spanGF2x64' :: U.Vector GF2x64 -> GF2x64'
 spanGF2x64' = U.foldl' (flip insertGF2x64') zeroGF2x64'
 
-{- |
->>> :set -XBinaryLiterals
->>> sp = spanGF2x64' $ U.fromList $ map GF2x64 [0b11, 0b01]
->>> componentsGF2x64' sp (GF2x64 0b10)
-0b11
--}
+-- | /O(d)/
 componentsGF2x64' :: GF2x64' -> GF2x64 -> GF2x64
 componentsGF2x64' (GF2x64' basis) v0 =
   case U.ifoldl' step (GF2x64 0, v0) basis of
@@ -94,7 +117,17 @@ componentsGF2x64' (GF2x64' basis) v0 =
       | v' < v = (setBit acc i, v')
       | otherwise = (acc, v)
       where
-        v' = xor v base
+        !v' = xor v base
+
+-- | /O(d)/
+linCombGF2x64' :: GF2x64' -> GF2x64 -> GF2x64
+linCombGF2x64' (GF2x64' basis) cs =
+  U.ifoldl' step 0 basis
+  where
+    step :: GF2x64 -> Int -> GF2x64 -> GF2x64
+    step v i b
+      | testBit cs i = v + b
+      | otherwise = v
 
 newtype instance UM.MVector s GF2x64 = MV_GF2x64 (UM.MVector s Word)
 newtype instance U.Vector GF2x64 = V_GF2x64 (U.Vector Word)
