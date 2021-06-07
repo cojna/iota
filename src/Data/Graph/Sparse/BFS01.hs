@@ -16,7 +16,7 @@ import Data.Graph.Sparse
 bfs01CSR :: Vertex -> SparseGraph Int -> U.Vector Int
 bfs01CSR source gr@CSR{..} = U.create $ do
   dist <- UM.replicate numVerticesCSR maxBound
-  deque <- newDeque numEdgesCSR
+  deque <- newDeque (numEdgesCSR + 1)
   UM.write dist source 0
   pushFront (0, source) deque
   fix $ \loop ->
