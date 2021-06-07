@@ -234,7 +234,7 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
   costMCF <- U.unsafeFreeze mcostMCF
   potentialMCF <- UM.replicate numVerticesMCF 0
   distMCF <- UM.replicate numVerticesMCF 0
-  heapMCF <- newMinBinaryHeap numEdgesMCF
+  heapMCF <- newMinBinaryHeap (numEdgesMCF + 1)
   revEdgeMCF <- U.unsafeFreeze mrevEdgeMCF
   prevVertexMCF <- UM.replicate numVerticesMCF nothingMCF
   prevEdgeMCF <- UM.replicate numVerticesMCF nothingMCF
