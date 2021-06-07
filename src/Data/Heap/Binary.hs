@@ -197,8 +197,8 @@ modifyTopBH f BinaryHeap{..} = do
 {-# INLINE modifyTopBH #-}
 
 deleteFindTopBH ::
-  (Ord a, U.Unbox a, PrimMonad m) =>
-  MinBinaryHeap (PrimState m) a ->
+  (OrdVia f a, U.Unbox a, PrimMonad m) =>
+  BinaryHeap f (PrimState m) a ->
   m (Maybe a)
 deleteFindTopBH bh = do
   size <- getBinaryHeapSize bh
