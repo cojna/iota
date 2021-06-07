@@ -18,7 +18,7 @@ dijkstraCSR ::
   U.Vector w
 dijkstraCSR source gr@CSR{..} = U.create $ do
   dist <- UM.replicate numVerticesCSR maxBound
-  heap <- newMinBinaryHeap numEdgesCSR
+  heap <- newMinBinaryHeap (numEdgesCSR + 1)
   UM.write dist source 0
   insertBH (0, source) heap
   fix $ \loop -> do
