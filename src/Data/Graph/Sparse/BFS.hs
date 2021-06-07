@@ -11,6 +11,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Deque
 import Data.Graph.Sparse
 
+-- | /O(V+E)/
 bfsCSR :: Vertex -> SparseGraph w -> U.Vector Int
 bfsCSR source gr@CSR{..} = U.create $ do
   dist <- UM.replicate numVerticesCSR maxBound
