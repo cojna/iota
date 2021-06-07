@@ -14,7 +14,7 @@ import Data.Graph.Sparse
 bfsCSR :: Vertex -> SparseGraph w -> U.Vector Int
 bfsCSR source gr@CSR{..} = U.create $ do
   dist <- UM.replicate numVerticesCSR maxBound
-  que <- newQueue numEdgesCSR
+  que <- newQueue (numEdgesCSR + 1)
   UM.write dist source 0
   pushBack source que
   fix $ \loop -> do
