@@ -7,13 +7,13 @@ import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import Data.Deque
+import Data.Buffer
 import Data.Graph.Sparse
 
 topSort :: SparseGraph w -> Maybe (U.Vector Int)
 topSort gr = runST $ do
   let n = numVerticesCSR gr
-  q <- newQueue n
+  q <- newBufferAsQueue n
   let inDegree =
         U.unsafeAccumulate (+) (U.replicate n (0 :: Int))
           . U.map (flip (,) 1)
@@ -31,7 +31,7 @@ topSort gr = runST $ do
             i -> UM.unsafeWrite inDeg u (i - 1)
         loop
       Nothing -> return ()
-  enqueueCount <- UM.unsafeRead (dequeVars q) _dequeBackPos
-  if enqueueCount == n
-    then Just <$> U.unsafeFreeze (getDeque q)
+  buf <- unsafeFreezeInternalBuffer q
+  if U.length buf == n
+    then return $ Just buf
     else return Nothing

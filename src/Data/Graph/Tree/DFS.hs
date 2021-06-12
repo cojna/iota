@@ -7,7 +7,7 @@ import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import Data.Deque
+import Data.Buffer
 import Data.Graph.Sparse
 
 shortestPath :: (U.Unbox w, Num w) => SparseGraph w -> Vertex -> U.Vector w
@@ -15,7 +15,7 @@ shortestPath gr root = U.create $ do
   let n = numVerticesCSR gr
   dist <- UM.unsafeNew n
   UM.unsafeWrite dist root 0
-  stack <- newStack n
+  stack <- newBufferAsStack n
   parent <- UM.unsafeNew n
 
   U.forM_ (gr `iadjW` root) $ \(ei, v, d) -> do

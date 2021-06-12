@@ -13,7 +13,7 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 --
-import Data.Deque
+import Data.Buffer
 import My.Prelude (rep)
 
 type Vertex = Int
