@@ -8,7 +8,7 @@ import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import Data.Deque
+import Data.Buffer
 import Data.Graph.Sparse
 import My.Prelude (rep)
 
@@ -19,7 +19,7 @@ stronglyConnectedComponents gr = runST $ do
   let numV = numVerticesCSR gr
   low <- UM.replicate numV nothing
   preord <- UM.replicate numV nothing
-  stack <- newStack numV
+  stack <- newBufferAsStack numV
   component <- UM.replicate numV nothing
   vars <- UM.replicate 2 0
 

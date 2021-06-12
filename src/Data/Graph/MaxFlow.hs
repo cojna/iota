@@ -13,7 +13,7 @@ import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import Data.Deque
+import Data.Buffer
 
 nothingMF :: Int
 nothingMF = -1
@@ -76,7 +76,7 @@ runMaxFlow ::
 runMaxFlow src sink mf@MaxFlow{..} = do
   flip fix 0 $ \loopBFS !flow -> do
     UM.set levelMF nothingMF
-    clearQueue queueMF
+    clearBuffer queueMF
     bfsMF src sink mf
     lsink <- UM.unsafeRead levelMF sink
     if lsink == nothingMF
@@ -200,7 +200,7 @@ buildMaxFlow MaxFlowBuilder{..} = do
   revEdgeMF <- U.unsafeFreeze mrevEdgeMF
   iterMF <- UM.replicate numVerticesMF 0
   U.unsafeCopy iterMF offsetMF
-  queueMF <- newQueue numVerticesMF
+  queueMF <- newBufferAsQueue numVerticesMF
   return MaxFlow{..}
 
 addEdgeMFB ::

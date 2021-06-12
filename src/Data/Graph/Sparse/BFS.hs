@@ -8,14 +8,14 @@ import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import Data.Deque
+import Data.Buffer
 import Data.Graph.Sparse
 
 -- | /O(V+E)/
 bfsCSR :: Vertex -> SparseGraph w -> U.Vector Int
 bfsCSR source gr@CSR{..} = U.create $ do
   dist <- UM.replicate numVerticesCSR maxBound
-  que <- newQueue (numEdgesCSR + 1)
+  que <- newBufferAsQueue (numEdgesCSR + 1)
   UM.write dist source 0
   pushBack source que
   fix $ \loop -> do

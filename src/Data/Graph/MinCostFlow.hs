@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Word
 import Unsafe.Coerce
 
-import Data.Deque
+import Data.Buffer
 import Data.Heap.Binary
 import My.Prelude (rep)
 
