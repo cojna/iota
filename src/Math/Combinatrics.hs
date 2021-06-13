@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 module Math.Combinatrics where
 
@@ -9,6 +11,7 @@ import Data.Coerce
 import Data.Proxy
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import GHC.Exts
 import GHC.TypeLits
 
 import Data.GaloisField (GF (GF), natValAsInt)
@@ -43,6 +46,29 @@ comb n k
   | 0 <= k, k <= n = fact n * recipFact (n - k) * recipFact k
   | otherwise = GF 0
 {-# INLINE comb #-}
+
+{- | /O(r)/
+
+>>> combNaive 64 32
+1832624140942590534
+>>> combNaive 123456789 2
+7620789313366866
+>>> combNaive 123 456
+0
+-}
+combNaive :: Int -> Int -> Int
+combNaive n@(I# ni#) r@(I# ri#)
+  | 0 <= r, r <= n = go# 1## 1##
+  | otherwise = 0
+  where
+    n# = int2Word# ni#
+    r# = int2Word# ri#
+    go# acc# i#
+      | isTrue# (leWord# i# r#) =
+        case timesWord2# acc# (minusWord# n# (minusWord# i# 1##)) of
+          (# x#, y# #) -> case quotRemWord2# x# y# i# of
+            (# z#, _ #) -> go# z# (plusWord# i# 1##)
+      | otherwise = I# (word2Int# acc#)
 
 defaultFactCacheSize :: Int
 defaultFactCacheSize = 1024 * 1024

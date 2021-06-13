@@ -60,6 +60,19 @@ spec = do
     it "fact * recipFact = 1" $
       U.zipWith (*) factCache (recipFactCache @1000000007)
         `shouldSatisfy` U.all (== 1)
+  describe "combNaive" $ do
+    specify "combNaive 0 0 == 1" $ do
+      combNaive 0 0 `shouldBe` 1
+    specify "combNaive maxBound 1 == maxBound" $ do
+      combNaive maxBound 1 `shouldBe` maxBound
+    specify "combNaive 123456789 2 == 7620789313366866" $ do
+      combNaive 123456789 2 `shouldBe` 7620789313366866
+    specify "combNaive 64 32 == 1832624140942590534" $ do
+      combNaive 64 32 `shouldBe` 1832624140942590534
+    specify "combNaive 123 456 == 0" $ do
+      combNaive 123 456 `shouldBe` 0
+    specify "combNaive 0 (-1) == 0" $ do
+      combNaive 0 (-1) `shouldBe` 0
   describe "combSmall" $ do
     prop "combSmall 5 3 (mod 3) == 1" $ do
       combSmall @3 5 3 `shouldBe` 1
