@@ -58,11 +58,13 @@ doublingStepN_ n x0 next
   | otherwise = error "doublingStepN_: negative step"
 {-# INLINE doublingStepN_ #-}
 
+newtype DoublingTable a = DoublingTable (V.Vector (Doubling a))
+
 buildDoublingTable ::
   (Semigroup a, U.Unbox a) =>
   Doubling a ->
-  V.Vector (Doubling a)
-buildDoublingTable = V.iterateN 63 (\next -> next <> next)
+  DoublingTable a
+buildDoublingTable = DoublingTable . V.iterateN 63 (\next -> next <> next)
 {-# INLINE buildDoublingTable #-}
 
 -- | /O(log N)/
@@ -74,9 +76,9 @@ doublingStepNQuery ::
   Int ->
   -- | initial value
   a ->
-  V.Vector (Doubling a) ->
+  DoublingTable a ->
   (Int, a)
-doublingStepNQuery n x0 v0 table
+doublingStepNQuery n x0 v0 (DoublingTable table)
   | n >= 0 = F.foldl' step (x0, v0) [0 .. 62]
   | otherwise = error "doublingStepQuery: negative step"
   where
