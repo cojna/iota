@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Algorithm.Doubling where
+module Data.Doubling where
 
 import Data.Bits
 import qualified Data.Foldable as F
