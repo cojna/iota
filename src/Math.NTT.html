@@ -1,0 +1,906 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Math.NTT</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Proxy</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Fusion.Stream.Monadic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MS</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.TypeLits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">KnownNat</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.GaloisField.html"><span class="hs-identifier">Data.GaloisField</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier">GF</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier">GF</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.GaloisField.html#natValAsInt"><span class="hs-identifier">natValAsInt</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.GaloisField.html#reifyNat"><span class="hs-identifier">reifyNat</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Math.Prime.html"><span class="hs-identifier">Math.Prime</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Prime.html#primeFactors"><span class="hs-identifier">primeFactors</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><a href="My.Prelude.html#rep"><span class="hs-identifier">rep</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-22"></span><span>  </span><span class="annot"><a href="My.Prelude.html#stream"><span class="hs-identifier">stream</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><a href="My.Prelude.html#streamR"><span class="hs-identifier">streamR</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>  </span><span class="annot"><a href="My.Prelude.html#unsafeShiftRL"><span class="hs-identifier">unsafeShiftRL</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-25"></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">{- | Number Theoretic Transform
+p: prime (c * 2 ^ k + 1)
+n = 2 ^ i, n &lt; 2 ^ k
+
+ /O(n log n)/
+&gt;&gt;&gt; ntt @998244353 [1,1,1,1]
+[4,0,0,0]
+&gt;&gt;&gt; ntt @469762049 [123,0,0,0]
+[123,123,123,123]
+-}</span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Math.NTT.html#ntt"><span class="hs-identifier hs-type">ntt</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161337"><span class="annot"><a href="#local-6989586621679161337"><span class="hs-identifier hs-type">p</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161337"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-40"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161337"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161337"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span id="ntt"><span class="annot"><span class="annottext">ntt :: Vector (GF p) -&gt; Vector (GF p)
+</span><a href="Math.NTT.html#ntt"><span class="hs-identifier hs-var hs-var">ntt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. MVector s (GF p) -&gt; ST s ())
+-&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a.
+Unbox a =&gt;
+(forall s. MVector s a -&gt; ST s ()) -&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.modify</span></span><span> </span><span class="annot"><span class="annottext">forall s. MVector s (GF p) -&gt; ST s ()
+forall (p :: Nat) (m :: * -&gt; *).
+(KnownNat p, PrimMonad m) =&gt;
+MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#butterfly"><span class="hs-identifier hs-var">butterfly</span></a></span><span>
+</span><span id="line-43"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.NTT.html#ntt"><span class="hs-pragma hs-type">ntt</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Math.NTT.html#intt"><span class="hs-identifier hs-type">intt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161333"><span class="annot"><a href="#local-6989586621679161333"><span class="hs-identifier hs-type">p</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161333"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161333"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161333"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span id="intt"><span class="annot"><span class="annottext">intt :: Vector (GF p) -&gt; Vector (GF p)
+</span><a href="Math.NTT.html#intt"><span class="hs-identifier hs-var hs-var">intt</span></a></span></span><span> </span><span id="local-6989586621679161332"><span class="annot"><span class="annottext">f :: Vector (GF p)
+</span><a href="#local-6989586621679161332"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; GF p) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b. (Unbox a, Unbox b) =&gt; (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161329"><span class="hs-identifier hs-var">invn</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Vector (GF p) -&gt; Vector (GF p)) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(forall s. MVector s (GF p) -&gt; ST s ())
+-&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a.
+Unbox a =&gt;
+(forall s. MVector s a -&gt; ST s ()) -&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.modify</span></span><span> </span><span class="annot"><span class="annottext">forall s. MVector s (GF p) -&gt; ST s ()
+forall (p :: Nat) (m :: * -&gt; *).
+(KnownNat p, PrimMonad m) =&gt;
+MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#invButterfly"><span class="hs-identifier hs-var">invButterfly</span></a></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161332"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161329"><span class="annot"><span class="annottext">invn :: GF p
+</span><a href="#local-6989586621679161329"><span class="hs-identifier hs-var hs-var">invn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p
+forall a. Fractional a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">recip</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; GF p) -&gt; Int -&gt; GF p
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161332"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.NTT.html#intt"><span class="hs-pragma hs-type">intt</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-comment">{- |
+&gt;&gt;&gt; convolute @998244353 [1,1,1,0] [1,1,1,0]
+[1,2,3,2,1,0,0]
+&gt;&gt;&gt; convolute @998244353 [1,1,1] [1,1,1,0]
+[1,2,3,2,1,0]
+-}</span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Math.NTT.html#convolute"><span class="hs-identifier hs-type">convolute</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161324"><span class="annot"><a href="#local-6989586621679161324"><span class="hs-identifier hs-type">p</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161324"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161324"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-61"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161324"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-62"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161324"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span id="convolute"><span class="annot"><span class="annottext">convolute :: Vector (GF p) -&gt; Vector (GF p) -&gt; Vector (GF p)
+</span><a href="Math.NTT.html#convolute"><span class="hs-identifier hs-var hs-var">convolute</span></a></span></span><span> </span><span id="local-6989586621679161323"><span class="annot"><span class="annottext">xs :: Vector (GF p)
+</span><a href="#local-6989586621679161323"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span id="local-6989586621679161322"><span class="annot"><span class="annottext">ys :: Vector (GF p)
+</span><a href="#local-6989586621679161322"><span class="hs-identifier hs-var">ys</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. ST s (MVector s (GF p))) -&gt; Vector (GF p)
+forall a. Unbox a =&gt; (forall s. ST s (MVector s a)) -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.create</span></span><span> </span><span class="annot"><span class="annottext">((forall s. ST s (MVector s (GF p))) -&gt; Vector (GF p))
+-&gt; (forall s. ST s (MVector s (GF p))) -&gt; Vector (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679161320"><span class="annot"><span class="annottext">MVector s (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; GF p -&gt; ST s (MVector (PrimState (ST s)) (GF p))
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161318"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p) -&gt; Vector (GF p) -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; Vector a -&gt; m ()
+</span><span class="hs-identifier hs-var">U.unsafeCopy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; MVector s (GF p) -&gt; MVector s (GF p)
+forall a s. Unbox a =&gt; Int -&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161315"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161323"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p) -&gt; ST s ()
+forall (p :: Nat) (m :: * -&gt; *).
+(KnownNat p, PrimMonad m) =&gt;
+MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#butterfly"><span class="hs-identifier hs-var">butterfly</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+MVector (PrimState (ST s)) (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679161314"><span class="annot"><span class="annottext">MVector s (GF p)
+</span><a href="#local-6989586621679161314"><span class="hs-identifier hs-var">mys</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; GF p -&gt; ST s (MVector (PrimState (ST s)) (GF p))
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161318"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p) -&gt; Vector (GF p) -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; Vector a -&gt; m ()
+</span><span class="hs-identifier hs-var">U.unsafeCopy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; MVector s (GF p) -&gt; MVector s (GF p)
+forall a s. Unbox a =&gt; Int -&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161313"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+</span><a href="#local-6989586621679161314"><span class="hs-identifier hs-var">mys</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161322"><span class="hs-identifier hs-var">ys</span></a></span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p) -&gt; ST s ()
+forall (p :: Nat) (m :: * -&gt; *).
+(KnownNat p, PrimMonad m) =&gt;
+MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#butterfly"><span class="hs-identifier hs-var">butterfly</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+MVector (PrimState (ST s)) (GF p)
+</span><a href="#local-6989586621679161314"><span class="hs-identifier hs-var">mys</span></a></span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161318"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ()) -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161312"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161312"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-71"></span><span>    </span><span id="local-6989586621679161311"><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161311"><span class="hs-identifier hs-var">yi</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p) -&gt; Int -&gt; ST s (GF p)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+MVector (PrimState (ST s)) (GF p)
+</span><a href="#local-6989586621679161314"><span class="hs-identifier hs-var">mys</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161312"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-72"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p)
+-&gt; (GF p -&gt; GF p) -&gt; Int -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+MVector (PrimState (ST s)) (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161311"><span class="hs-identifier hs-var">yi</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161312"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p) -&gt; ST s ()
+forall (p :: Nat) (m :: * -&gt; *).
+(KnownNat p, PrimMonad m) =&gt;
+MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#invButterfly"><span class="hs-identifier hs-var">invButterfly</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+MVector (PrimState (ST s)) (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161315"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161313"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ()) -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161307"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161307"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) (GF p)
+-&gt; (GF p -&gt; GF p) -&gt; Int -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+MVector (PrimState (ST s)) (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161306"><span class="hs-identifier hs-var">ilen</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161307"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="annottext">MVector s (GF p) -&gt; ST s (MVector s (GF p))
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(MVector s (GF p) -&gt; ST s (MVector s (GF p)))
+-&gt; MVector s (GF p) -&gt; ST s (MVector s (GF p))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; MVector s (GF p) -&gt; MVector s (GF p)
+forall a s. Unbox a =&gt; Int -&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.take</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161315"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161313"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MVector s (GF p)
+</span><a href="#local-6989586621679161320"><span class="hs-identifier hs-var">mxs</span></a></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-78"></span><span>    </span><span id="local-6989586621679161315"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161315"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161323"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span id="local-6989586621679161313"><span class="annot"><span class="annottext">m :: Int
+</span><a href="#local-6989586621679161313"><span class="hs-identifier hs-var hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161322"><span class="hs-identifier hs-var">ys</span></a></span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161305"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679161305"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161303"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679161303"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161303"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161315"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161313"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161303"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161318"><span class="annot"><span class="annottext">len :: Int
+</span><a href="#local-6989586621679161318"><span class="hs-identifier hs-var hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161305"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161306"><span class="annot"><span class="annottext">ilen :: GF p
+</span><a href="#local-6989586621679161306"><span class="hs-identifier hs-var hs-var">ilen</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p
+forall a. Fractional a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">recip</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161318"><span class="hs-identifier hs-var">len</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-83"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.NTT.html#convolute"><span class="hs-pragma hs-type">convolute</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-keyword">data</span><span> </span><span id="NTTRunner"><span class="annot"><a href="Math.NTT.html#NTTRunner"><span class="hs-identifier hs-var">NTTRunner</span></a></span></span><span> </span><span id="local-6989586621679161413"><span class="annot"><a href="#local-6989586621679161413"><span class="hs-identifier hs-type">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NTTRunner"><span class="annot"><a href="Math.NTT.html#NTTRunner"><span class="hs-identifier hs-var">NTTRunner</span></a></span></span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="sesNR"><span class="annot"><span class="annottext">NTTRunner p -&gt; Vector (GF p)
+</span><a href="Math.NTT.html#sesNR"><span class="hs-identifier hs-var hs-var">sesNR</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161413"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="siesNR"><span class="annot"><span class="annottext">NTTRunner p -&gt; Vector (GF p)
+</span><a href="Math.NTT.html#siesNR"><span class="hs-identifier hs-var hs-var">siesNR</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161413"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="annot"><a href="Math.NTT.html#nttRunner"><span class="hs-identifier hs-type">nttRunner</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161373"><span class="annot"><a href="#local-6989586621679161373"><span class="hs-identifier hs-type">p</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161373"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Math.NTT.html#NTTRunner"><span class="hs-identifier hs-type">NTTRunner</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161373"><span class="hs-identifier hs-type">p</span></a></span><span>
+</span><span id="line-91"></span><span id="nttRunner"><span class="annot"><span class="annottext">nttRunner :: NTTRunner p
+</span><a href="Math.NTT.html#nttRunner"><span class="hs-identifier hs-var hs-var">nttRunner</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">$WNTTRunner :: forall (p :: Nat). Vector (GF p) -&gt; Vector (GF p) -&gt; NTTRunner p
+</span><a href="Math.NTT.html#%24WNTTRunner"><span class="hs-identifier hs-type hs-type">NTTRunner</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-93"></span><span>    </span><span id="local-6989586621679161293"><span class="annot"><span class="annottext">p :: Int
+</span><a href="#local-6989586621679161293"><span class="hs-identifier hs-var hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy p -&gt; Int
+forall (n :: Nat) (proxy :: Nat -&gt; *). KnownNat n =&gt; proxy n -&gt; Int
+</span><a href="Data.GaloisField.html#natValAsInt"><span class="hs-identifier hs-var">natValAsInt</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy p
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679161373"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>    </span><span id="local-6989586621679161291"><span class="annot"><span class="annottext">g :: Int
+</span><a href="#local-6989586621679161291"><span class="hs-identifier hs-var hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="Math.NTT.html#primitiveRoot"><span class="hs-identifier hs-var">primitiveRoot</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161293"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span>    </span><span id="local-6989586621679161289"><span class="annot"><span class="annottext">ctz :: Int
+</span><a href="#local-6989586621679161289"><span class="hs-identifier hs-var hs-var">ctz</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countTrailingZeros</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161293"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161287"><span class="annot"><span class="annottext">e :: GF p
+</span><a href="#local-6989586621679161287"><span class="hs-identifier hs-var hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161291"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; Int -&gt; GF p
+forall a b. (Num a, Integral b) =&gt; a -&gt; b -&gt; a
+</span><span class="hs-operator hs-var">^</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161293"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161289"><span class="hs-identifier hs-var">ctz</span></a></span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161284"><span class="annot"><span class="annottext">ie :: GF p
+</span><a href="#local-6989586621679161284"><span class="hs-identifier hs-var hs-var">ie</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p
+forall a. Fractional a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">recip</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161287"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span>    </span><span id="local-6989586621679161283"><span class="annot"><span class="annottext">es :: Vector (GF p)
+</span><a href="#local-6989586621679161283"><span class="hs-identifier hs-var hs-var">es</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Vector (GF p)
+forall a. Unbox a =&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.reverse</span></span><span> </span><span class="annot"><span class="annottext">(Vector (GF p) -&gt; Vector (GF p)) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (GF p -&gt; GF p) -&gt; GF p -&gt; Vector (GF p)
+forall a. Unbox a =&gt; Int -&gt; (a -&gt; a) -&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.iterateN</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161289"><span class="hs-identifier hs-var">ctz</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679161280"><span class="annot"><span class="annottext">x :: GF p
+</span><a href="#local-6989586621679161280"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161280"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161280"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161287"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-101"></span><span>    </span><span id="local-6989586621679161279"><span class="annot"><span class="annottext">ies :: Vector (GF p)
+</span><a href="#local-6989586621679161279"><span class="hs-identifier hs-var hs-var">ies</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Vector (GF p)
+forall a. Unbox a =&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.reverse</span></span><span> </span><span class="annot"><span class="annottext">(Vector (GF p) -&gt; Vector (GF p)) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (GF p -&gt; GF p) -&gt; GF p -&gt; Vector (GF p)
+forall a. Unbox a =&gt; Int -&gt; (a -&gt; a) -&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.iterateN</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161289"><span class="hs-identifier hs-var">ctz</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679161278"><span class="annot"><span class="annottext">x :: GF p
+</span><a href="#local-6989586621679161278"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161278"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161278"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161284"><span class="hs-identifier hs-var">ie</span></a></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span>    </span><span id="local-6989586621679161296"><span class="annot"><span class="annottext">sesNR :: Vector (GF p)
+</span><a href="#local-6989586621679161296"><span class="hs-identifier hs-var hs-var">sesNR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; GF p -&gt; GF p)
+-&gt; Vector (GF p) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b c.
+(Unbox a, Unbox b, Unbox c) =&gt;
+(a -&gt; b -&gt; c) -&gt; Vector a -&gt; Vector b -&gt; Vector c
+</span><span class="hs-identifier hs-var">U.zipWith</span></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161283"><span class="hs-identifier hs-var">es</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (GF p) -&gt; Vector (GF p)) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; GF p -&gt; GF p) -&gt; GF p -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b.
+(Unbox a, Unbox b) =&gt;
+(a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.scanl'</span></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161279"><span class="hs-identifier hs-var">ies</span></a></span><span>
+</span><span id="line-104"></span><span>    </span><span id="local-6989586621679161295"><span class="annot"><span class="annottext">siesNR :: Vector (GF p)
+</span><a href="#local-6989586621679161295"><span class="hs-identifier hs-var hs-var">siesNR</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; GF p -&gt; GF p)
+-&gt; Vector (GF p) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b c.
+(Unbox a, Unbox b, Unbox c) =&gt;
+(a -&gt; b -&gt; c) -&gt; Vector a -&gt; Vector b -&gt; Vector c
+</span><span class="hs-identifier hs-var">U.zipWith</span></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161279"><span class="hs-identifier hs-var">ies</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (GF p) -&gt; Vector (GF p)) -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; GF p -&gt; GF p) -&gt; GF p -&gt; Vector (GF p) -&gt; Vector (GF p)
+forall a b.
+(Unbox a, Unbox b) =&gt;
+(a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.scanl'</span></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161283"><span class="hs-identifier hs-var">es</span></a></span><span>
+</span><span id="line-105"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Math.NTT.html#nttRunner"><span class="hs-pragma hs-type">nttRunner</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span id="local-6989586621679161451"><span id="local-6989586621679161452"><span class="annot"><a href="Math.NTT.html#butterfly"><span class="hs-identifier hs-type">butterfly</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-108"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161452"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679161451"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-109"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679161451"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161452"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-110"></span><span>  </span><span class="annot"><a href="#local-6989586621679161451"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-111"></span><span id="butterfly"><span class="annot"><span class="annottext">butterfly :: MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#butterfly"><span class="hs-identifier hs-var hs-var">butterfly</span></a></span></span><span> </span><span id="local-6989586621679161275"><span class="annot"><span class="annottext">mvec :: MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161275"><span class="hs-identifier hs-var">mvec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-112"></span><span>  </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Stream m Int -&gt; m ())
+-&gt; Stream m Int -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m ()) -&gt; Stream m Int -&gt; m ()
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream m a -&gt; m ()
+</span><span class="hs-identifier hs-var">MS.mapM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161272"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; m ()) -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161271"><span class="annot"><span class="annottext">ph :: Int
+</span><a href="#local-6989586621679161271"><span class="hs-identifier hs-var">ph</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-113"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679161270"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679161270"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161271"><span class="hs-identifier hs-var">ph</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-114"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679161269"><span class="annot"><span class="annottext">p :: Int
+</span><a href="#local-6989586621679161269"><span class="hs-identifier hs-var hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161272"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161271"><span class="hs-identifier hs-var">ph</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>    </span><span class="annot"><span class="annottext">m (GF p) -&gt; m ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(m (GF p) -&gt; m ()) -&gt; m (GF p) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-116"></span><span>      </span><span class="annot"><span class="annottext">(GF p -&gt; Int -&gt; m (GF p)) -&gt; GF p -&gt; Stream m Int -&gt; m (GF p)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Stream m b -&gt; m a
+</span><span class="hs-identifier hs-var">MS.foldlM'</span></span><span>
+</span><span id="line-117"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161266"><span class="annot"><span class="annottext">acc :: GF p
+</span><a href="#local-6989586621679161266"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679161265"><span class="annot"><span class="annottext">s :: Int
+</span><a href="#local-6989586621679161265"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-118"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679161264"><span class="annot"><span class="annottext">offset :: Int
+</span><a href="#local-6989586621679161264"><span class="hs-identifier hs-var hs-var">offset</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161265"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161272"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161271"><span class="hs-identifier hs-var">ph</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span>            </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Stream m Int -&gt; m ())
+-&gt; Stream m Int -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m ()) -&gt; Stream m Int -&gt; m ()
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream m a -&gt; m ()
+</span><span class="hs-identifier hs-var">MS.mapM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161264"><span class="hs-identifier hs-var">offset</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161264"><span class="hs-identifier hs-var">offset</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161269"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; m ()) -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161263"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161263"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-120"></span><span>              </span><span id="local-6989586621679161262"><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161262"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; m (GF p)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161275"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161263"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-121"></span><span>              </span><span id="local-6989586621679161261"><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161261"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161266"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; GF p) -&gt; m (GF p) -&gt; m (GF p)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">&lt;$!&gt;</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; m (GF p)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161275"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161263"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161269"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>              </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; GF p -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161275"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161263"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161269"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; m ()) -&gt; GF p -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161262"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161261"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-123"></span><span>              </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; GF p -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161275"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161263"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; m ()) -&gt; GF p -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161262"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161261"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-124"></span><span>            </span><span class="annot"><span class="annottext">GF p -&gt; m (GF p)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; m (GF p)) -&gt; GF p -&gt; m (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161266"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Int -&gt; GF p
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161256"><span class="hs-identifier hs-var">siesNR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countTrailingZeros</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">complement</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161265"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>        </span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span>        </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-127"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161270"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-129"></span><span>    </span><span id="local-6989586621679161254"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161254"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int
+forall a s. Unbox a =&gt; MVector s a -&gt; Int
+</span><span class="hs-identifier hs-var">UM.length</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161275"><span class="hs-identifier hs-var">mvec</span></a></span><span>
+</span><span id="line-130"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161272"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679161272"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161252"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679161252"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161252"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161254"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161252"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-131"></span><span>    </span><span id="local-6989586621679161251"><span id="local-6989586621679161256"><span class="annot"><a href="Math.NTT.html#NTTRunner"><span class="hs-identifier hs-type">NTTRunner</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NTTRunner p
+forall (p :: Nat). KnownNat p =&gt; NTTRunner p
+</span><a href="Math.NTT.html#nttRunner"><span class="hs-identifier hs-var">nttRunner</span></a></span><span>
+</span><span id="line-132"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.NTT.html#butterfly"><span class="hs-pragma hs-type">butterfly</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="annot"><a href="Math.NTT.html#invButterfly"><span class="hs-identifier hs-type">invButterfly</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161250"><span class="annot"><a href="#local-6989586621679161250"><span class="hs-identifier hs-type">p</span></a></span></span><span> </span><span id="local-6989586621679161249"><span class="annot"><a href="#local-6989586621679161249"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-136"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161250"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679161249"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-137"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679161249"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161250"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-138"></span><span>  </span><span class="annot"><a href="#local-6989586621679161249"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span id="invButterfly"><span class="annot"><span class="annottext">invButterfly :: MVector (PrimState m) (GF p) -&gt; m ()
+</span><a href="Math.NTT.html#invButterfly"><span class="hs-identifier hs-var hs-var">invButterfly</span></a></span></span><span> </span><span id="local-6989586621679161248"><span class="annot"><span class="annottext">mvec :: MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161248"><span class="hs-identifier hs-var">mvec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m () -&gt; m ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-140"></span><span>  </span><span class="annot"><span class="annottext">((Int -&gt; m (GF p)) -&gt; Stream m Int -&gt; m ())
+-&gt; Stream m Int -&gt; (Int -&gt; m (GF p)) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m (GF p)) -&gt; Stream m Int -&gt; m ()
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream m a -&gt; m ()
+</span><span class="hs-identifier hs-var">MS.mapM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#streamR"><span class="hs-identifier hs-var">streamR</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161247"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m (GF p)) -&gt; m ()) -&gt; (Int -&gt; m (GF p)) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161246"><span class="annot"><span class="annottext">ph :: Int
+</span><a href="#local-6989586621679161246"><span class="hs-identifier hs-var">ph</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679161245"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679161245"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161246"><span class="hs-identifier hs-var">ph</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679161244"><span class="annot"><span class="annottext">p :: Int
+</span><a href="#local-6989586621679161244"><span class="hs-identifier hs-var hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161247"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161246"><span class="hs-identifier hs-var">ph</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><span class="annottext">(GF p -&gt; Int -&gt; m (GF p)) -&gt; GF p -&gt; Stream m Int -&gt; m (GF p)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Stream m b -&gt; m a
+</span><span class="hs-identifier hs-var">MS.foldlM'</span></span><span>
+</span><span id="line-144"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161243"><span class="annot"><span class="annottext">acc :: GF p
+</span><a href="#local-6989586621679161243"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679161242"><span class="annot"><span class="annottext">s :: Int
+</span><a href="#local-6989586621679161242"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-145"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679161241"><span class="annot"><span class="annottext">offset :: Int
+</span><a href="#local-6989586621679161241"><span class="hs-identifier hs-var hs-var">offset</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161242"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161247"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161246"><span class="hs-identifier hs-var">ph</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-146"></span><span>          </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Stream m Int -&gt; m ())
+-&gt; Stream m Int -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m ()) -&gt; Stream m Int -&gt; m ()
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream m a -&gt; m ()
+</span><span class="hs-identifier hs-var">MS.mapM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161241"><span class="hs-identifier hs-var">offset</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161241"><span class="hs-identifier hs-var">offset</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161244"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; m ()) -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161240"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161240"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-147"></span><span>            </span><span id="local-6989586621679161239"><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161239"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; m (GF p)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161248"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161240"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-148"></span><span>            </span><span id="local-6989586621679161238"><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161238"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; m (GF p)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161248"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161240"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161244"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-149"></span><span>            </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; GF p -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161248"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161240"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161244"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; m ()) -&gt; GF p -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161243"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161239"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161238"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>            </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int -&gt; GF p -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161248"><span class="hs-identifier hs-var">mvec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161240"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; m ()) -&gt; GF p -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161239"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161238"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-151"></span><span>          </span><span class="annot"><span class="annottext">GF p -&gt; m (GF p)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(GF p -&gt; m (GF p)) -&gt; GF p -&gt; m (GF p)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161243"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; GF p
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p) -&gt; Int -&gt; GF p
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector (GF p)
+</span><a href="#local-6989586621679161237"><span class="hs-identifier hs-var">sesNR</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countTrailingZeros</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">complement</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161242"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-152"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-153"></span><span>      </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-154"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161245"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-156"></span><span>    </span><span id="local-6989586621679161236"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161236"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p) -&gt; Int
+forall a s. Unbox a =&gt; MVector s a -&gt; Int
+</span><span class="hs-identifier hs-var">UM.length</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) (GF p)
+</span><a href="#local-6989586621679161248"><span class="hs-identifier hs-var">mvec</span></a></span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161247"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679161247"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161235"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679161235"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161235"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161236"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161235"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-158"></span><span>    </span><span id="local-6989586621679161234"><span id="local-6989586621679161237"><span class="annot"><a href="Math.NTT.html#NTTRunner"><span class="hs-identifier hs-type">NTTRunner</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NTTRunner p
+forall (p :: Nat). KnownNat p =&gt; NTTRunner p
+</span><a href="Math.NTT.html#nttRunner"><span class="hs-identifier hs-var">nttRunner</span></a></span><span>
+</span><span id="line-159"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.NTT.html#invButterfly"><span class="hs-pragma hs-type">invButterfly</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-160"></span><span>
+</span><span id="line-161"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; growToPowerOfTwo [1,2,3]
+ [1,2,3,0]
+-}</span><span>
+</span><span id="line-165"></span><span id="local-6989586621679161233"><span class="annot"><a href="Math.NTT.html#growToPowerOfTwo"><span class="hs-identifier hs-type">growToPowerOfTwo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679161233"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679161233"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679161233"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679161233"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-166"></span><span id="growToPowerOfTwo"><span class="annot"><span class="annottext">growToPowerOfTwo :: Vector a -&gt; Vector a
+</span><a href="Math.NTT.html#growToPowerOfTwo"><span class="hs-identifier hs-var hs-var">growToPowerOfTwo</span></a></span></span><span> </span><span id="local-6989586621679161231"><span class="annot"><span class="annottext">v :: Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span></span><span>
+</span><span id="line-167"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Bool
+forall a. Unbox a =&gt; Vector a -&gt; Bool
+</span><span class="hs-identifier hs-var">U.null</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Vector a
+forall a. Unbox a =&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.singleton</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-168"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-169"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679161228"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161228"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="My.Prelude.html#unsafeShiftRL"><span class="hs-identifier hs-var">unsafeShiftRL</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countLeadingZeros</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-170"></span><span>    </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Vector a -&gt; Vector a
+forall a. Unbox a =&gt; Vector a -&gt; Vector a -&gt; Vector a
+</span><span class="hs-operator hs-var">U.++</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Vector a
+forall a. Unbox a =&gt; Int -&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161228"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161231"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-171"></span><span>
+</span><span id="line-172"></span><span class="hs-comment">{- |
+&gt;&gt;&gt; extendToPowerOfTwo 0
+1
+-}</span><span>
+</span><span id="line-176"></span><span class="annot"><a href="Math.NTT.html#extendToPowerOfTwo"><span class="hs-identifier hs-type">extendToPowerOfTwo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-177"></span><span id="extendToPowerOfTwo"><span class="annot"><span class="annottext">extendToPowerOfTwo :: Int -&gt; Int
+</span><a href="Math.NTT.html#extendToPowerOfTwo"><span class="hs-identifier hs-var hs-var">extendToPowerOfTwo</span></a></span></span><span> </span><span id="local-6989586621679161223"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679161223"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161223"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="My.Prelude.html#unsafeShiftRL"><span class="hs-identifier hs-var">unsafeShiftRL</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countLeadingZeros</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161223"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-179"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-180"></span><span>
+</span><span id="line-181"></span><span class="hs-comment">{- |
+&gt;&gt;&gt; primitiveRoot 2
+1
+&gt;&gt;&gt; primitiveRoot 998244353
+3
+-}</span><span>
+</span><span id="line-187"></span><span class="annot"><a href="Math.NTT.html#primitiveRoot"><span class="hs-identifier hs-type">primitiveRoot</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-188"></span><span>  </span><span class="hs-comment">-- | prime</span><span>
+</span><span id="line-189"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-190"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-191"></span><span id="primitiveRoot"><span class="annot"><span class="annottext">primitiveRoot :: Int -&gt; Int
+</span><a href="Math.NTT.html#primitiveRoot"><span class="hs-identifier hs-var hs-var">primitiveRoot</span></a></span></span><span> </span><span class="hs-number">2</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-192"></span><span class="annot"><a href="Math.NTT.html#primitiveRoot"><span class="hs-identifier hs-var">primitiveRoot</span></a></span><span> </span><span id="local-6989586621679161221"><span class="annot"><span class="annottext">prime :: Int
+</span><a href="#local-6989586621679161221"><span class="hs-identifier hs-var">prime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; (forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; Int) -&gt; Int
+forall i a.
+Integral i =&gt;
+i -&gt; (forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; a) -&gt; a
+</span><a href="Data.GaloisField.html#reifyNat"><span class="hs-identifier hs-var">reifyNat</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161221"><span class="hs-identifier hs-var">prime</span></a></span><span> </span><span class="annot"><span class="annottext">((forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; Int) -&gt; Int)
+-&gt; (forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; Int) -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161220"><span class="annot"><span class="annottext">proxy :: Proxy n
+</span><a href="#local-6989586621679161220"><span class="hs-identifier hs-var">proxy</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-193"></span><span>  </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161219"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679161219"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161219"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; [Int] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">GF n -&gt; Int -&gt; Bool
+forall (p :: Nat). KnownNat p =&gt; GF p -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679161217"><span class="hs-identifier hs-var">check</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Proxy n -&gt; Int -&gt; GF n
+forall (p :: Nat). Proxy p -&gt; Int -&gt; GF p
+</span><a href="#local-6989586621679161216"><span class="hs-identifier hs-var">toGF</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy n
+</span><a href="#local-6989586621679161220"><span class="hs-identifier hs-var">proxy</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161219"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679161215"><span class="hs-identifier hs-var">ps</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-194"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-195"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679161215"><span class="annot"><span class="annottext">ps :: [Int]
+</span><a href="#local-6989586621679161215"><span class="hs-identifier hs-var hs-var">ps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; Int) -&gt; [[Int]] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">([[Int]] -&gt; [Int]) -&gt; ([Int] -&gt; [[Int]]) -&gt; [Int] -&gt; [Int]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [[Int]]
+forall a. Eq a =&gt; [a] -&gt; [[a]]
+</span><span class="hs-identifier hs-var">L.group</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; [Int]) -&gt; [Int] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int]
+forall i. Integral i =&gt; i -&gt; [i]
+</span><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-var">primeFactors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161221"><span class="hs-identifier hs-var">prime</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-196"></span><span>
+</span><span id="line-197"></span><span>    </span><span id="local-6989586621679161357"><span class="annot"><a href="#local-6989586621679161216"><span class="hs-identifier hs-type">toGF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679161357"><span class="hs-identifier hs-type">p</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161357"><span class="hs-identifier hs-type">p</span></a></span></span><span>
+</span><span id="line-198"></span><span>    </span><span id="local-6989586621679161216"><span class="annot"><span class="annottext">toGF :: Proxy p -&gt; Int -&gt; GF p
+</span><a href="#local-6989586621679161216"><span class="hs-identifier hs-var hs-var">toGF</span></a></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span>
+</span><span id="line-199"></span><span>
+</span><span id="line-200"></span><span>    </span><span id="local-6989586621679161358"><span class="annot"><a href="#local-6989586621679161217"><span class="hs-identifier hs-type">check</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161358"><span class="hs-identifier hs-type">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-type">GF</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161358"><span class="hs-identifier hs-type">p</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-201"></span><span>    </span><span id="local-6989586621679161217"><span class="annot"><span class="annottext">check :: GF p -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679161217"><span class="hs-identifier hs-var hs-var">check</span></a></span></span><span> </span><span id="local-6989586621679161212"><span class="annot"><span class="annottext">g :: GF p
+</span><a href="#local-6989586621679161212"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679161211"><span class="annot"><span class="annottext">p :: Int
+</span><a href="#local-6989586621679161211"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GF p
+</span><a href="#local-6989586621679161212"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; Int -&gt; GF p
+forall a b. (Num a, Integral b) =&gt; a -&gt; b -&gt; a
+</span><span class="hs-operator hs-var">^</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">quot</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161221"><span class="hs-identifier hs-var">prime</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161211"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">GF p -&gt; GF p -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; GF p
+forall (p :: Nat). Int -&gt; GF p
+</span><a href="Data.GaloisField.html#GF"><span class="hs-identifier hs-var">GF</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-202"></span></pre></body></html>

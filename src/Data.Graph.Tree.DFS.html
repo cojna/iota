@@ -1,0 +1,280 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Graph.Tree.DFS</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Buffer.html"><span class="hs-identifier">Data.Buffer</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html"><span class="hs-identifier">Data.Graph.Sparse</span></a></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span id="local-6989586621679156012"><span class="annot"><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-type">shortestPath</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679156012"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679156012"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html#SparseGraph"><span class="hs-identifier hs-type">SparseGraph</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679156012"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679156012"><span class="hs-identifier hs-type">w</span></a></span></span><span>
+</span><span id="line-14"></span><span id="shortestPath"><span class="annot"><span class="annottext">shortestPath :: SparseGraph w -&gt; Vertex -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-var hs-var">shortestPath</span></a></span></span><span> </span><span id="local-6989586621679156004"><span class="annot"><span class="annottext">gr :: SparseGraph w
+</span><a href="#local-6989586621679156004"><span class="hs-identifier hs-var">gr</span></a></span></span><span> </span><span id="local-6989586621679156003"><span class="annot"><span class="annottext">root :: Vertex
+</span><a href="#local-6989586621679156003"><span class="hs-identifier hs-var">root</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. ST s (MVector s w)) -&gt; Vector w
+forall a. Unbox a =&gt; (forall s. ST s (MVector s a)) -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.create</span></span><span> </span><span class="annot"><span class="annottext">((forall s. ST s (MVector s w)) -&gt; Vector w)
+-&gt; (forall s. ST s (MVector s w)) -&gt; Vector w
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679156001"><span class="annot"><span class="annottext">n :: Vertex
+</span><a href="#local-6989586621679156001"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex
+forall w. SparseGraph w -&gt; Vertex
+</span><a href="Data.Graph.Sparse.html#numVerticesCSR"><span class="hs-identifier hs-var hs-var">numVerticesCSR</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679156004"><span class="hs-identifier hs-var">gr</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span id="local-6989586621679155999"><span class="annot"><span class="annottext">MVector s w
+</span><a href="#local-6989586621679155999"><span class="hs-identifier hs-var">dist</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Vertex -&gt; ST s (MVector (PrimState (ST s)) w)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Vertex -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.unsafeNew</span></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679156001"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Vertex -&gt; w -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679155999"><span class="hs-identifier hs-var">dist</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679156003"><span class="hs-identifier hs-var">root</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-18"></span><span>  </span><span id="local-6989586621679155996"><span class="annot"><span class="annottext">Buffer s Vertex
+</span><a href="#local-6989586621679155996"><span class="hs-identifier hs-var">stack</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Vertex -&gt; ST s (Buffer (PrimState (ST s)) Vertex)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Vertex -&gt; m (Buffer (PrimState m) a)
+</span><a href="Data.Buffer.html#newBufferAsStack"><span class="hs-identifier hs-var">newBufferAsStack</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679156001"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679155994"><span class="annot"><span class="annottext">MVector s Vertex
+</span><a href="#local-6989586621679155994"><span class="hs-identifier hs-var">parent</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Vertex -&gt; ST s (MVector (PrimState (ST s)) Vertex)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Vertex -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.unsafeNew</span></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679156001"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><span class="annottext">Vector (Vertex, Vertex, w)
+-&gt; ((Vertex, Vertex, w) -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *) a b.
+(Monad m, Unbox a) =&gt;
+Vector a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">U.forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679156004"><span class="hs-identifier hs-var">gr</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector (Vertex, Vertex, w)
+forall w.
+Unbox w =&gt;
+SparseGraph w -&gt; Vertex -&gt; Vector (Vertex, Vertex, w)
+</span><a href="Data.Graph.Sparse.html#iadjW"><span class="hs-operator hs-var">`iadjW`</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679156003"><span class="hs-identifier hs-var">root</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Vertex, Vertex, w) -&gt; ST s ()) -&gt; ST s ())
+-&gt; ((Vertex, Vertex, w) -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679155991"><span class="annot"><span class="annottext">ei :: Vertex
+</span><a href="#local-6989586621679155991"><span class="hs-identifier hs-var">ei</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679155990"><span class="annot"><span class="annottext">v :: Vertex
+</span><a href="#local-6989586621679155990"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679155989"><span class="annot"><span class="annottext">d :: w
+</span><a href="#local-6989586621679155989"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="annottext">Vertex -&gt; Buffer (PrimState (ST s)) Vertex -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+a -&gt; Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#pushBack"><span class="hs-identifier hs-var">pushBack</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155991"><span class="hs-identifier hs-var">ei</span></a></span><span> </span><span class="annot"><span class="annottext">Buffer s Vertex
+Buffer (PrimState (ST s)) Vertex
+</span><a href="#local-6989586621679155996"><span class="hs-identifier hs-var">stack</span></a></span><span>
+</span><span id="line-23"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) Vertex -&gt; Vertex -&gt; Vertex -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s Vertex
+MVector (PrimState (ST s)) Vertex
+</span><a href="#local-6989586621679155994"><span class="hs-identifier hs-var">parent</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155990"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679156003"><span class="hs-identifier hs-var">root</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Vertex -&gt; w -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679155999"><span class="hs-identifier hs-var">dist</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155990"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679155989"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="annottext">(ST s () -&gt; ST s ()) -&gt; ST s ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">((ST s () -&gt; ST s ()) -&gt; ST s ())
+-&gt; (ST s () -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155986"><span class="annot"><span class="annottext">loop :: ST s ()
+</span><a href="#local-6989586621679155986"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-27"></span><span>    </span><span class="annot"><span class="annottext">Buffer (PrimState (ST s)) Vertex -&gt; ST s (Maybe Vertex)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Buffer (PrimState m) a -&gt; m (Maybe a)
+</span><a href="Data.Buffer.html#popBack"><span class="hs-identifier hs-var">popBack</span></a></span><span> </span><span class="annot"><span class="annottext">Buffer s Vertex
+Buffer (PrimState (ST s)) Vertex
+</span><a href="#local-6989586621679155996"><span class="hs-identifier hs-var">stack</span></a></span><span> </span><span class="annot"><span class="annottext">ST s (Maybe Vertex) -&gt; (Maybe Vertex -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-28"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679155984"><span class="annot"><span class="annottext">ei :: Vertex
+</span><a href="#local-6989586621679155984"><span class="hs-identifier hs-var">ei</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-29"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679155983"><span class="annot"><span class="annottext">v :: Vertex
+</span><a href="#local-6989586621679155983"><span class="hs-identifier hs-var hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vector Vertex
+forall w. SparseGraph w -&gt; Vector Vertex
+</span><a href="Data.Graph.Sparse.html#adjacentCSR"><span class="hs-identifier hs-var hs-var">adjacentCSR</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679156004"><span class="hs-identifier hs-var">gr</span></a></span><span> </span><span class="annot"><span class="annottext">Vector Vertex -&gt; Vertex -&gt; Vertex
+forall a. Unbox a =&gt; Vector a -&gt; Vertex -&gt; a
+</span><span class="hs-operator hs-var">`U.unsafeIndex`</span></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155984"><span class="hs-identifier hs-var">ei</span></a></span><span>
+</span><span id="line-30"></span><span>        </span><span id="local-6989586621679155980"><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155980"><span class="hs-identifier hs-var">pv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) Vertex -&gt; Vertex -&gt; ST s Vertex
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s Vertex
+MVector (PrimState (ST s)) Vertex
+</span><a href="#local-6989586621679155994"><span class="hs-identifier hs-var">parent</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155983"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-31"></span><span>        </span><span id="local-6989586621679155978"><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679155978"><span class="hs-identifier hs-var">dv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Vertex -&gt; ST s w
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679155999"><span class="hs-identifier hs-var">dist</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155983"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-32"></span><span>        </span><span class="annot"><span class="annottext">Vector (Vertex, Vertex, w)
+-&gt; ((Vertex, Vertex, w) -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *) a b.
+(Monad m, Unbox a) =&gt;
+Vector a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">U.forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679156004"><span class="hs-identifier hs-var">gr</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector (Vertex, Vertex, w)
+forall w.
+Unbox w =&gt;
+SparseGraph w -&gt; Vertex -&gt; Vector (Vertex, Vertex, w)
+</span><a href="Data.Graph.Sparse.html#iadjW"><span class="hs-operator hs-var">`iadjW`</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155983"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Vertex, Vertex, w) -&gt; ST s ()) -&gt; ST s ())
+-&gt; ((Vertex, Vertex, w) -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679155977"><span class="annot"><span class="annottext">nei :: Vertex
+</span><a href="#local-6989586621679155977"><span class="hs-identifier hs-var">nei</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679155976"><span class="annot"><span class="annottext">nv :: Vertex
+</span><a href="#local-6989586621679155976"><span class="hs-identifier hs-var">nv</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679155975"><span class="annot"><span class="annottext">d :: w
+</span><a href="#local-6989586621679155975"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>          </span><span class="annot"><span class="annottext">Bool -&gt; ST s () -&gt; ST s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155980"><span class="hs-identifier hs-var">pv</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex -&gt; Vertex -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155976"><span class="hs-identifier hs-var">nv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ST s () -&gt; ST s ()) -&gt; ST s () -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>            </span><span class="annot"><span class="annottext">Vertex -&gt; Buffer (PrimState (ST s)) Vertex -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+a -&gt; Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#pushBack"><span class="hs-identifier hs-var">pushBack</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155977"><span class="hs-identifier hs-var">nei</span></a></span><span> </span><span class="annot"><span class="annottext">Buffer s Vertex
+Buffer (PrimState (ST s)) Vertex
+</span><a href="#local-6989586621679155996"><span class="hs-identifier hs-var">stack</span></a></span><span>
+</span><span id="line-35"></span><span>            </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) Vertex -&gt; Vertex -&gt; Vertex -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s Vertex
+MVector (PrimState (ST s)) Vertex
+</span><a href="#local-6989586621679155994"><span class="hs-identifier hs-var">parent</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155976"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155983"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-36"></span><span>            </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Vertex -&gt; w -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Vertex -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679155999"><span class="hs-identifier hs-var">dist</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155976"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="annot"><span class="annottext">(w -&gt; ST s ()) -&gt; w -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679155978"><span class="hs-identifier hs-var">dv</span></a></span><span> </span><span class="annot"><span class="annottext">w -&gt; w -&gt; w
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679155975"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-37"></span><span>        </span><span class="annot"><span class="annottext">ST s ()
+</span><a href="#local-6989586621679155986"><span class="hs-identifier hs-var">loop</span></a></span><span>
+</span><span id="line-38"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; ST s ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="annottext">MVector s w -&gt; ST s (MVector s w)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+</span><a href="#local-6989586621679155999"><span class="hs-identifier hs-var">dist</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span id="local-6989586621679155971"><span class="annot"><a href="Data.Graph.Tree.DFS.html#diameter"><span class="hs-identifier hs-type">diameter</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155971"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679155971"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155971"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html#SparseGraph"><span class="hs-identifier hs-type">SparseGraph</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155971"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679155971"><span class="hs-identifier hs-type">w</span></a></span></span><span>
+</span><span id="line-42"></span><span id="diameter"><span class="annot"><span class="annottext">diameter :: SparseGraph w -&gt; w
+</span><a href="Data.Graph.Tree.DFS.html#diameter"><span class="hs-identifier hs-var hs-var">diameter</span></a></span></span><span> </span><span id="local-6989586621679155969"><span class="annot"><span class="annottext">tree :: SparseGraph w
+</span><a href="#local-6989586621679155969"><span class="hs-identifier hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-43"></span><span>  </span><span class="annot"><span class="annottext">Vector w -&gt; w
+forall a. (Unbox a, Ord a) =&gt; Vector a -&gt; a
+</span><span class="hs-identifier hs-var">U.maximum</span></span><span>
+</span><span id="line-44"></span><span>    </span><span class="annot"><span class="annottext">(Vector w -&gt; w) -&gt; (Vector w -&gt; Vector w) -&gt; Vector w -&gt; w
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector w
+forall w. (Unbox w, Num w) =&gt; SparseGraph w -&gt; Vertex -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-var">shortestPath</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679155969"><span class="hs-identifier hs-var">tree</span></a></span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="annottext">(Vertex -&gt; Vector w)
+-&gt; (Vector w -&gt; Vertex) -&gt; Vector w -&gt; Vector w
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Vector w -&gt; Vertex
+forall a. (Unbox a, Ord a) =&gt; Vector a -&gt; Vertex
+</span><span class="hs-identifier hs-var">U.maxIndex</span></span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">(Vector w -&gt; w) -&gt; Vector w -&gt; w
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector w
+forall w. (Unbox w, Num w) =&gt; SparseGraph w -&gt; Vertex -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-var">shortestPath</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679155969"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span id="local-6989586621679155965"><span class="annot"><a href="Data.Graph.Tree.DFS.html#height"><span class="hs-identifier hs-type">height</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155965"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679155965"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155965"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html#SparseGraph"><span class="hs-identifier hs-type">SparseGraph</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155965"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679155965"><span class="hs-identifier hs-type">w</span></a></span></span><span>
+</span><span id="line-49"></span><span id="height"><span class="annot"><span class="annottext">height :: SparseGraph w -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#height"><span class="hs-identifier hs-var hs-var">height</span></a></span></span><span> </span><span id="local-6989586621679155963"><span class="annot"><span class="annottext">tree :: SparseGraph w
+</span><a href="#local-6989586621679155963"><span class="hs-identifier hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(w -&gt; w -&gt; w) -&gt; Vector w -&gt; Vector w -&gt; Vector w
+forall a b c.
+(Unbox a, Unbox b, Unbox c) =&gt;
+(a -&gt; b -&gt; c) -&gt; Vector a -&gt; Vector b -&gt; Vector c
+</span><span class="hs-identifier hs-var">U.zipWith</span></span><span> </span><span class="annot"><span class="annottext">w -&gt; w -&gt; w
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Vector w
+</span><a href="#local-6989586621679155960"><span class="hs-identifier hs-var">fromS</span></a></span><span> </span><span class="annot"><span class="annottext">Vector w
+</span><a href="#local-6989586621679155959"><span class="hs-identifier hs-var">fromT</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-51"></span><span>    </span><span id="local-6989586621679155958"><span class="annot"><span class="annottext">s :: Vertex
+</span><a href="#local-6989586621679155958"><span class="hs-identifier hs-var hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector w -&gt; Vertex
+forall a. (Unbox a, Ord a) =&gt; Vector a -&gt; Vertex
+</span><span class="hs-identifier hs-var">U.maxIndex</span></span><span> </span><span class="annot"><span class="annottext">(Vector w -&gt; Vertex) -&gt; Vector w -&gt; Vertex
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector w
+forall w. (Unbox w, Num w) =&gt; SparseGraph w -&gt; Vertex -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-var">shortestPath</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679155963"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-52"></span><span>    </span><span id="local-6989586621679155960"><span class="annot"><span class="annottext">fromS :: Vector w
+</span><a href="#local-6989586621679155960"><span class="hs-identifier hs-var hs-var">fromS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector w
+forall w. (Unbox w, Num w) =&gt; SparseGraph w -&gt; Vertex -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-var">shortestPath</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679155963"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155958"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span id="local-6989586621679155957"><span class="annot"><span class="annottext">t :: Vertex
+</span><a href="#local-6989586621679155957"><span class="hs-identifier hs-var hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector w -&gt; Vertex
+forall a. (Unbox a, Ord a) =&gt; Vector a -&gt; Vertex
+</span><span class="hs-identifier hs-var">U.maxIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector w
+</span><a href="#local-6989586621679155960"><span class="hs-identifier hs-var">fromS</span></a></span><span>
+</span><span id="line-54"></span><span>    </span><span id="local-6989586621679155959"><span class="annot"><span class="annottext">fromT :: Vector w
+</span><a href="#local-6989586621679155959"><span class="hs-identifier hs-var hs-var">fromT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; Vertex -&gt; Vector w
+forall w. (Unbox w, Num w) =&gt; SparseGraph w -&gt; Vertex -&gt; Vector w
+</span><a href="Data.Graph.Tree.DFS.html#shortestPath"><span class="hs-identifier hs-var">shortestPath</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679155963"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Vertex
+</span><a href="#local-6989586621679155957"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-55"></span></pre></body></html>

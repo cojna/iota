@@ -1,0 +1,291 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-comment">{- |
+ = Mo's Algotrithm
+-}</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Algorithm.Mo</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Fusion.Stream.Monadic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MS</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Unsafe.Coerce</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">--</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Vector.Sort.Radix.html"><span class="hs-identifier">Data.Vector.Sort.Radix</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Vector.Sort.Radix.html#radixSort64"><span class="hs-identifier">radixSort64</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="My.Prelude.html#stream"><span class="hs-identifier">stream</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="My.Prelude.html#streamR"><span class="hs-identifier">streamR</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | /O((N+Q)sqrt N)/</span><span>
+</span><span id="line-23"></span><span id="local-6989586621679164195"><span id="local-6989586621679164196"><span class="annot"><a href="Algorithm.Mo.html#moAlgorithm"><span class="hs-identifier hs-type">moAlgorithm</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679164195"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-comment">-- | add</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164195"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-comment">-- | delete</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164195"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-comment">-- | initial value</span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-comment">-- | block size (sqrt N)</span><span>
+</span><span id="line-32"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-comment">-- | query [l, r)</span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><a href="#local-6989586621679164195"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679164196"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-36"></span><span id="moAlgorithm"><span class="annot"><span class="annottext">moAlgorithm :: (a -&gt; Int -&gt; m a)
+-&gt; (a -&gt; Int -&gt; m a)
+-&gt; a
+-&gt; Int
+-&gt; Vector (Int, Int)
+-&gt; m (Vector a)
+</span><a href="Algorithm.Mo.html#moAlgorithm"><span class="hs-identifier hs-var hs-var">moAlgorithm</span></a></span></span><span> </span><span id="local-6989586621679164193"><span class="annot"><span class="annottext">add :: a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679164193"><span class="hs-identifier hs-var">add</span></a></span></span><span> </span><span id="local-6989586621679164192"><span class="annot"><span class="annottext">delete :: a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679164192"><span class="hs-identifier hs-var">delete</span></a></span></span><span> </span><span id="local-6989586621679164191"><span class="annot"><span class="annottext">acc0 :: a
+</span><a href="#local-6989586621679164191"><span class="hs-identifier hs-var">acc0</span></a></span></span><span> </span><span id="local-6989586621679164190"><span class="annot"><span class="annottext">blockSize :: Int
+</span><a href="#local-6989586621679164190"><span class="hs-identifier hs-var">blockSize</span></a></span></span><span> </span><span id="local-6989586621679164189"><span class="annot"><span class="annottext">lrs :: Vector (Int, Int)
+</span><a href="#local-6989586621679164189"><span class="hs-identifier hs-var">lrs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679164188"><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679164188"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (MVector (PrimState m) a)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.unsafeNew</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vector (Int, Int) -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector (Int, Int)
+</span><a href="#local-6989586621679164189"><span class="hs-identifier hs-var">lrs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">(MoState a -&gt; (Int, (Int, Int)) -&gt; m (MoState a))
+-&gt; MoState a -&gt; Vector (Int, (Int, Int)) -&gt; m ()
+forall (m :: * -&gt; *) b a.
+(Monad m, Unbox b) =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Vector b -&gt; m ()
+</span><span class="hs-identifier hs-var">U.foldM'_</span></span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Algorithm.Mo.html#MoState"><span class="hs-identifier hs-type">MoState</span></a></span><span> </span><span id="local-6989586621679164183"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679164183"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679164182"><span class="annot"><span class="annottext">r :: Int
+</span><a href="#local-6989586621679164182"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679164181"><span class="annot"><span class="annottext">acc :: a
+</span><a href="#local-6989586621679164181"><span class="hs-identifier hs-var">acc</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164180"><span class="annot"><span class="annottext">qi :: Int
+</span><a href="#local-6989586621679164180"><span class="hs-identifier hs-var">qi</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164179"><span class="annot"><span class="annottext">ql :: Int
+</span><a href="#local-6989586621679164179"><span class="hs-identifier hs-var">ql</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164178"><span class="annot"><span class="annottext">qr :: Int
+</span><a href="#local-6989586621679164178"><span class="hs-identifier hs-var">qr</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-40"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679164177"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164177"><span class="hs-identifier hs-var">addR</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Int -&gt; m a) -&gt; a -&gt; Stream m Int -&gt; m a
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Stream m b -&gt; m a
+</span><span class="hs-identifier hs-var">MS.foldM'</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679164193"><span class="hs-identifier hs-var">add</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164181"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream m Int -&gt; m a) -&gt; Stream m Int -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164182"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164178"><span class="hs-identifier hs-var">qr</span></a></span><span>
+</span><span id="line-41"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679164175"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164175"><span class="hs-identifier hs-var">deleteR</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Int -&gt; m a) -&gt; a -&gt; Stream m Int -&gt; m a
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Stream m b -&gt; m a
+</span><span class="hs-identifier hs-var">MS.foldM'</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679164192"><span class="hs-identifier hs-var">delete</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164177"><span class="hs-identifier hs-var">addR</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream m Int -&gt; m a) -&gt; Stream m Int -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#streamR"><span class="hs-identifier hs-var">streamR</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164178"><span class="hs-identifier hs-var">qr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164182"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-42"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679164174"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164174"><span class="hs-identifier hs-var">addL</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Int -&gt; m a) -&gt; a -&gt; Stream m Int -&gt; m a
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Stream m b -&gt; m a
+</span><span class="hs-identifier hs-var">MS.foldM'</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679164193"><span class="hs-identifier hs-var">add</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164175"><span class="hs-identifier hs-var">deleteR</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream m Int -&gt; m a) -&gt; Stream m Int -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#streamR"><span class="hs-identifier hs-var">streamR</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164179"><span class="hs-identifier hs-var">ql</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164183"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-43"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679164173"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164173"><span class="hs-identifier hs-var">deleteL</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Int -&gt; m a) -&gt; a -&gt; Stream m Int -&gt; m a
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b -&gt; m a) -&gt; a -&gt; Stream m b -&gt; m a
+</span><span class="hs-identifier hs-var">MS.foldM'</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679164192"><span class="hs-identifier hs-var">delete</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164174"><span class="hs-identifier hs-var">addL</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream m Int -&gt; m a) -&gt; Stream m Int -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Stream m Int
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; Int -&gt; Stream m Int
+</span><a href="My.Prelude.html#stream"><span class="hs-identifier hs-var">stream</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164183"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164179"><span class="hs-identifier hs-var">ql</span></a></span><span>
+</span><span id="line-44"></span><span>        </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679164188"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164180"><span class="hs-identifier hs-var">qi</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164173"><span class="hs-identifier hs-var">deleteL</span></a></span><span>
+</span><span id="line-45"></span><span>        </span><span class="annot"><span class="annottext">MoState a -&gt; m (MoState a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(MoState a -&gt; m (MoState a)) -&gt; MoState a -&gt; m (MoState a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; a -&gt; MoState a
+forall a. Int -&gt; Int -&gt; a -&gt; MoState a
+</span><a href="Algorithm.Mo.html#MoState"><span class="hs-identifier hs-var">MoState</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164179"><span class="hs-identifier hs-var">ql</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164178"><span class="hs-identifier hs-var">qr</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164173"><span class="hs-identifier hs-var">deleteL</span></a></span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; a -&gt; MoState a
+forall a. Int -&gt; Int -&gt; a -&gt; MoState a
+</span><a href="Algorithm.Mo.html#MoState"><span class="hs-identifier hs-var">MoState</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164191"><span class="hs-identifier hs-var">acc0</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Vector (Int, Int) -&gt; Vector (Int, (Int, Int))
+</span><a href="Algorithm.Mo.html#moSort"><span class="hs-identifier hs-var">moSort</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164190"><span class="hs-identifier hs-var">blockSize</span></a></span><span> </span><span class="annot"><span class="annottext">Vector (Int, Int)
+</span><a href="#local-6989586621679164189"><span class="hs-identifier hs-var">lrs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; m (Vector a)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.unsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679164188"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-50"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.Mo.html#moAlgorithm"><span class="hs-pragma hs-type">moAlgorithm</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Algorithm.Mo.html#moBlockSize"><span class="hs-identifier hs-type">moBlockSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-53"></span><span id="moBlockSize"><span class="annot"><span class="annottext">moBlockSize :: Int -&gt; Int
+</span><a href="Algorithm.Mo.html#moBlockSize"><span class="hs-identifier hs-var hs-var">moBlockSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Int
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">ceiling</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Int) -&gt; (Int -&gt; Double) -&gt; Int -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Floating Double =&gt; Double -&gt; Double
+forall a. Floating a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">sqrt</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Double) -&gt; (Int -&gt; Double) -&gt; Int -&gt; Double
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">data</span><span> </span><span id="MoState"><span class="annot"><a href="Algorithm.Mo.html#MoState"><span class="hs-identifier hs-var">MoState</span></a></span></span><span> </span><span id="local-6989586621679164223"><span class="annot"><a href="#local-6989586621679164223"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MoState"><span class="annot"><a href="Algorithm.Mo.html#MoState"><span class="hs-identifier hs-var">MoState</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621679164223"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164161"><span id="local-6989586621679164163"><span class="annot"><span class="annottext">MoState a -&gt; MoState a -&gt; Bool
+(MoState a -&gt; MoState a -&gt; Bool)
+-&gt; (MoState a -&gt; MoState a -&gt; Bool) -&gt; Eq (MoState a)
+forall a. Eq a =&gt; MoState a -&gt; MoState a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: MoState a -&gt; MoState a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; MoState a -&gt; MoState a -&gt; Bool
+== :: MoState a -&gt; MoState a -&gt; Bool
+$c== :: forall a. Eq a =&gt; MoState a -&gt; MoState a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Algorithm.Mo.html#moSort"><span class="hs-identifier hs-type">moSort</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span id="moSort"><span class="annot"><span class="annottext">moSort :: Int -&gt; Vector (Int, Int) -&gt; Vector (Int, (Int, Int))
+</span><a href="Algorithm.Mo.html#moSort"><span class="hs-identifier hs-var hs-var">moSort</span></a></span></span><span> </span><span id="local-6989586621679164159"><span class="annot"><span class="annottext">blockSize :: Int
+</span><a href="#local-6989586621679164159"><span class="hs-identifier hs-var">blockSize</span></a></span></span><span> </span><span id="local-6989586621679164158"><span class="annot"><span class="annottext">lrs :: Vector (Int, Int)
+</span><a href="#local-6989586621679164158"><span class="hs-identifier hs-var">lrs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-59"></span><span>  </span><span class="annot"><span class="annottext">(Int -&gt; (Int, (Int, Int)))
+-&gt; Vector Int -&gt; Vector (Int, (Int, Int))
+forall a b. (Unbox a, Unbox b) =&gt; (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679164156"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679164156"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164156"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Vector (Int, Int) -&gt; Int -&gt; (Int, Int)
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector (Int, Int)
+</span><a href="#local-6989586621679164158"><span class="hs-identifier hs-var">lrs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164156"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>    </span><span class="annot"><span class="annottext">(Vector Int -&gt; Vector (Int, (Int, Int)))
+-&gt; (Vector Word64 -&gt; Vector Int)
+-&gt; Vector Word64
+-&gt; Vector (Int, (Int, Int))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Int) -&gt; Vector Word64 -&gt; Vector Int
+forall a b. (Unbox a, Unbox b) =&gt; (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.map</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int
+</span><a href="Algorithm.Mo.html#moDecode"><span class="hs-identifier hs-var">moDecode</span></a></span><span>
+</span><span id="line-61"></span><span>    </span><span class="annot"><span class="annottext">(Vector Word64 -&gt; Vector Int)
+-&gt; (Vector Word64 -&gt; Vector Word64) -&gt; Vector Word64 -&gt; Vector Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Vector Word64 -&gt; Vector Word64
+</span><a href="Data.Vector.Sort.Radix.html#radixSort64"><span class="hs-identifier hs-var">radixSort64</span></a></span><span>
+</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">(Vector Word64 -&gt; Vector (Int, (Int, Int)))
+-&gt; Vector Word64 -&gt; Vector (Int, (Int, Int))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; (Int, Int) -&gt; Word64) -&gt; Vector (Int, Int) -&gt; Vector Word64
+forall a b.
+(Unbox a, Unbox b) =&gt;
+(Int -&gt; a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.imap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679164152"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679164152"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164151"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679164151"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164150"><span class="annot"><span class="annottext">r :: Int
+</span><a href="#local-6989586621679164150"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Word64
+</span><a href="Algorithm.Mo.html#moEncode"><span class="hs-identifier hs-var">moEncode</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164159"><span class="hs-identifier hs-var">blockSize</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164152"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164151"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164150"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector (Int, Int)
+</span><a href="#local-6989586621679164158"><span class="hs-identifier hs-var">lrs</span></a></span><span>
+</span><span id="line-63"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.Mo.html#moSort"><span class="hs-pragma hs-type">moSort</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="annot"><a href="Algorithm.Mo.html#moEncode"><span class="hs-identifier hs-type">moEncode</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-66"></span><span id="moEncode"><span class="annot"><span class="annottext">moEncode :: Int -&gt; Int -&gt; Int -&gt; Int -&gt; Word64
+</span><a href="Algorithm.Mo.html#moEncode"><span class="hs-identifier hs-var hs-var">moEncode</span></a></span></span><span> </span><span id="local-6989586621679164148"><span class="annot"><span class="annottext">blockSize :: Int
+</span><a href="#local-6989586621679164148"><span class="hs-identifier hs-var">blockSize</span></a></span></span><span> </span><span id="local-6989586621679164147"><span class="annot"><span class="annottext">qi :: Int
+</span><a href="#local-6989586621679164147"><span class="hs-identifier hs-var">qi</span></a></span></span><span> </span><span id="local-6989586621679164146"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679164146"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679164145"><span class="annot"><span class="annottext">r :: Int
+</span><a href="#local-6989586621679164145"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-68"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164142"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="hs-number">40</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164140"><span class="hs-identifier hs-var">r'</span></a></span><span> </span><span class="annot"><span class="hs-number">20</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164147"><span class="hs-identifier hs-var">qi</span></a></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-70"></span><span>    </span><span id="local-6989586621679164142"><span class="annot"><span class="annottext">l' :: Int
+</span><a href="#local-6989586621679164142"><span class="hs-identifier hs-var hs-var">l'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">quot</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164146"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164148"><span class="hs-identifier hs-var">blockSize</span></a></span><span>
+</span><span id="line-71"></span><span>    </span><span id="local-6989586621679164140"><span class="annot"><span class="annottext">r' :: Int
+</span><a href="#local-6989586621679164140"><span class="hs-identifier hs-var hs-var">r'</span></a></span></span><span>
+</span><span id="line-72"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164142"><span class="hs-identifier hs-var">l'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164145"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-73"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164145"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-74"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.Mo.html#moEncode"><span class="hs-pragma hs-type">moEncode</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span class="annot"><a href="Algorithm.Mo.html#moDecode"><span class="hs-identifier hs-type">moDecode</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-77"></span><span id="moDecode"><span class="annot"><span class="annottext">moDecode :: Word64 -&gt; Int
+</span><a href="Algorithm.Mo.html#moDecode"><span class="hs-identifier hs-var hs-var">moDecode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="annottext">(Word64 -&gt; Int) -&gt; (Word64 -&gt; Word64) -&gt; Word64 -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.Mo.html#moDecode"><span class="hs-pragma hs-type">moDecode</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-79"></span></pre></body></html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE KindSignatures #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.SparseTable</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Semigroup</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">V</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Math.Utils.html"><span class="hs-identifier">Math.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Utils.html#floorLog2"><span class="hs-identifier">floorLog2</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">type</span><span> </span><span id="RMQ"><span class="annot"><a href="Data.SparseTable.html#RMQ"><span class="hs-identifier hs-var">RMQ</span></a></span></span><span> </span><span id="local-6989586621679160595"><span class="annot"><a href="#local-6989586621679160595"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-type">SparseTable</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Min</span></span><span> </span><span class="annot"><a href="#local-6989586621679160595"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679160593"><span class="annot"><a href="Data.SparseTable.html#buildRMQ"><span class="hs-identifier hs-type">buildRMQ</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679160593"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679160593"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679160593"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.SparseTable.html#RMQ"><span class="hs-identifier hs-type">RMQ</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160593"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-19"></span><span id="buildRMQ"><span class="annot"><span class="annottext">buildRMQ :: Vector a -&gt; RMQ a
+</span><a href="Data.SparseTable.html#buildRMQ"><span class="hs-identifier hs-var hs-var">buildRMQ</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; RMQ a
+forall (f :: * -&gt; *) a.
+(Unbox a, Semigroup (f a), Coercible (f a) a) =&gt;
+Vector a -&gt; SparseTable f a
+</span><a href="Data.SparseTable.html#buildSparseTable"><span class="hs-identifier hs-var">buildSparseTable</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SparseTable.html#buildRMQ"><span class="hs-pragma hs-type">buildRMQ</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679160590"><span class="annot"><a href="Data.SparseTable.html#readRMQ"><span class="hs-identifier hs-type">readRMQ</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679160590"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.SparseTable.html#RMQ"><span class="hs-identifier hs-type">RMQ</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160590"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679160590"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-23"></span><span id="readRMQ"><span class="annot"><span class="annottext">readRMQ :: RMQ a -&gt; Int -&gt; a
+</span><a href="Data.SparseTable.html#readRMQ"><span class="hs-identifier hs-var hs-var">readRMQ</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RMQ a -&gt; Int -&gt; a
+forall a (f :: * -&gt; *). Unbox a =&gt; SparseTable f a -&gt; Int -&gt; a
+</span><a href="Data.SparseTable.html#readSparseTable"><span class="hs-identifier hs-var">readSparseTable</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SparseTable.html#readRMQ"><span class="hs-pragma hs-type">readRMQ</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">{- | min a[l..r)
+
+ /O(1)/
+-}</span><span>
+</span><span id="line-30"></span><span id="local-6989586621679160587"><span class="annot"><a href="Data.SparseTable.html#queryMin"><span class="hs-identifier hs-type">queryMin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679160587"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679160587"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.SparseTable.html#RMQ"><span class="hs-identifier hs-type">RMQ</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160587"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679160587"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-31"></span><span id="queryMin"><span class="annot"><span class="annottext">queryMin :: RMQ a -&gt; Int -&gt; Int -&gt; a
+</span><a href="Data.SparseTable.html#queryMin"><span class="hs-identifier hs-var hs-var">queryMin</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RMQ a -&gt; Int -&gt; Int -&gt; a
+forall (f :: * -&gt; *) a.
+(Unbox a, Semigroup (f a), Coercible (f a) a) =&gt;
+SparseTable f a -&gt; Int -&gt; Int -&gt; a
+</span><a href="Data.SparseTable.html#querySparseTable"><span class="hs-identifier hs-var">querySparseTable</span></a></span><span>
+</span><span id="line-32"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SparseTable.html#queryMin"><span class="hs-pragma hs-type">queryMin</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">newtype</span><span> </span><span id="SparseTable"><span class="annot"><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-var">SparseTable</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679160623"><span class="annot"><a href="#local-6989586621679160623"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679160624"><span class="annot"><a href="#local-6989586621679160624"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SparseTable"><span class="annot"><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-var">SparseTable</span></a></span></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="getSparseTable"><span class="annot"><span class="annottext">SparseTable f a -&gt; Vector (Vector a)
+</span><a href="Data.SparseTable.html#getSparseTable"><span class="hs-identifier hs-var hs-var">getSparseTable</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">V.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679160624"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679160579"><span id="local-6989586621679160581"><span class="annot"><span class="annottext">SparseTable f a -&gt; SparseTable f a -&gt; Bool
+(SparseTable f a -&gt; SparseTable f a -&gt; Bool)
+-&gt; (SparseTable f a -&gt; SparseTable f a -&gt; Bool)
+-&gt; Eq (SparseTable f a)
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+forall (f :: * -&gt; *) a.
+(Unbox a, Eq a) =&gt;
+SparseTable f a -&gt; SparseTable f a -&gt; Bool
+/= :: SparseTable f a -&gt; SparseTable f a -&gt; Bool
+$c/= :: forall (f :: * -&gt; *) a.
+(Unbox a, Eq a) =&gt;
+SparseTable f a -&gt; SparseTable f a -&gt; Bool
+== :: SparseTable f a -&gt; SparseTable f a -&gt; Bool
+$c== :: forall (f :: * -&gt; *) a.
+(Unbox a, Eq a) =&gt;
+SparseTable f a -&gt; SparseTable f a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679160572"><span id="local-6989586621679160574"><span id="local-6989586621679160576"><span class="annot"><span class="annottext">Int -&gt; SparseTable f a -&gt; ShowS
+[SparseTable f a] -&gt; ShowS
+SparseTable f a -&gt; String
+(Int -&gt; SparseTable f a -&gt; ShowS)
+-&gt; (SparseTable f a -&gt; String)
+-&gt; ([SparseTable f a] -&gt; ShowS)
+-&gt; Show (SparseTable f a)
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+forall (f :: * -&gt; *) a.
+(Show a, Unbox a) =&gt;
+Int -&gt; SparseTable f a -&gt; ShowS
+forall (f :: * -&gt; *) a.
+(Show a, Unbox a) =&gt;
+[SparseTable f a] -&gt; ShowS
+forall (f :: * -&gt; *) a.
+(Show a, Unbox a) =&gt;
+SparseTable f a -&gt; String
+showList :: [SparseTable f a] -&gt; ShowS
+$cshowList :: forall (f :: * -&gt; *) a.
+(Show a, Unbox a) =&gt;
+[SparseTable f a] -&gt; ShowS
+show :: SparseTable f a -&gt; String
+$cshow :: forall (f :: * -&gt; *) a.
+(Show a, Unbox a) =&gt;
+SparseTable f a -&gt; String
+showsPrec :: Int -&gt; SparseTable f a -&gt; ShowS
+$cshowsPrec :: forall (f :: * -&gt; *) a.
+(Show a, Unbox a) =&gt;
+Int -&gt; SparseTable f a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Data.SparseTable.html#buildSparseTable"><span class="hs-identifier hs-type">buildSparseTable</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679160645"><span class="annot"><a href="#local-6989586621679160645"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679160647"><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679160645"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Coercible</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679160645"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-42"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-43"></span><span>  </span><span class="annot"><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-type">SparseTable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160645"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-44"></span><span id="buildSparseTable"><span class="annot"><span class="annottext">buildSparseTable :: Vector a -&gt; SparseTable f a
+</span><a href="Data.SparseTable.html#buildSparseTable"><span class="hs-identifier hs-var hs-var">buildSparseTable</span></a></span></span><span> </span><span id="local-6989586621679160570"><span class="annot"><span class="annottext">vec :: Vector a
+</span><a href="#local-6989586621679160570"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">Vector (Vector a) -&gt; SparseTable f a
+forall (f :: * -&gt; *) a. Vector (Vector a) -&gt; SparseTable f a
+</span><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-var">SparseTable</span></a></span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">(Vector (Vector a) -&gt; SparseTable f a)
+-&gt; (Vector Int -&gt; Vector (Vector a))
+-&gt; Vector Int
+-&gt; SparseTable f a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Vector a -&gt; Int -&gt; Vector a)
+-&gt; Vector a -&gt; Vector Int -&gt; Vector (Vector a)
+forall a b. (a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.scanl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679160567"><span class="annot"><span class="annottext">acc :: Vector a
+</span><a href="#local-6989586621679160567"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679160566"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679160566"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; Vector a -&gt; Vector a -&gt; Vector a
+forall a b c.
+(Unbox a, Unbox b, Unbox c) =&gt;
+(a -&gt; b -&gt; c) -&gt; Vector a -&gt; Vector b -&gt; Vector c
+</span><span class="hs-identifier hs-var">U.zipWith</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(f a -&gt; f a -&gt; f a) -&gt; a -&gt; a -&gt; a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Semigroup (f a) =&gt; f a -&gt; f a -&gt; f a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679160645"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160647"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679160567"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector a -&gt; Vector a) -&gt; Vector a -&gt; Vector a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector a -&gt; Vector a
+forall a. Unbox a =&gt; Int -&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.drop</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160566"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679160567"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679160570"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">(Vector Int -&gt; SparseTable f a) -&gt; Vector Int -&gt; SparseTable f a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; Vector Int
+forall a. Int -&gt; (a -&gt; a) -&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.iterateN</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="Math.Utils.html#floorLog2"><span class="hs-identifier hs-var">floorLog2</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679160570"><span class="hs-identifier hs-var">vec</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | /O(1)/</span><span>
+</span><span id="line-50"></span><span id="local-6989586621679160641"><span id="local-6989586621679160642"><span class="annot"><a href="Data.SparseTable.html#readSparseTable"><span class="hs-identifier hs-type">readSparseTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679160642"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-type">SparseTable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160641"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160642"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679160642"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-51"></span><span id="readSparseTable"><span class="annot"><span class="annottext">readSparseTable :: SparseTable f a -&gt; Int -&gt; a
+</span><a href="Data.SparseTable.html#readSparseTable"><span class="hs-identifier hs-var hs-var">readSparseTable</span></a></span></span><span> </span><span id="local-6989586621679160560"><span class="annot"><span class="annottext">st :: SparseTable f a
+</span><a href="#local-6989586621679160560"><span class="hs-identifier hs-var">st</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int -&gt; a
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vector (Vector a) -&gt; Int -&gt; Vector a
+forall a. Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">V.unsafeIndex</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SparseTable f a -&gt; Vector (Vector a)
+forall (f :: * -&gt; *) a. SparseTable f a -&gt; Vector (Vector a)
+</span><a href="Data.SparseTable.html#getSparseTable"><span class="hs-identifier hs-var hs-var">getSparseTable</span></a></span><span> </span><span class="annot"><span class="annottext">SparseTable f a
+</span><a href="#local-6989586621679160560"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">{- | append[l..r)
+
+ /O(1)/
+-}</span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Data.SparseTable.html#querySparseTable"><span class="hs-identifier hs-type">querySparseTable</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679160638"><span class="annot"><a href="#local-6989586621679160638"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679160639"><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679160638"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Coercible</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679160638"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><a href="Data.SparseTable.html#SparseTable"><span class="hs-identifier hs-type">SparseTable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160638"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-61"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-62"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-64"></span><span id="querySparseTable"><span class="annot"><span class="annottext">querySparseTable :: SparseTable f a -&gt; Int -&gt; Int -&gt; a
+</span><a href="Data.SparseTable.html#querySparseTable"><span class="hs-identifier hs-var hs-var">querySparseTable</span></a></span></span><span> </span><span id="local-6989586621679160557"><span class="annot"><span class="annottext">st :: SparseTable f a
+</span><a href="#local-6989586621679160557"><span class="hs-identifier hs-var">st</span></a></span></span><span> </span><span id="local-6989586621679160556"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679160556"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679160555"><span class="annot"><span class="annottext">r :: Int
+</span><a href="#local-6989586621679160555"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(f a -&gt; f a -&gt; f a) -&gt; a -&gt; a -&gt; a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Semigroup (f a) =&gt; f a -&gt; f a -&gt; f a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679160638"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679160639"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160554"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160553"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-66"></span><span>    </span><span id="local-6989586621679160552"><span class="annot"><span class="annottext">logStep :: Int
+</span><a href="#local-6989586621679160552"><span class="hs-identifier hs-var hs-var">logStep</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="Math.Utils.html#floorLog2"><span class="hs-identifier hs-var">floorLog2</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160555"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160556"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-67"></span><span>    </span><span id="local-6989586621679160551"><span class="annot"><span class="annottext">row :: Vector a
+</span><a href="#local-6989586621679160551"><span class="hs-identifier hs-var hs-var">row</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (Vector a) -&gt; Int -&gt; Vector a
+forall a. Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">V.unsafeIndex</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SparseTable f a -&gt; Vector (Vector a)
+forall (f :: * -&gt; *) a. SparseTable f a -&gt; Vector (Vector a)
+</span><a href="Data.SparseTable.html#getSparseTable"><span class="hs-identifier hs-var hs-var">getSparseTable</span></a></span><span> </span><span class="annot"><span class="annottext">SparseTable f a
+</span><a href="#local-6989586621679160557"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160552"><span class="hs-identifier hs-var">logStep</span></a></span><span>
+</span><span id="line-68"></span><span>    </span><span id="local-6989586621679160554"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679160554"><span class="hs-identifier hs-var hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int -&gt; a
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679160551"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160556"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-69"></span><span>    </span><span id="local-6989586621679160553"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679160553"><span class="hs-identifier hs-var hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int -&gt; a
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679160551"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; a) -&gt; Int -&gt; a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160555"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160552"><span class="hs-identifier hs-var">logStep</span></a></span><span>
+</span><span id="line-70"></span></pre></body></html>

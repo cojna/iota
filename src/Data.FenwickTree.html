@@ -1,0 +1,560 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.FenwickTree</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Monoid</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Vector.Unboxed.Instances.html"><span class="hs-identifier">Data.Vector.Unboxed.Instances</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">newtype</span><span> </span><span id="FenwickTree"><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-var">FenwickTree</span></a></span></span><span> </span><span id="local-6989586621679158838"><span class="annot"><a href="#local-6989586621679158838"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679158837"><span class="annot"><a href="#local-6989586621679158837"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="FenwickTree"><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-var">FenwickTree</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getFenwickTree"><span class="annot"><span class="annottext">FenwickTree s a -&gt; MVector s a
+</span><a href="Data.FenwickTree.html#getFenwickTree"><span class="hs-identifier hs-var hs-var">getFenwickTree</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158838"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158837"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679158787"><span id="local-6989586621679158788"><span class="annot"><a href="Data.FenwickTree.html#newFenwickTree"><span class="hs-identifier hs-type">newFenwickTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158788"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158788"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158787"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><a href="#local-6989586621679158787"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158787"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158788"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-22"></span><span id="newFenwickTree"><span class="annot"><span class="annottext">newFenwickTree :: Int -&gt; m (FenwickTree (PrimState m) a)
+</span><a href="Data.FenwickTree.html#newFenwickTree"><span class="hs-identifier hs-var hs-var">newFenwickTree</span></a></span></span><span> </span><span id="local-6989586621679158741"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158741"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; FenwickTree (PrimState m) a
+forall s a. MVector s a -&gt; FenwickTree s a
+</span><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-var">FenwickTree</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) a -&gt; FenwickTree (PrimState m) a)
+-&gt; m (MVector (PrimState m) a) -&gt; m (FenwickTree (PrimState m) a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; m (MVector (PrimState m) a)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158741"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-23"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#newFenwickTree"><span class="hs-pragma hs-type">newFenwickTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | /O(n)/</span><span>
+</span><span id="line-26"></span><span id="local-6989586621679158782"><span id="local-6989586621679158783"><span class="annot"><a href="Data.FenwickTree.html#buildFenwickTree"><span class="hs-identifier hs-type">buildFenwickTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158783"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158783"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158782"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158783"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><a href="#local-6989586621679158782"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158782"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158783"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-30"></span><span id="buildFenwickTree"><span class="annot"><span class="annottext">buildFenwickTree :: Vector a -&gt; m (FenwickTree (PrimState m) a)
+</span><a href="Data.FenwickTree.html#buildFenwickTree"><span class="hs-identifier hs-var hs-var">buildFenwickTree</span></a></span></span><span> </span><span id="local-6989586621679158736"><span class="annot"><span class="annottext">vec :: Vector a
+</span><a href="#local-6989586621679158736"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158735"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158735"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679158736"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679158733"><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158733"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (MVector (PrimState m) a)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.unsafeNew</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158735"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.write</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158733"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Vector a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; Vector a -&gt; m ()
+</span><span class="hs-identifier hs-var">U.unsafeCopy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) a
+forall a s. Unbox a =&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.tail</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158733"><span class="hs-identifier hs-var">ft</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679158736"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158726"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679158726"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158725"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158735"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158722"><span class="annot"><span class="annottext">j :: Int
+</span><a href="#local-6989586621679158722"><span class="hs-identifier hs-var hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158722"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158735"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-38"></span><span>      </span><span id="local-6989586621679158720"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158720"><span class="hs-identifier hs-var">fti</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158733"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-39"></span><span>      </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158733"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158720"><span class="hs-identifier hs-var">fti</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158722"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679158726"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158725"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="annottext">FenwickTree (PrimState m) a -&gt; m (FenwickTree (PrimState m) a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(FenwickTree (PrimState m) a -&gt; m (FenwickTree (PrimState m) a))
+-&gt; FenwickTree (PrimState m) a -&gt; m (FenwickTree (PrimState m) a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; FenwickTree (PrimState m) a
+forall s a. MVector s a -&gt; FenwickTree s a
+</span><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-var">FenwickTree</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158733"><span class="hs-identifier hs-var">ft</span></a></span><span>
+</span><span id="line-42"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#buildFenwickTree"><span class="hs-pragma hs-type">buildFenwickTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">{- | mappend [0..k)
+
+ /O(log n)/
+-}</span><span>
+</span><span id="line-48"></span><span id="local-6989586621679158771"><span id="local-6989586621679158772"><span class="annot"><a href="Data.FenwickTree.html#mappendTo"><span class="hs-identifier hs-type">mappendTo</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158772"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158771"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158771"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158772"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158771"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-51"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><a href="#local-6989586621679158772"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158771"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-53"></span><span id="mappendTo"><span class="annot"><span class="annottext">mappendTo :: FenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#mappendTo"><span class="hs-identifier hs-var hs-var">mappendTo</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span id="local-6989586621679158716"><span class="annot"><span class="annottext">ft :: MVector (PrimState m) a
+</span><a href="#local-6989586621679158716"><span class="hs-identifier hs-var">ft</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679158715"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679158715"><span class="annot"><span class="annottext">go :: a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679158715"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158714"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158714"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158713"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158713"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158713"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-57"></span><span>        </span><span id="local-6989586621679158711"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158711"><span class="hs-identifier hs-var">xi</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158716"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158713"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679158715"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158714"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158711"><span class="hs-identifier hs-var">xi</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158713"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158713"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158713"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158714"><span class="hs-identifier hs-var">acc</span></a></span><span>
+</span><span id="line-60"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#mappendTo"><span class="hs-pragma hs-type">mappendTo</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-63"></span><span id="local-6989586621679158750"><span id="local-6989586621679158751"><span class="annot"><a href="Data.FenwickTree.html#mappendAt"><span class="hs-identifier hs-type">mappendAt</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158751"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="#local-6989586621679158751"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158750"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158750"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158751"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><a href="#local-6989586621679158751"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><a href="#local-6989586621679158750"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-69"></span><span id="mappendAt"><span class="annot"><span class="annottext">mappendAt :: FenwickTree (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><a href="Data.FenwickTree.html#mappendAt"><span class="hs-identifier hs-var hs-var">mappendAt</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span id="local-6989586621679158709"><span class="annot"><span class="annottext">ft :: MVector (PrimState m) a
+</span><a href="#local-6989586621679158709"><span class="hs-identifier hs-var">ft</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679158708"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158708"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679158707"><span class="annot"><span class="annottext">v :: a
+</span><a href="#local-6989586621679158707"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158708"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158706"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679158706"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158705"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158705"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158705"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158703"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-71"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158709"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158707"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158705"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-72"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679158706"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158705"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158705"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158705"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-74"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679158703"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158703"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int
+forall a s. Unbox a =&gt; MVector s a -&gt; Int
+</span><span class="hs-identifier hs-var">UM.length</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158709"><span class="hs-identifier hs-var">ft</span></a></span><span>
+</span><span id="line-75"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#mappendAt"><span class="hs-pragma hs-type">mappendAt</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="hs-keyword">type</span><span> </span><span id="SumFenwickTree"><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-var">SumFenwickTree</span></a></span></span><span> </span><span id="local-6989586621679158701"><span class="annot"><a href="#local-6989586621679158701"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679158700"><span class="annot"><a href="#local-6989586621679158700"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158701"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Sum</span></span><span> </span><span class="annot"><a href="#local-6989586621679158700"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span id="local-6989586621679158698"><span id="local-6989586621679158699"><span class="annot"><a href="Data.FenwickTree.html#newSumFenwickTree"><span class="hs-identifier hs-type">newSumFenwickTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158699"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158699"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158698"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-82"></span><span>  </span><span class="annot"><a href="#local-6989586621679158698"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158698"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158699"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-83"></span><span id="newSumFenwickTree"><span class="annot"><span class="annottext">newSumFenwickTree :: Int -&gt; m (SumFenwickTree (PrimState m) a)
+</span><a href="Data.FenwickTree.html#newSumFenwickTree"><span class="hs-identifier hs-var hs-var">newSumFenwickTree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (SumFenwickTree (PrimState m) a)
+forall a (m :: * -&gt; *).
+(Unbox a, Monoid a, PrimMonad m) =&gt;
+Int -&gt; m (FenwickTree (PrimState m) a)
+</span><a href="Data.FenwickTree.html#newFenwickTree"><span class="hs-identifier hs-var">newFenwickTree</span></a></span><span>
+</span><span id="line-84"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#newSumFenwickTree"><span class="hs-pragma hs-type">newSumFenwickTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- | /O(n)/</span><span>
+</span><span id="line-87"></span><span id="local-6989586621679158695"><span id="local-6989586621679158696"><span class="annot"><a href="Data.FenwickTree.html#buildSumFenwickTree"><span class="hs-identifier hs-type">buildSumFenwickTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158696"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158696"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158695"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-89"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158696"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-90"></span><span>  </span><span class="annot"><a href="#local-6989586621679158695"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158695"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158696"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-91"></span><span id="buildSumFenwickTree"><span class="annot"><span class="annottext">buildSumFenwickTree :: Vector a -&gt; m (SumFenwickTree (PrimState m) a)
+</span><a href="Data.FenwickTree.html#buildSumFenwickTree"><span class="hs-identifier hs-var hs-var">buildSumFenwickTree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (Sum a) -&gt; m (SumFenwickTree (PrimState m) a)
+forall a (m :: * -&gt; *).
+(Unbox a, Monoid a, PrimMonad m) =&gt;
+Vector a -&gt; m (FenwickTree (PrimState m) a)
+</span><a href="Data.FenwickTree.html#buildFenwickTree"><span class="hs-identifier hs-var">buildFenwickTree</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (Sum a) -&gt; m (SumFenwickTree (PrimState m) a))
+-&gt; (Vector a -&gt; Vector (Sum a))
+-&gt; Vector a
+-&gt; m (SumFenwickTree (PrimState m) a)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Sum a) -&gt; Vector a -&gt; Vector (Sum a)
+forall a b. (Unbox a, Unbox b) =&gt; (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.map</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Sum a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-92"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#buildSumFenwickTree"><span class="hs-pragma hs-type">buildSumFenwickTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-comment">{- | sum [0..k)
+
+ /O(log n)/
+-}</span><span>
+</span><span id="line-98"></span><span id="local-6989586621679158767"><span id="local-6989586621679158768"><span class="annot"><a href="Data.FenwickTree.html#sumTo"><span class="hs-identifier hs-type">sumTo</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158768"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158768"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158767"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-100"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158767"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158768"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-102"></span><span>  </span><span class="annot"><a href="#local-6989586621679158767"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158768"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-103"></span><span id="sumTo"><span class="annot"><span class="annottext">sumTo :: SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#sumTo"><span class="hs-identifier hs-var hs-var">sumTo</span></a></span></span><span> </span><span id="local-6989586621679158690"><span class="annot"><span class="annottext">ft :: SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158690"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span id="local-6989586621679158689"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158689"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum a -&gt; a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(Sum a -&gt; a) -&gt; m (Sum a) -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; m (Sum a)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a, Monoid a) =&gt;
+FenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#mappendTo"><span class="hs-identifier hs-var">mappendTo</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158690"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158689"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-104"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#sumTo"><span class="hs-pragma hs-type">sumTo</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-comment">{- | sum [l..r)
+
+ /O(log n)/
+-}</span><span>
+</span><span id="line-110"></span><span id="local-6989586621679158760"><span id="local-6989586621679158761"><span class="annot"><a href="Data.FenwickTree.html#sumFromTo"><span class="hs-identifier hs-type">sumFromTo</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158761"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158761"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158760"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-112"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158760"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158761"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-113"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-114"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-115"></span><span>  </span><span class="annot"><a href="#local-6989586621679158760"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158761"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-116"></span><span id="sumFromTo"><span class="annot"><span class="annottext">sumFromTo :: SumFenwickTree (PrimState m) a -&gt; Int -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#sumFromTo"><span class="hs-identifier hs-var hs-var">sumFromTo</span></a></span></span><span> </span><span id="local-6989586621679158687"><span class="annot"><span class="annottext">ft :: SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158687"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span id="local-6989586621679158686"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679158686"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679158685"><span class="annot"><span class="annottext">r :: Int
+</span><a href="#local-6989586621679158685"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; m a -&gt; m (a -&gt; a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+forall a (m :: * -&gt; *).
+(Num a, Unbox a, PrimMonad m) =&gt;
+SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#sumTo"><span class="hs-identifier hs-var">sumTo</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158687"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158685"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">m (a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+forall a (m :: * -&gt; *).
+(Num a, Unbox a, PrimMonad m) =&gt;
+SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#sumTo"><span class="hs-identifier hs-var">sumTo</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158687"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158686"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-117"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#sumFromTo"><span class="hs-pragma hs-type">sumFromTo</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- /O(log n)/</span><span>
+</span><span id="line-120"></span><span id="local-6989586621679158683"><span id="local-6989586621679158684"><span class="annot"><a href="Data.FenwickTree.html#readSumFenwickTree"><span class="hs-identifier hs-type">readSumFenwickTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-121"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158684"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158684"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158683"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-122"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158683"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158684"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-123"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><a href="#local-6989586621679158683"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158684"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-125"></span><span id="readSumFenwickTree"><span class="annot"><span class="annottext">readSumFenwickTree :: SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#readSumFenwickTree"><span class="hs-identifier hs-var hs-var">readSumFenwickTree</span></a></span></span><span> </span><span id="local-6989586621679158681"><span class="annot"><span class="annottext">ft :: SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158681"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span id="local-6989586621679158680"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679158680"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; Int -&gt; m a
+forall a (m :: * -&gt; *).
+(Num a, Unbox a, PrimMonad m) =&gt;
+SumFenwickTree (PrimState m) a -&gt; Int -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#sumFromTo"><span class="hs-identifier hs-var">sumFromTo</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158681"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158680"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158680"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#readSumFenwickTree"><span class="hs-pragma hs-type">readSumFenwickTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-127"></span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- /O(log n)/</span><span>
+</span><span id="line-129"></span><span id="local-6989586621679158678"><span id="local-6989586621679158679"><span class="annot"><a href="Data.FenwickTree.html#writeSumFenwickTree"><span class="hs-identifier hs-type">writeSumFenwickTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-130"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158679"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158679"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158678"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-131"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158678"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158679"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-132"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-133"></span><span>  </span><span class="annot"><a href="#local-6989586621679158679"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-134"></span><span>  </span><span class="annot"><a href="#local-6989586621679158678"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-135"></span><span id="writeSumFenwickTree"><span class="annot"><span class="annottext">writeSumFenwickTree :: SumFenwickTree (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><a href="Data.FenwickTree.html#writeSumFenwickTree"><span class="hs-identifier hs-var hs-var">writeSumFenwickTree</span></a></span></span><span> </span><span id="local-6989586621679158676"><span class="annot"><span class="annottext">ft :: SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158676"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span id="local-6989586621679158675"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679158675"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679158674"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679158674"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+forall a (m :: * -&gt; *).
+(Num a, Unbox a, PrimMonad m) =&gt;
+SumFenwickTree (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.FenwickTree.html#readSumFenwickTree"><span class="hs-identifier hs-var">readSumFenwickTree</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158676"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158675"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">m a -&gt; (a -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, Num a, PrimMonad m) =&gt;
+SumFenwickTree (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><a href="Data.FenwickTree.html#addAt"><span class="hs-identifier hs-var">addAt</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158676"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158675"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; m ()) -&gt; (a -&gt; a) -&gt; a -&gt; m ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158674"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="hs-special">)</span><span>
+</span><span id="line-136"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#writeSumFenwickTree"><span class="hs-pragma hs-type">writeSumFenwickTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-137"></span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-139"></span><span id="local-6989586621679158754"><span id="local-6989586621679158755"><span class="annot"><a href="Data.FenwickTree.html#addAt"><span class="hs-identifier hs-type">addAt</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-140"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158755"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158755"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158754"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-141"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#SumFenwickTree"><span class="hs-identifier hs-type">SumFenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158754"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158755"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-142"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-143"></span><span>  </span><span class="annot"><a href="#local-6989586621679158755"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-144"></span><span>  </span><span class="annot"><a href="#local-6989586621679158754"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-145"></span><span id="addAt"><span class="annot"><span class="annottext">addAt :: SumFenwickTree (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><a href="Data.FenwickTree.html#addAt"><span class="hs-identifier hs-var hs-var">addAt</span></a></span></span><span> </span><span id="local-6989586621679158672"><span class="annot"><span class="annottext">ft :: SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158672"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span id="local-6989586621679158671"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158671"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679158670"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679158670"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a -&gt; Int -&gt; Sum a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, Semigroup a, PrimMonad m) =&gt;
+FenwickTree (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><a href="Data.FenwickTree.html#mappendAt"><span class="hs-identifier hs-var">mappendAt</span></a></span><span> </span><span class="annot"><span class="annottext">SumFenwickTree (PrimState m) a
+</span><a href="#local-6989586621679158672"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158671"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Sum a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158670"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-146"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#addAt"><span class="hs-pragma hs-type">addAt</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-147"></span><span>
+</span><span id="line-148"></span><span class="hs-comment">{- | max i s.t. sum [0..i) &lt; w
+
+ findMaxIndexLT k [1, 1..1] == k - 1
+
+ &gt;&gt;&gt; ones &lt;- buildFenwickTree [1, 1, 1, 1, 1]
+ &gt;&gt;&gt; findMaxIndexLT 3 ones
+ 2
+ &gt;&gt;&gt; findMaxIndexLT 0 ones
+ 0
+ &gt;&gt;&gt; ids &lt;- buildFenwickTree [1, 2, 3, 4, 5]
+ &gt;&gt;&gt; findMaxIndexLT 6 ids
+ 2
+ &gt;&gt;&gt; findMaxIndexLT 7 ids
+ 3
+ &gt;&gt;&gt; zeros &lt;- buildFenwickTree [0, 0, 0, 0, 0]
+ &gt;&gt;&gt; findMaxIndexLT 1 zeros
+ 5
+-}</span><span>
+</span><span id="line-166"></span><span id="local-6989586621679158668"><span id="local-6989586621679158669"><span class="annot"><a href="Data.FenwickTree.html#findMaxIndexLT"><span class="hs-identifier hs-type">findMaxIndexLT</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-167"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679158669"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158669"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679158669"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158668"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-168"></span><span>  </span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158668"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-169"></span><span>  </span><span class="annot"><a href="#local-6989586621679158669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-170"></span><span>  </span><span class="annot"><a href="#local-6989586621679158668"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span></span><span>
+</span><span id="line-171"></span><span id="findMaxIndexLT"><span class="annot"><span class="annottext">findMaxIndexLT :: FenwickTree (PrimState m) a -&gt; a -&gt; m Int
+</span><a href="Data.FenwickTree.html#findMaxIndexLT"><span class="hs-identifier hs-var hs-var">findMaxIndexLT</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.FenwickTree.html#FenwickTree"><span class="hs-identifier hs-type">FenwickTree</span></a></span><span> </span><span id="local-6989586621679158666"><span class="annot"><span class="annottext">ft :: MVector (PrimState m) a
+</span><a href="#local-6989586621679158666"><span class="hs-identifier hs-var">ft</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679158665"><span class="annot"><span class="annottext">w0 :: a
+</span><a href="#local-6989586621679158665"><span class="hs-identifier hs-var">w0</span></a></span></span><span>
+</span><span id="line-172"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158665"><span class="hs-identifier hs-var">w0</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-173"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679158664"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158665"><span class="hs-identifier hs-var">w0</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158663"><span class="hs-identifier hs-var">highestOneBit</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-174"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-175"></span><span>    </span><span id="local-6989586621679158662"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158662"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int
+forall a s. Unbox a =&gt; MVector s a -&gt; Int
+</span><span class="hs-identifier hs-var">UM.length</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158666"><span class="hs-identifier hs-var">ft</span></a></span><span>
+</span><span id="line-176"></span><span>    </span><span id="local-6989586621679158663"><span class="annot"><span class="annottext">highestOneBit :: Int
+</span><a href="#local-6989586621679158663"><span class="hs-identifier hs-var hs-var">highestOneBit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; (Int -&gt; Int) -&gt; Int -&gt; Int
+forall a. (a -&gt; Bool) -&gt; (a -&gt; a) -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">until</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158662"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`quot`</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span>
+</span><span id="line-177"></span><span>    </span><span id="local-6989586621679158664"><span class="annot"><span class="annottext">go :: a -&gt; Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679158664"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158658"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158658"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158657"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158656"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-178"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-179"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-180"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158662"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-181"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-182"></span><span>            </span><span id="local-6989586621679158655"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158655"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679158666"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-183"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158655"><span class="hs-identifier hs-var">u</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158658"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-184"></span><span>              </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679158664"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158658"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158655"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">`unsafeShiftR`</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-185"></span><span>              </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679158664"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158658"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">`unsafeShiftR`</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-186"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679158664"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158658"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158657"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">`unsafeShiftR`</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158656"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-187"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.FenwickTree.html#findMaxIndexLT"><span class="hs-pragma hs-type">findMaxIndexLT</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-188"></span></pre></body></html>

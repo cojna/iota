@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Math.Combinatrics.Double</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span class="hs-cpp">
+
+#define LOG_FACT_CACHE_SIZE 1024
+</span><span>
+</span><span id="line-9"></span><span class="annot"><a href="Math.Combinatrics.Double.html#logFactCache"><span class="hs-identifier hs-type">logFactCache</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-10"></span><span id="logFactCache"><span class="annot"><span class="annottext">logFactCache :: Vector Double
+</span><a href="Math.Combinatrics.Double.html#logFactCache"><span class="hs-identifier hs-var hs-var">logFactCache</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-11"></span><span>  </span><span class="annot"><span class="annottext">(Double -&gt; Double -&gt; Double)
+-&gt; Double -&gt; Vector Double -&gt; Vector Double
+forall a b.
+(Unbox a, Unbox b) =&gt;
+(a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.scanl'</span></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span> </span><span class="annot"><span class="annottext">(Vector Double -&gt; Vector Double) -&gt; Vector Double -&gt; Vector Double
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; Double) -&gt; Vector Double
+forall a. Unbox a =&gt; Int -&gt; (Int -&gt; a) -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.generate</span></span><span> </span><span class="hs-identifier">LOG_FACT_CACHE_SIZE</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">log</span><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-identifier">fromIntegral</span><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="hs-operator">+</span><span> </span><span class="hs-number">1</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Math.Combinatrics.Double.html#logFactCache"><span class="hs-pragma hs-type">logFactCache</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="annot"><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-type">logFact</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-16"></span><span id="logFact"><span class="annot"><span class="annottext">logFact :: Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-var hs-var">logFact</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Double -&gt; Int -&gt; Double
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Double
+</span><a href="Math.Combinatrics.Double.html#logFactCache"><span class="hs-identifier hs-var">logFactCache</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-pragma hs-type">logFact</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Math.Combinatrics.Double.html#logPerm"><span class="hs-identifier hs-type">logPerm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-20"></span><span id="logPerm"><span class="annot"><span class="annottext">logPerm :: Int -&gt; Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logPerm"><span class="hs-identifier hs-var hs-var">logPerm</span></a></span></span><span> </span><span id="local-6989586621679159668"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679159668"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679159667"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679159667"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-var">logFact</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159668"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-var">logFact</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159668"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159667"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Combinatrics.Double.html#logPerm"><span class="hs-pragma hs-type">logPerm</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Math.Combinatrics.Double.html#logComb"><span class="hs-identifier hs-type">logComb</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-24"></span><span id="logComb"><span class="annot"><span class="annottext">logComb :: Int -&gt; Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logComb"><span class="hs-identifier hs-var hs-var">logComb</span></a></span></span><span> </span><span id="local-6989586621679159665"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679159665"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679159664"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679159664"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-var">logFact</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159665"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-var">logFact</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159664"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+</span><a href="Math.Combinatrics.Double.html#logFact"><span class="hs-identifier hs-var">logFact</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159665"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159664"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Combinatrics.Double.html#logComb"><span class="hs-pragma hs-type">logComb</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-26"></span></pre></body></html>

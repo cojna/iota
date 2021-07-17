@@ -1,0 +1,271 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Doubling</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Foldable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">F</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Semigroup</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">V</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">newtype</span><span> </span><span id="Doubling"><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-var">Doubling</span></a></span></span><span> </span><span id="local-6989586621679154430"><span class="annot"><a href="#local-6989586621679154430"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Doubling"><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-var">Doubling</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getDoubling"><span class="annot"><span class="annottext">Doubling a -&gt; Vector (Int, a)
+</span><a href="Data.Doubling.html#getDoubling"><span class="hs-identifier hs-var hs-var">getDoubling</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679154430"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span id="local-6989586621679154386"><span class="annot"><a href="Data.Doubling.html#generateDoubling"><span class="hs-identifier hs-type">generateDoubling</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154386"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679154386"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154386"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-14"></span><span id="generateDoubling"><span class="annot"><span class="annottext">generateDoubling :: Int -&gt; (Int -&gt; (Int, a)) -&gt; Doubling a
+</span><a href="Data.Doubling.html#generateDoubling"><span class="hs-identifier hs-var hs-var">generateDoubling</span></a></span></span><span> </span><span id="local-6989586621679154384"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154384"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679154383"><span class="annot"><span class="annottext">f :: Int -&gt; (Int, a)
+</span><a href="#local-6989586621679154383"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (Int, a) -&gt; Doubling a
+forall a. Vector (Int, a) -&gt; Doubling a
+</span><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-var">Doubling</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (Int, a) -&gt; Doubling a) -&gt; Vector (Int, a) -&gt; Doubling a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; (Int, a)) -&gt; Vector (Int, a)
+forall a. Unbox a =&gt; Int -&gt; (Int -&gt; a) -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.generate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154384"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int, a)
+</span><a href="#local-6989586621679154383"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="annot"><a href="Data.Doubling.html#generateDoubling_"><span class="hs-identifier hs-type">generateDoubling_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span id="generateDoubling_"><span class="annot"><span class="annottext">generateDoubling_ :: Int -&gt; (Int -&gt; Int) -&gt; Doubling ()
+</span><a href="Data.Doubling.html#generateDoubling_"><span class="hs-identifier hs-var hs-var">generateDoubling_</span></a></span></span><span> </span><span id="local-6989586621679154380"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154380"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679154379"><span class="annot"><span class="annottext">f :: Int -&gt; Int
+</span><a href="#local-6989586621679154379"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (Int, ()) -&gt; Doubling ()
+forall a. Vector (Int, a) -&gt; Doubling a
+</span><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-var">Doubling</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (Int, ()) -&gt; Doubling ())
+-&gt; Vector (Int, ()) -&gt; Doubling ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; (Int, ())) -&gt; Vector (Int, ())
+forall a. Unbox a =&gt; Int -&gt; (Int -&gt; a) -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.generate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154380"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; () -&gt; (Int, ())) -&gt; () -&gt; Int -&gt; (Int, ())
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; (Int, ())) -&gt; (Int -&gt; Int) -&gt; Int -&gt; (Int, ())
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679154379"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span id="local-6989586621679154376"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679154371"><span id="local-6989586621679154373"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="#local-6989586621679154376"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154376"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154376"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span id="local-6989586621679154369"><span class="annot"><span class="annottext">next0 :: Vector (Int, a)
+</span><a href="#local-6989586621679154369"><span class="hs-identifier hs-var">next0</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154368"><span class="annot"><span class="annottext">&lt;&gt; :: Doubling a -&gt; Doubling a -&gt; Doubling a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span id="local-6989586621679154367"><span class="annot"><span class="annottext">next1 :: Vector (Int, a)
+</span><a href="#local-6989586621679154367"><span class="hs-identifier hs-var">next1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><span class="annottext">Vector (Int, a) -&gt; Doubling a
+forall a. Vector (Int, a) -&gt; Doubling a
+</span><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-var">Doubling</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (Int, a) -&gt; Doubling a) -&gt; Vector (Int, a) -&gt; Doubling a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-22"></span><span>      </span><span class="annot"><span class="annottext">((Int, a) -&gt; (Int, a)) -&gt; Vector (Int, a) -&gt; Vector (Int, a)
+forall a b. (Unbox a, Unbox b) =&gt; (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.map</span></span><span>
+</span><span id="line-23"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679154365"><span class="annot"><span class="annottext">nv :: Int
+</span><a href="#local-6989586621679154365"><span class="hs-identifier hs-var">nv</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154364"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154364"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-24"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679154363"><span class="annot"><span class="annottext">nnv :: Int
+</span><a href="#local-6989586621679154363"><span class="hs-identifier hs-var">nnv</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154362"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154362"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (Int, a) -&gt; Int -&gt; (Int, a)
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector (Int, a)
+</span><a href="#local-6989586621679154367"><span class="hs-identifier hs-var">next1</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154365"><span class="hs-identifier hs-var">nv</span></a></span><span>
+</span><span id="line-25"></span><span>                </span><span class="hs-glyph">!</span><span id="local-6989586621679154360"><span class="annot"><span class="annottext">z :: a
+</span><a href="#local-6989586621679154360"><span class="hs-identifier hs-var hs-var">z</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154364"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154362"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-26"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154363"><span class="hs-identifier hs-var">nnv</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154360"><span class="hs-identifier hs-var">z</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>        </span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>        </span><span class="annot"><span class="annottext">Vector (Int, a)
+</span><a href="#local-6989586621679154369"><span class="hs-identifier hs-var">next0</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">&lt;&gt;</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- | /O(Mlog N)/</span><span>
+</span><span id="line-32"></span><span id="local-6989586621679154359"><span class="annot"><a href="Data.Doubling.html#doublingStepN"><span class="hs-identifier hs-type">doublingStepN</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="#local-6989586621679154359"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154359"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-comment">-- | n</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-comment">-- | initial state</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-comment">-- | initial value</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><a href="#local-6989586621679154359"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-40"></span><span>  </span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154359"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679154359"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-42"></span><span id="doublingStepN"><span class="annot"><span class="annottext">doublingStepN :: Int -&gt; Int -&gt; a -&gt; Doubling a -&gt; (Int, a)
+</span><a href="Data.Doubling.html#doublingStepN"><span class="hs-identifier hs-var hs-var">doublingStepN</span></a></span></span><span> </span><span id="local-6989586621679154357"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154357"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679154356"><span class="annot"><span class="annottext">x0 :: Int
+</span><a href="#local-6989586621679154356"><span class="hs-identifier hs-var">x0</span></a></span></span><span> </span><span id="local-6989586621679154355"><span class="annot"><span class="annottext">v0 :: a
+</span><a href="#local-6989586621679154355"><span class="hs-identifier hs-var">v0</span></a></span></span><span> </span><span id="local-6989586621679154354"><span class="annot"><span class="annottext">next :: Doubling a
+</span><a href="#local-6989586621679154354"><span class="hs-identifier hs-var">next</span></a></span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154357"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679154352"><span class="annot"><span class="annottext">xn :: Int
+</span><a href="#local-6989586621679154352"><span class="hs-identifier hs-var">xn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154351"><span class="annot"><span class="annottext">vn :: a
+</span><a href="#local-6989586621679154351"><span class="hs-identifier hs-var">vn</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Doubling a -&gt; Vector (Int, a)
+forall a. Doubling a -&gt; Vector (Int, a)
+</span><a href="Data.Doubling.html#getDoubling"><span class="hs-identifier hs-var hs-var">getDoubling</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Doubling a -&gt; Doubling a
+forall a b. (Semigroup a, Integral b) =&gt; b -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">stimes</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154357"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Doubling a
+</span><a href="#local-6989586621679154354"><span class="hs-identifier hs-var">next</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector (Int, a) -&gt; Int -&gt; (Int, a)
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">U.!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154356"><span class="hs-identifier hs-var">x0</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154352"><span class="hs-identifier hs-var">xn</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154355"><span class="hs-identifier hs-var">v0</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154351"><span class="hs-identifier hs-var">vn</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154357"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154356"><span class="hs-identifier hs-var">x0</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154355"><span class="hs-identifier hs-var">v0</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; (Int, a)
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="hs-string">&quot;doublingStepN: negative step&quot;</span></span><span>
+</span><span id="line-46"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Doubling.html#doublingStepN"><span class="hs-pragma hs-type">doublingStepN</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="annot"><a href="Data.Doubling.html#doublingStepN_"><span class="hs-identifier hs-type">doublingStepN_</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-comment">-- | n</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-comment">-- | initial state</span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-55"></span><span id="doublingStepN_"><span class="annot"><span class="annottext">doublingStepN_ :: Int -&gt; Int -&gt; Doubling () -&gt; Int
+</span><a href="Data.Doubling.html#doublingStepN_"><span class="hs-identifier hs-var hs-var">doublingStepN_</span></a></span></span><span> </span><span id="local-6989586621679154346"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154346"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679154345"><span class="annot"><span class="annottext">x0 :: Int
+</span><a href="#local-6989586621679154345"><span class="hs-identifier hs-var">x0</span></a></span></span><span> </span><span id="local-6989586621679154344"><span class="annot"><span class="annottext">next :: Doubling ()
+</span><a href="#local-6989586621679154344"><span class="hs-identifier hs-var">next</span></a></span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154346"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, ()) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((Int, ()) -&gt; Int) -&gt; (Int, ()) -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Doubling () -&gt; Vector (Int, ())
+forall a. Doubling a -&gt; Vector (Int, a)
+</span><a href="Data.Doubling.html#getDoubling"><span class="hs-identifier hs-var hs-var">getDoubling</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Doubling () -&gt; Doubling ()
+forall a b. (Semigroup a, Integral b) =&gt; b -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">stimes</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154346"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Doubling ()
+</span><a href="#local-6989586621679154344"><span class="hs-identifier hs-var">next</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector (Int, ()) -&gt; Int -&gt; (Int, ())
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">U.!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154345"><span class="hs-identifier hs-var">x0</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154346"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154345"><span class="hs-identifier hs-var">x0</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Int
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="hs-string">&quot;doublingStepN_: negative step&quot;</span></span><span>
+</span><span id="line-59"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Doubling.html#doublingStepN_"><span class="hs-pragma hs-type">doublingStepN_</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-keyword">newtype</span><span> </span><span id="DoublingTable"><span class="annot"><a href="Data.Doubling.html#DoublingTable"><span class="hs-identifier hs-var">DoublingTable</span></a></span></span><span> </span><span id="local-6989586621679154397"><span class="annot"><a href="#local-6989586621679154397"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DoublingTable"><span class="annot"><a href="Data.Doubling.html#DoublingTable"><span class="hs-identifier hs-var">DoublingTable</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">V.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154397"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span id="local-6989586621679154342"><span class="annot"><a href="Data.Doubling.html#buildDoublingTable"><span class="hs-identifier hs-type">buildDoublingTable</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="#local-6989586621679154342"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154342"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><a href="Data.Doubling.html#Doubling"><span class="hs-identifier hs-type">Doubling</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154342"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><a href="Data.Doubling.html#DoublingTable"><span class="hs-identifier hs-type">DoublingTable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154342"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-67"></span><span id="buildDoublingTable"><span class="annot"><span class="annottext">buildDoublingTable :: Doubling a -&gt; DoublingTable a
+</span><a href="Data.Doubling.html#buildDoublingTable"><span class="hs-identifier hs-var hs-var">buildDoublingTable</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector (Doubling a) -&gt; DoublingTable a
+forall a. Vector (Doubling a) -&gt; DoublingTable a
+</span><a href="Data.Doubling.html#DoublingTable"><span class="hs-identifier hs-var">DoublingTable</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector (Doubling a) -&gt; DoublingTable a)
+-&gt; (Doubling a -&gt; Vector (Doubling a))
+-&gt; Doubling a
+-&gt; DoublingTable a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int
+-&gt; (Doubling a -&gt; Doubling a) -&gt; Doubling a -&gt; Vector (Doubling a)
+forall a. Int -&gt; (a -&gt; a) -&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.iterateN</span></span><span> </span><span class="annot"><span class="hs-number">63</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679154339"><span class="annot"><span class="annottext">next :: Doubling a
+</span><a href="#local-6989586621679154339"><span class="hs-identifier hs-var">next</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Doubling a
+</span><a href="#local-6989586621679154339"><span class="hs-identifier hs-var">next</span></a></span><span> </span><span class="annot"><span class="annottext">Doubling a -&gt; Doubling a -&gt; Doubling a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Doubling a
+</span><a href="#local-6989586621679154339"><span class="hs-identifier hs-var">next</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Doubling.html#buildDoublingTable"><span class="hs-pragma hs-type">buildDoublingTable</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | /O(log N)/</span><span>
+</span><span id="line-71"></span><span id="local-6989586621679154338"><span class="annot"><a href="Data.Doubling.html#doublingStepNQuery"><span class="hs-identifier hs-type">doublingStepNQuery</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="#local-6989586621679154338"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154338"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-comment">-- | n</span><span>
+</span><span id="line-74"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-comment">-- | initial state</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-comment">-- | initial value</span><span>
+</span><span id="line-78"></span><span>  </span><span class="annot"><a href="#local-6989586621679154338"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><a href="Data.Doubling.html#DoublingTable"><span class="hs-identifier hs-type">DoublingTable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154338"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679154338"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-81"></span><span id="doublingStepNQuery"><span class="annot"><span class="annottext">doublingStepNQuery :: Int -&gt; Int -&gt; a -&gt; DoublingTable a -&gt; (Int, a)
+</span><a href="Data.Doubling.html#doublingStepNQuery"><span class="hs-identifier hs-var hs-var">doublingStepNQuery</span></a></span></span><span> </span><span id="local-6989586621679154336"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154336"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679154335"><span class="annot"><span class="annottext">x0 :: Int
+</span><a href="#local-6989586621679154335"><span class="hs-identifier hs-var">x0</span></a></span></span><span> </span><span id="local-6989586621679154334"><span class="annot"><span class="annottext">v0 :: a
+</span><a href="#local-6989586621679154334"><span class="hs-identifier hs-var">v0</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Doubling.html#DoublingTable"><span class="hs-identifier hs-type">DoublingTable</span></a></span><span> </span><span id="local-6989586621679154333"><span class="annot"><span class="annottext">table :: Vector (Doubling a)
+</span><a href="#local-6989586621679154333"><span class="hs-identifier hs-var">table</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154336"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int, a) -&gt; Int -&gt; (Int, a)) -&gt; (Int, a) -&gt; [Int] -&gt; (Int, a)
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">F.foldl'</span></span><span> </span><span class="annot"><span class="annottext">(Int, a) -&gt; Int -&gt; (Int, a)
+</span><a href="#local-6989586621679154331"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154335"><span class="hs-identifier hs-var">x0</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154334"><span class="hs-identifier hs-var">v0</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="hs-number">62</span></span><span class="hs-special">]</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; (Int, a)
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="hs-string">&quot;doublingStepQuery: negative step&quot;</span></span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-85"></span><span>    </span><span id="local-6989586621679154331"><span class="annot"><span class="annottext">step :: (Int, a) -&gt; Int -&gt; (Int, a)
+</span><a href="#local-6989586621679154331"><span class="hs-identifier hs-var hs-var">step</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679154330"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679154330"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154329"><span class="annot"><span class="annottext">v :: a
+</span><a href="#local-6989586621679154329"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154328"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679154328"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-86"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154336"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154328"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-87"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679154325"><span class="annot"><span class="annottext">xi :: Int
+</span><a href="#local-6989586621679154325"><span class="hs-identifier hs-var">xi</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154324"><span class="annot"><span class="annottext">vi :: a
+</span><a href="#local-6989586621679154324"><span class="hs-identifier hs-var">vi</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Doubling a -&gt; Vector (Int, a)
+forall a. Doubling a -&gt; Vector (Int, a)
+</span><a href="Data.Doubling.html#getDoubling"><span class="hs-identifier hs-var hs-var">getDoubling</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vector (Doubling a) -&gt; Int -&gt; Doubling a
+forall a. Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">V.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector (Doubling a)
+</span><a href="#local-6989586621679154333"><span class="hs-identifier hs-var">table</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154328"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Vector (Int, a) -&gt; Int -&gt; (Int, a)
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">`U.unsafeIndex`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154330"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-88"></span><span>            </span><span class="hs-glyph">!</span><span id="local-6989586621679154322"><span class="annot"><span class="annottext">v' :: a
+</span><a href="#local-6989586621679154322"><span class="hs-identifier hs-var hs-var">v'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154329"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154324"><span class="hs-identifier hs-var">vi</span></a></span><span>
+</span><span id="line-89"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154325"><span class="hs-identifier hs-var">xi</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154322"><span class="hs-identifier hs-var">v'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154330"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154329"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Doubling.html#doublingStepNQuery"><span class="hs-pragma hs-type">doublingStepNQuery</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-92"></span></pre></body></html>

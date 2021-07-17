@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Math.Modulus.Log</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.IntMap.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">IM</span></span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Math.Modulus.html"><span class="hs-identifier">Math.Modulus</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Modulus.html#powMod"><span class="hs-identifier">powMod</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-comment">{- |
+ Baby-step Giant-step
+
+ @a^x = b (mod p)@ p is prime
+
+ /O(sqrt P * log P)/
+
+ &gt;&gt;&gt; logMod 3 27 998244353
+ Just 3
+ &gt;&gt;&gt; logMod 3 123456789 998244353
+ Just 772453214
+ &gt;&gt;&gt; logMod 1 2 1000000007
+ Nothing
+-}</span><span>
+</span><span id="line-24"></span><span class="annot"><a href="Math.Modulus.Log.html#logMod"><span class="hs-identifier hs-type">logMod</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-25"></span><span id="logMod"><span class="annot"><span class="annottext">logMod :: Int -&gt; Int -&gt; Int -&gt; Maybe Int
+</span><a href="Math.Modulus.Log.html#logMod"><span class="hs-identifier hs-var hs-var">logMod</span></a></span></span><span> </span><span id="local-6989586621679160223"><span class="annot"><span class="annottext">a :: Int
+</span><a href="#local-6989586621679160223"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679160222"><span class="annot"><span class="annottext">b :: Int
+</span><a href="#local-6989586621679160222"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679160221"><span class="annot"><span class="annottext">p :: Int
+</span><a href="#local-6989586621679160221"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Maybe Int
+</span><a href="#local-6989586621679160220"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160222"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679160219"><span class="annot"><span class="annottext">sqrtP :: Int
+</span><a href="#local-6989586621679160219"><span class="hs-identifier hs-var hs-var">sqrtP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Int
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">ceiling</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Int) -&gt; (Double -&gt; Double) -&gt; Double -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Floating Double =&gt; Double -&gt; Double
+forall a. Floating a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">sqrt</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Int) -&gt; Double -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160221"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679160215"><span class="annot"><span class="annottext">g :: Int
+</span><a href="#local-6989586621679160215"><span class="hs-identifier hs-var hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; Int -&gt; a -&gt; a
+</span><a href="Math.Modulus.html#powMod"><span class="hs-identifier hs-var">powMod</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160223"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160219"><span class="hs-identifier hs-var">sqrtP</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160221"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span id="local-6989586621679160214"><span class="annot"><span class="annottext">babyStep :: Int -&gt; Int
+</span><a href="#local-6989586621679160214"><span class="hs-identifier hs-var hs-var">babyStep</span></a></span></span><span> </span><span id="local-6989586621679160213"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679160213"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160223"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160213"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`rem`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160221"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-30"></span><span>    </span><span id="local-6989586621679160210"><span class="annot"><span class="annottext">giantStep :: Int -&gt; Int
+</span><a href="#local-6989586621679160210"><span class="hs-identifier hs-var hs-var">giantStep</span></a></span></span><span> </span><span id="local-6989586621679160209"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679160209"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160215"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160209"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`rem`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160221"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span>    </span><span class="annot"><a href="#local-6989586621679160208"><span class="hs-identifier hs-type">table</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-33"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679160208"><span class="annot"><span class="annottext">table :: IntMap Int
+</span><a href="#local-6989586621679160208"><span class="hs-identifier hs-var hs-var">table</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Int)] -&gt; IntMap Int
+forall a. [(Int, a)] -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.fromList</span></span><span> </span><span class="annot"><span class="annottext">([(Int, Int)] -&gt; IntMap Int) -&gt; [(Int, Int)] -&gt; IntMap Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int] -&gt; [(Int, Int)]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; [Int]
+forall a. (a -&gt; a) -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">iterate</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679160214"><span class="hs-identifier hs-var">babyStep</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160219"><span class="hs-identifier hs-var">sqrtP</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span>    </span><span id="local-6989586621679160220"><span class="annot"><span class="annottext">go :: Int -&gt; Int -&gt; Maybe Int
+</span><a href="#local-6989586621679160220"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679160205"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160205"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679160204"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160204"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-36"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160205"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160219"><span class="hs-identifier hs-var">sqrtP</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; Maybe Int
+forall a. Int -&gt; IntMap a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">IM.lookup</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160204"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679160208"><span class="hs-identifier hs-var">table</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-37"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679160201"><span class="annot"><span class="annottext">j :: Int
+</span><a href="#local-6989586621679160201"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; Maybe Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160205"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160219"><span class="hs-identifier hs-var">sqrtP</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160201"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-38"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Maybe Int
+</span><a href="#local-6989586621679160220"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160205"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; Maybe Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679160210"><span class="hs-identifier hs-var">giantStep</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160204"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-39"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-40"></span></pre></body></html>

@@ -1,0 +1,581 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.EPS</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">G</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GM</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span id="local-6989586621679154737"><span class="annot"><a href="Data.EPS.html#eps"><span class="hs-identifier hs-type">eps</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Fractional</span></span><span> </span><span class="annot"><a href="#local-6989586621679154737"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679154737"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-16"></span><span id="eps"><span class="annot"><span class="annottext">eps :: a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var hs-var">eps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1e-8</span></span><span>
+</span><span id="line-17"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.EPS.html#eps"><span class="hs-pragma hs-type">eps</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Data.EPS.html#absErr"><span class="hs-identifier hs-type">absErr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-20"></span><span id="absErr"><span class="annot"><span class="annottext">absErr :: Double -&gt; Double -&gt; Double
+</span><a href="Data.EPS.html#absErr"><span class="hs-identifier hs-var hs-var">absErr</span></a></span></span><span> </span><span id="local-6989586621679154675"><span class="annot"><span class="annottext">ans :: Double
+</span><a href="#local-6989586621679154675"><span class="hs-identifier hs-var">ans</span></a></span></span><span> </span><span id="local-6989586621679154674"><span class="annot"><span class="annottext">x :: Double
+</span><a href="#local-6989586621679154674"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679154674"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679154675"><span class="hs-identifier hs-var">ans</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Data.EPS.html#relErr"><span class="hs-identifier hs-type">relErr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-23"></span><span id="relErr"><span class="annot"><span class="annottext">relErr :: Double -&gt; Double -&gt; Double
+</span><a href="Data.EPS.html#relErr"><span class="hs-identifier hs-var hs-var">relErr</span></a></span></span><span> </span><span id="local-6989586621679154671"><span class="annot"><span class="annottext">ans :: Double
+</span><a href="#local-6989586621679154671"><span class="hs-identifier hs-var">ans</span></a></span></span><span> </span><span id="local-6989586621679154670"><span class="annot"><span class="annottext">x :: Double
+</span><a href="#local-6989586621679154670"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Double) -&gt; Double -&gt; Double
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679154670"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679154671"><span class="hs-identifier hs-var">ans</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679154671"><span class="hs-identifier hs-var">ans</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">newtype</span><span> </span><span id="EPS"><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-var">EPS</span></a></span></span><span> </span><span id="local-6989586621679154668"><span class="annot"><a href="#local-6989586621679154668"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="EPS"><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-var">EPS</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getEPS"><span class="annot"><span class="annottext">EPS a -&gt; a
+</span><a href="Data.EPS.html#getEPS"><span class="hs-identifier hs-var hs-var">getEPS</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679154668"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679154660"><span id="local-6989586621679154662"><span id="local-6989586621679154664"><span class="annot"><span class="annottext">Int -&gt; EPS a -&gt; ShowS
+[EPS a] -&gt; ShowS
+EPS a -&gt; String
+(Int -&gt; EPS a -&gt; ShowS)
+-&gt; (EPS a -&gt; String) -&gt; ([EPS a] -&gt; ShowS) -&gt; Show (EPS a)
+forall a. Show a =&gt; Int -&gt; EPS a -&gt; ShowS
+forall a. Show a =&gt; [EPS a] -&gt; ShowS
+forall a. Show a =&gt; EPS a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [EPS a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [EPS a] -&gt; ShowS
+show :: EPS a -&gt; String
+$cshow :: forall a. Show a =&gt; EPS a -&gt; String
+showsPrec :: Int -&gt; EPS a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; EPS a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154651"><span id="local-6989586621679154653"><span id="local-6989586621679154655"><span id="local-6989586621679154657"><span class="annot"><span class="annottext">ReadPrec [EPS a]
+ReadPrec (EPS a)
+Int -&gt; ReadS (EPS a)
+ReadS [EPS a]
+(Int -&gt; ReadS (EPS a))
+-&gt; ReadS [EPS a]
+-&gt; ReadPrec (EPS a)
+-&gt; ReadPrec [EPS a]
+-&gt; Read (EPS a)
+forall a. Read a =&gt; ReadPrec [EPS a]
+forall a. Read a =&gt; ReadPrec (EPS a)
+forall a. Read a =&gt; Int -&gt; ReadS (EPS a)
+forall a. Read a =&gt; ReadS [EPS a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [EPS a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [EPS a]
+readPrec :: ReadPrec (EPS a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (EPS a)
+readList :: ReadS [EPS a]
+$creadList :: forall a. Read a =&gt; ReadS [EPS a]
+readsPrec :: Int -&gt; ReadS (EPS a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154636"><span id="local-6989586621679154638"><span id="local-6989586621679154640"><span id="local-6989586621679154642"><span id="local-6989586621679154644"><span id="local-6989586621679154646"><span id="local-6989586621679154648"><span class="annot"><span class="annottext">Integer -&gt; EPS a
+EPS a -&gt; EPS a
+EPS a -&gt; EPS a -&gt; EPS a
+(EPS a -&gt; EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (Integer -&gt; EPS a)
+-&gt; Num (EPS a)
+forall a. Num a =&gt; Integer -&gt; EPS a
+forall a. Num a =&gt; EPS a -&gt; EPS a
+forall a. Num a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; EPS a
+$cfromInteger :: forall a. Num a =&gt; Integer -&gt; EPS a
+signum :: EPS a -&gt; EPS a
+$csignum :: forall a. Num a =&gt; EPS a -&gt; EPS a
+abs :: EPS a -&gt; EPS a
+$cabs :: forall a. Num a =&gt; EPS a -&gt; EPS a
+negate :: EPS a -&gt; EPS a
+$cnegate :: forall a. Num a =&gt; EPS a -&gt; EPS a
+* :: EPS a -&gt; EPS a -&gt; EPS a
+$c* :: forall a. Num a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+- :: EPS a -&gt; EPS a -&gt; EPS a
+$c- :: forall a. Num a =&gt; EPS a -&gt; EPS a -&gt; EPS a
++ :: EPS a -&gt; EPS a -&gt; EPS a
+$c+ :: forall a. Num a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154628"><span id="local-6989586621679154630"><span id="local-6989586621679154632"><span class="annot"><span class="annottext">Num (EPS a)
+Num (EPS a) =&gt;
+(EPS a -&gt; EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a) -&gt; (Rational -&gt; EPS a) -&gt; Fractional (EPS a)
+Rational -&gt; EPS a
+EPS a -&gt; EPS a
+EPS a -&gt; EPS a -&gt; EPS a
+forall a. Fractional a =&gt; Num (EPS a)
+forall a. Fractional a =&gt; Rational -&gt; EPS a
+forall a. Fractional a =&gt; EPS a -&gt; EPS a
+forall a. Fractional a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+forall a.
+Num a =&gt;
+(a -&gt; a -&gt; a) -&gt; (a -&gt; a) -&gt; (Rational -&gt; a) -&gt; Fractional a
+fromRational :: Rational -&gt; EPS a
+$cfromRational :: forall a. Fractional a =&gt; Rational -&gt; EPS a
+recip :: EPS a -&gt; EPS a
+$crecip :: forall a. Fractional a =&gt; EPS a -&gt; EPS a
+/ :: EPS a -&gt; EPS a -&gt; EPS a
+$c/ :: forall a. Fractional a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+$cp1Fractional :: forall a. Fractional a =&gt; Num (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Fractional</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679154582"><span id="local-6989586621679154584"><span id="local-6989586621679154586"><span id="local-6989586621679154588"><span id="local-6989586621679154590"><span id="local-6989586621679154592"><span id="local-6989586621679154594"><span id="local-6989586621679154596"><span id="local-6989586621679154598"><span id="local-6989586621679154600"><span id="local-6989586621679154602"><span id="local-6989586621679154604"><span id="local-6989586621679154606"><span id="local-6989586621679154608"><span id="local-6989586621679154610"><span id="local-6989586621679154612"><span id="local-6989586621679154614"><span id="local-6989586621679154616"><span id="local-6989586621679154618"><span id="local-6989586621679154620"><span id="local-6989586621679154622"><span id="local-6989586621679154624"><span class="annot"><span class="annottext">Fractional (EPS a)
+EPS a
+Fractional (EPS a) =&gt;
+EPS a
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; (EPS a -&gt; EPS a)
+-&gt; Floating (EPS a)
+EPS a -&gt; EPS a
+EPS a -&gt; EPS a -&gt; EPS a
+forall a. Floating a =&gt; Fractional (EPS a)
+forall a. Floating a =&gt; EPS a
+forall a. Floating a =&gt; EPS a -&gt; EPS a
+forall a. Floating a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+forall a.
+Fractional a =&gt;
+a
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; Floating a
+log1mexp :: EPS a -&gt; EPS a
+$clog1mexp :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+log1pexp :: EPS a -&gt; EPS a
+$clog1pexp :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+expm1 :: EPS a -&gt; EPS a
+$cexpm1 :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+log1p :: EPS a -&gt; EPS a
+$clog1p :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+atanh :: EPS a -&gt; EPS a
+$catanh :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+acosh :: EPS a -&gt; EPS a
+$cacosh :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+asinh :: EPS a -&gt; EPS a
+$casinh :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+tanh :: EPS a -&gt; EPS a
+$ctanh :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+cosh :: EPS a -&gt; EPS a
+$ccosh :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+sinh :: EPS a -&gt; EPS a
+$csinh :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+atan :: EPS a -&gt; EPS a
+$catan :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+acos :: EPS a -&gt; EPS a
+$cacos :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+asin :: EPS a -&gt; EPS a
+$casin :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+tan :: EPS a -&gt; EPS a
+$ctan :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+cos :: EPS a -&gt; EPS a
+$ccos :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+sin :: EPS a -&gt; EPS a
+$csin :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+logBase :: EPS a -&gt; EPS a -&gt; EPS a
+$clogBase :: forall a. Floating a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+** :: EPS a -&gt; EPS a -&gt; EPS a
+$c** :: forall a. Floating a =&gt; EPS a -&gt; EPS a -&gt; EPS a
+sqrt :: EPS a -&gt; EPS a
+$csqrt :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+log :: EPS a -&gt; EPS a
+$clog :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+exp :: EPS a -&gt; EPS a
+$cexp :: forall a. Floating a =&gt; EPS a -&gt; EPS a
+pi :: EPS a
+$cpi :: forall a. Floating a =&gt; EPS a
+$cp1Floating :: forall a. Floating a =&gt; Fractional (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Floating</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span id="local-6989586621679154580"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679154577"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679154580"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679154580"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Fractional</span></span><span> </span><span class="annot"><a href="#local-6989586621679154580"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154580"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Eq</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-pragma hs-type">EPS</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Double</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154575"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154575"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154574"><span class="annot"><span class="annottext">== :: EPS a -&gt; EPS a -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154573"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154573"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154573"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154575"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Fractional a =&gt; a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var">eps</span></a></span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span id="local-6989586621679154571"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679154561"><span id="local-6989586621679154563"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679154571"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679154571"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Fractional</span></span><span> </span><span class="annot"><a href="#local-6989586621679154571"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154571"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Ord</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-pragma hs-type">EPS</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Double</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621679154559"><span class="annot"><span class="annottext">compare :: EPS a -&gt; EPS a -&gt; Ordering
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154557"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154557"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154556"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154556"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154557"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154556"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Fractional a =&gt; a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var">eps</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154557"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154556"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154555"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154555"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154554"><span class="annot"><span class="annottext">&lt; :: EPS a -&gt; EPS a -&gt; Bool
+</span><a href="#local-6989586621679154554"><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154553"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154553"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154555"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154553"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Fractional a =&gt; a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var">eps</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154552"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154552"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154551"><span class="annot"><span class="annottext">&lt;= :: EPS a -&gt; EPS a -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;=</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154549"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154549"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154552"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154549"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Fractional a =&gt; a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var">eps</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154547"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154547"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154546"><span class="annot"><span class="annottext">&gt; :: EPS a -&gt; EPS a -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154544"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154544"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154547"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154544"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Fractional a =&gt; a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var">eps</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154543"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679154543"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154542"><span class="annot"><span class="annottext">&gt;= :: EPS a -&gt; EPS a -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&gt;=</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154541"><span class="annot"><span class="annottext">y :: a
+</span><a href="#local-6989586621679154541"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154543"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679154541"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Fractional a =&gt; a
+</span><a href="Data.EPS.html#eps"><span class="hs-identifier hs-var">eps</span></a></span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">newtype</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="MVector"><span class="annot"><span class="hs-identifier hs-var">UM.MVector</span></span></span><span> </span><span id="local-6989586621679154710"><span class="annot"><a href="#local-6989586621679154710"><span class="hs-identifier hs-type hs-type">s</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154709"><span class="annot"><a href="#local-6989586621679154709"><span class="hs-identifier hs-type hs-type">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MV_EPS"><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-var">MV_EPS</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679154710"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154709"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span class="hs-keyword">newtype</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="Vector"><span class="annot"><span class="hs-identifier hs-var">U.Vector</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span id="local-6989586621679154682"><span class="annot"><a href="#local-6989586621679154682"><span class="hs-identifier hs-type hs-type">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span id="V_EPS"><span class="annot"><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-var">V_EPS</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679154682"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span id="local-6989586621679154538"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154538"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154538"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span id="local-6989586621679154534"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154534"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154534"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span id="local-6989586621679154519"><span class="annot"><span class="annottext">basicLength :: MVector s (EPS a) -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicLength</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154517"><span class="annot"><a href="#local-6989586621679154517"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector s a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.basicLength</span></span><span> </span><span class="annot"><span class="annottext">MVector s a
+</span><a href="#local-6989586621679154517"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicLength</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679154516"><span class="annot"><span class="annottext">basicUnsafeSlice :: Int -&gt; Int -&gt; MVector s (EPS a) -&gt; MVector s (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeSlice</span></span></span><span> </span><span id="local-6989586621679154514"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679154514"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679154513"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154513"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154512"><span class="annot"><a href="#local-6989586621679154512"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector s a -&gt; MVector s (EPS a)
+forall s a. MVector s a -&gt; MVector s (EPS a)
+</span><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-var">MV_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector s a -&gt; MVector s (EPS a))
+-&gt; MVector s a -&gt; MVector s (EPS a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; MVector s a -&gt; MVector s a
+forall (v :: * -&gt; * -&gt; *) a s.
+MVector v a =&gt;
+Int -&gt; Int -&gt; v s a -&gt; v s a
+</span><span class="hs-identifier hs-var">GM.basicUnsafeSlice</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154514"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154513"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s a
+</span><a href="#local-6989586621679154512"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeSlice</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679154511"><span class="annot"><span class="annottext">basicOverlaps :: MVector s (EPS a) -&gt; MVector s (EPS a) -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicOverlaps</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154509"><span class="annot"><a href="#local-6989586621679154509"><span class="hs-identifier hs-var">v1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154508"><span class="annot"><a href="#local-6989586621679154508"><span class="hs-identifier hs-var">v2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector s a -&gt; MVector s a -&gt; Bool
+forall (v :: * -&gt; * -&gt; *) a s.
+MVector v a =&gt;
+v s a -&gt; v s a -&gt; Bool
+</span><span class="hs-identifier hs-var">GM.basicOverlaps</span></span><span> </span><span class="annot"><span class="annottext">MVector s a
+</span><a href="#local-6989586621679154509"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s a
+</span><a href="#local-6989586621679154508"><span class="hs-identifier hs-var">v2</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicOverlaps</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679154507"><span class="annot"><span class="annottext">basicUnsafeNew :: Int -&gt; m (MVector (PrimState m) (EPS a))
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeNew</span></span></span><span> </span><span id="local-6989586621679154505"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154505"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a)
+forall s a. MVector s a -&gt; MVector s (EPS a)
+</span><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-var">MV_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a))
+-&gt; m (MVector (PrimState m) a) -&gt; m (MVector (PrimState m) (EPS a))
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (MVector (PrimState m) a)
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+Int -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.basicUnsafeNew</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154505"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeNew</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679154503"><span class="annot"><span class="annottext">basicInitialize :: MVector (PrimState m) (EPS a) -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicInitialize</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154501"><span class="annot"><a href="#local-6989586621679154501"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicInitialize</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154501"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicInitialize</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679154500"><span class="annot"><span class="annottext">basicUnsafeReplicate :: Int -&gt; EPS a -&gt; m (MVector (PrimState m) (EPS a))
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeReplicate</span></span></span><span> </span><span id="local-6989586621679154498"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154498"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679154497"><span class="annot"><span class="annottext">x :: EPS a
+</span><a href="#local-6989586621679154497"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a)
+forall s a. MVector s a -&gt; MVector s (EPS a)
+</span><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-var">MV_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a))
+-&gt; m (MVector (PrimState m) a) -&gt; m (MVector (PrimState m) (EPS a))
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; m (MVector (PrimState m) a)
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+Int -&gt; a -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.basicUnsafeReplicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154498"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EPS a -&gt; a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">EPS a
+</span><a href="#local-6989586621679154497"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeReplicate</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679154496"><span class="annot"><span class="annottext">basicUnsafeRead :: MVector (PrimState m) (EPS a) -&gt; Int -&gt; m (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeRead</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154494"><span class="annot"><a href="#local-6989586621679154494"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154493"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679154493"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; EPS a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; EPS a) -&gt; m a -&gt; m (EPS a)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.basicUnsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154494"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154493"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeRead</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-62"></span><span>  </span><span id="local-6989586621679154492"><span class="annot"><span class="annottext">basicUnsafeWrite :: MVector (PrimState m) (EPS a) -&gt; Int -&gt; EPS a -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeWrite</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154490"><span class="annot"><a href="#local-6989586621679154490"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154489"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679154489"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679154488"><span class="annot"><span class="annottext">x :: EPS a
+</span><a href="#local-6989586621679154488"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicUnsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154490"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154489"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EPS a -&gt; a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">EPS a
+</span><a href="#local-6989586621679154488"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeWrite</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679154487"><span class="annot"><span class="annottext">basicClear :: MVector (PrimState m) (EPS a) -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicClear</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154485"><span class="annot"><a href="#local-6989586621679154485"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicClear</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154485"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicClear</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679154484"><span class="annot"><span class="annottext">basicSet :: MVector (PrimState m) (EPS a) -&gt; EPS a -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicSet</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154482"><span class="annot"><a href="#local-6989586621679154482"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154481"><span class="annot"><span class="annottext">x :: EPS a
+</span><a href="#local-6989586621679154481"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; a -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicSet</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154482"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EPS a -&gt; a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">EPS a
+</span><a href="#local-6989586621679154481"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicSet</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679154480"><span class="annot"><span class="annottext">basicUnsafeCopy :: MVector (PrimState m) (EPS a)
+-&gt; MVector (PrimState m) (EPS a) -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeCopy</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154478"><span class="annot"><a href="#local-6989586621679154478"><span class="hs-identifier hs-var">v1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154477"><span class="annot"><a href="#local-6989586621679154477"><span class="hs-identifier hs-var">v2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) a -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicUnsafeCopy</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154478"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154477"><span class="hs-identifier hs-var">v2</span></a></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeCopy</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-70"></span><span>  </span><span id="local-6989586621679154476"><span class="annot"><span class="annottext">basicUnsafeMove :: MVector (PrimState m) (EPS a)
+-&gt; MVector (PrimState m) (EPS a) -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeMove</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154474"><span class="annot"><a href="#local-6989586621679154474"><span class="hs-identifier hs-var">v1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154473"><span class="annot"><a href="#local-6989586621679154473"><span class="hs-identifier hs-var">v2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) a -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicUnsafeMove</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154474"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154473"><span class="hs-identifier hs-var">v2</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeMove</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-72"></span><span>  </span><span id="local-6989586621679154472"><span class="annot"><span class="annottext">basicUnsafeGrow :: MVector (PrimState m) (EPS a)
+-&gt; Int -&gt; m (MVector (PrimState m) (EPS a))
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeGrow</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154470"><span class="annot"><a href="#local-6989586621679154470"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154469"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154469"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a)
+forall s a. MVector s a -&gt; MVector s (EPS a)
+</span><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-var">MV_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a))
+-&gt; m (MVector (PrimState m) a) -&gt; m (MVector (PrimState m) (EPS a))
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m (MVector (PrimState m) a)
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.basicUnsafeGrow</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679154470"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154469"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeGrow</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span id="local-6989586621679154468"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679154468"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">G.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#EPS"><span class="hs-identifier hs-type">EPS</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679154468"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679154458"><span class="annot"><span class="annottext">basicUnsafeFreeze :: Mutable Vector (PrimState m) (EPS a) -&gt; m (Vector (EPS a))
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeFreeze</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154456"><span class="annot"><a href="#local-6989586621679154456"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Vector (EPS a)
+forall a. Vector a -&gt; Vector (EPS a)
+</span><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-var">V_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector a -&gt; Vector (EPS a)) -&gt; m (Vector a) -&gt; m (Vector (EPS a))
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Mutable Vector (PrimState m) a -&gt; m (Vector a)
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, PrimMonad m) =&gt;
+Mutable v (PrimState m) a -&gt; m (v a)
+</span><span class="hs-identifier hs-var">G.basicUnsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+Mutable Vector (PrimState m) a
+</span><a href="#local-6989586621679154456"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeFreeze</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-78"></span><span>  </span><span id="local-6989586621679154455"><span class="annot"><span class="annottext">basicUnsafeThaw :: Vector (EPS a) -&gt; m (Mutable Vector (PrimState m) (EPS a))
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeThaw</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-type">V_EPS</span></a></span><span> </span><span id="local-6989586621679154453"><span class="annot"><a href="#local-6989586621679154453"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a)
+forall s a. MVector s a -&gt; MVector s (EPS a)
+</span><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-var">MV_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) a -&gt; MVector (PrimState m) (EPS a))
+-&gt; m (MVector (PrimState m) a) -&gt; m (MVector (PrimState m) (EPS a))
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; m (Mutable Vector (PrimState m) a)
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, PrimMonad m) =&gt;
+v a -&gt; m (Mutable v (PrimState m) a)
+</span><span class="hs-identifier hs-var">G.basicUnsafeThaw</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679154453"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeThaw</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679154452"><span class="annot"><span class="annottext">basicLength :: Vector (EPS a) -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicLength</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-type">V_EPS</span></a></span><span> </span><span id="local-6989586621679154450"><span class="annot"><a href="#local-6989586621679154450"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall (v :: * -&gt; *) a. Vector v a =&gt; v a -&gt; Int
+</span><span class="hs-identifier hs-var">G.basicLength</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679154450"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicLength</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-82"></span><span>  </span><span id="local-6989586621679154449"><span class="annot"><span class="annottext">basicUnsafeSlice :: Int -&gt; Int -&gt; Vector (EPS a) -&gt; Vector (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeSlice</span></span></span><span> </span><span id="local-6989586621679154447"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679154447"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679154446"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679154446"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-type">V_EPS</span></a></span><span> </span><span id="local-6989586621679154445"><span class="annot"><a href="#local-6989586621679154445"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Vector (EPS a)
+forall a. Vector a -&gt; Vector (EPS a)
+</span><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-var">V_EPS</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector a -&gt; Vector (EPS a)) -&gt; Vector a -&gt; Vector (EPS a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Vector a -&gt; Vector a
+forall (v :: * -&gt; *) a. Vector v a =&gt; Int -&gt; Int -&gt; v a -&gt; v a
+</span><span class="hs-identifier hs-var">G.basicUnsafeSlice</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154447"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154446"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679154445"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeSlice</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-84"></span><span>  </span><span id="local-6989586621679154444"><span class="annot"><span class="annottext">basicUnsafeIndexM :: Vector (EPS a) -&gt; Int -&gt; m (EPS a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeIndexM</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-type">V_EPS</span></a></span><span> </span><span id="local-6989586621679154442"><span class="annot"><a href="#local-6989586621679154442"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679154441"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679154441"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; EPS a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; EPS a) -&gt; m a -&gt; m (EPS a)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int -&gt; m a
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, Monad m) =&gt;
+v a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">G.basicUnsafeIndexM</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679154442"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679154441"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeIndexM</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679154440"><span class="annot"><span class="annottext">basicUnsafeCopy :: Mutable Vector (PrimState m) (EPS a) -&gt; Vector (EPS a) -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeCopy</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#MV_EPS"><span class="hs-identifier hs-type">MV_EPS</span></a></span><span> </span><span id="local-6989586621679154438"><span class="annot"><a href="#local-6989586621679154438"><span class="hs-identifier hs-var">mv</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.EPS.html#V_EPS"><span class="hs-identifier hs-type">V_EPS</span></a></span><span> </span><span id="local-6989586621679154437"><span class="annot"><a href="#local-6989586621679154437"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Mutable Vector (PrimState m) a -&gt; Vector a -&gt; m ()
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, PrimMonad m) =&gt;
+Mutable v (PrimState m) a -&gt; v a -&gt; m ()
+</span><span class="hs-identifier hs-var">G.basicUnsafeCopy</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+Mutable Vector (PrimState m) a
+</span><a href="#local-6989586621679154438"><span class="hs-identifier hs-var">mv</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679154437"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-87"></span><span>  </span><span id="local-6989586621679154436"><span class="annot"><span class="annottext">elemseq :: Vector (EPS a) -&gt; EPS a -&gt; b -&gt; b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">elemseq</span></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EPS a -&gt; b -&gt; b
+forall a b. a -&gt; b -&gt; b
+</span><span class="hs-identifier hs-var">seq</span></span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">elemseq</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-89"></span></pre></body></html>

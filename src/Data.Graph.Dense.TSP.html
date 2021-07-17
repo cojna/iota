@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Graph.Dense.TSP</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.ST</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Unsafe.Coerce</span></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.BitSet.html"><span class="hs-identifier">Data.BitSet</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="My.Prelude.html#rep"><span class="hs-identifier">rep</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">{- | Traveling Salesman Problem
+
+ /O(n^2 2^n)/
+-}</span><span>
+</span><span id="line-20"></span><span id="local-6989586621679163699"><span class="annot"><a href="Data.Graph.Dense.TSP.html#tsp"><span class="hs-identifier hs-type">tsp</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679163699"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679163699"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679163699"><span class="hs-identifier hs-type">w</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-comment">-- | n</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-comment">-- | src</span><span>
+</span><span id="line-25"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-comment">-- | adjacent matrix (n x n)</span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679163699"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><a href="#local-6989586621679163699"><span class="hs-identifier hs-type">w</span></a></span></span><span>
+</span><span id="line-29"></span><span id="tsp"><span class="annot"><span class="annottext">tsp :: Int -&gt; Int -&gt; Vector w -&gt; w
+</span><a href="Data.Graph.Dense.TSP.html#tsp"><span class="hs-identifier hs-var hs-var">tsp</span></a></span></span><span> </span><span id="local-6989586621679163697"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679163696"><span class="annot"><span class="annottext">src :: Int
+</span><a href="#local-6989586621679163696"><span class="hs-identifier hs-var">src</span></a></span></span><span> </span><span id="local-6989586621679163695"><span class="annot"><span class="annottext">gr :: Vector w
+</span><a href="#local-6989586621679163695"><span class="hs-identifier hs-var">gr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. ST s w) -&gt; w
+forall a. (forall s. ST s a) -&gt; a
+</span><span class="hs-identifier hs-var">runST</span></span><span> </span><span class="annot"><span class="annottext">((forall s. ST s w) -&gt; w) -&gt; (forall s. ST s w) -&gt; w
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679163693"><span class="annot"><span class="annottext">MVector s w
+</span><a href="#local-6989586621679163693"><span class="hs-identifier hs-var">dp</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; w -&gt; ST s (MVector (PrimState (ST s)) w)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679163689"><span class="hs-identifier hs-var">inf</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Int -&gt; w -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.write</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679163693"><span class="hs-identifier hs-var">dp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BitSet -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679163687"><span class="hs-identifier hs-var">ix</span></a></span><span> </span><span class="annot"><span class="annottext">BitSet
+</span><a href="Data.BitSet.html#emptyBS"><span class="hs-identifier hs-var">emptyBS</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163696"><span class="hs-identifier hs-var">src</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ())
+-&gt; ((BitSet -&gt; ST s ()) -&gt; Int -&gt; ST s ())
+-&gt; (BitSet -&gt; ST s ())
+-&gt; ST s ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(BitSet -&gt; ST s ()) -&gt; (Int -&gt; BitSet) -&gt; Int -&gt; ST s ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; BitSet
+</span><a href="Data.BitSet.html#BitSet"><span class="hs-identifier hs-var">BitSet</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((BitSet -&gt; ST s ()) -&gt; ST s ()) -&gt; (BitSet -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163683"><span class="annot"><span class="annottext">s :: BitSet
+</span><a href="#local-6989586621679163683"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ()) -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163682"><span class="annot"><span class="annottext">v :: Int
+</span><a href="#local-6989586621679163682"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>      </span><span id="local-6989586621679163681"><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679163681"><span class="hs-identifier hs-var">dpsv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Int -&gt; ST s w
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679163693"><span class="hs-identifier hs-var">dp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BitSet -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679163687"><span class="hs-identifier hs-var">ix</span></a></span><span> </span><span class="annot"><span class="annottext">BitSet
+</span><a href="#local-6989586621679163683"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163682"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>      </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ()) -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163679"><span class="annot"><span class="annottext">nv :: Int
+</span><a href="#local-6989586621679163679"><span class="hs-identifier hs-var">nv</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; ST s () -&gt; ST s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; BitSet -&gt; Bool
+</span><a href="Data.BitSet.html#notMemberBS"><span class="hs-identifier hs-var">notMemberBS</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163679"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="annot"><span class="annottext">BitSet
+</span><a href="#local-6989586621679163683"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ST s () -&gt; ST s ()) -&gt; ST s () -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679163676"><span class="annot"><span class="annottext">d :: w
+</span><a href="#local-6989586621679163676"><span class="hs-identifier hs-var hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679163681"><span class="hs-identifier hs-var">dpsv</span></a></span><span> </span><span class="annot"><span class="annottext">w -&gt; w -&gt; w
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Vector w -&gt; Int -&gt; w
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector w
+</span><a href="#local-6989586621679163695"><span class="hs-identifier hs-var">gr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163682"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163679"><span class="hs-identifier hs-var">nv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>        </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; (w -&gt; w) -&gt; Int -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679163693"><span class="hs-identifier hs-var">dp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">w -&gt; w -&gt; w
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">w
+</span><a href="#local-6989586621679163676"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BitSet -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679163687"><span class="hs-identifier hs-var">ix</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; BitSet -&gt; BitSet
+</span><a href="Data.BitSet.html#insertBS"><span class="hs-identifier hs-var">insertBS</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163679"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="annot"><span class="annottext">BitSet
+</span><a href="#local-6989586621679163683"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163679"><span class="hs-identifier hs-var">nv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) w -&gt; Int -&gt; ST s w
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.read</span></span><span> </span><span class="annot"><span class="annottext">MVector s w
+MVector (PrimState (ST s)) w
+</span><a href="#local-6989586621679163693"><span class="hs-identifier hs-var">dp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BitSet -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679163687"><span class="hs-identifier hs-var">ix</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; BitSet
+</span><a href="Data.BitSet.html#BitSet"><span class="hs-identifier hs-var">BitSet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163696"><span class="hs-identifier hs-var">src</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><a href="#local-6989586621679163687"><span class="hs-identifier hs-type">ix</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.BitSet.html#BitSet"><span class="hs-identifier hs-type">BitSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-41"></span><span>    </span><span id="local-6989586621679163687"><span class="annot"><span class="annottext">ix :: BitSet -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679163687"><span class="hs-identifier hs-var hs-var">ix</span></a></span></span><span> </span><span id="local-6989586621679163669"><span class="annot"><span class="annottext">i :: BitSet
+</span><a href="#local-6989586621679163669"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679163668"><span class="annot"><span class="annottext">j :: Int
+</span><a href="#local-6989586621679163668"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BitSet -&gt; Int
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Data.BitSet.html#BitSet"><span class="hs-identifier hs-type">BitSet</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="annottext">BitSet
+</span><a href="#local-6989586621679163669"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163668"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="#local-6989586621679163687"><span class="hs-pragma hs-type">ix</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-glyph">!</span><span id="local-6989586621679163689"><span class="annot"><span class="annottext">inf :: w
+</span><a href="#local-6989586621679163689"><span class="hs-identifier hs-var hs-var">inf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector w -&gt; w
+forall a. (Unbox a, Num a) =&gt; Vector a -&gt; a
+</span><span class="hs-identifier hs-var">U.sum</span></span><span> </span><span class="annot"><span class="annottext">(Vector w -&gt; w) -&gt; Vector w -&gt; w
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; w -&gt; Vector w
+forall a. Unbox a =&gt; Int -&gt; a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679163697"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vector w -&gt; w
+forall a. (Unbox a, Ord a) =&gt; Vector a -&gt; a
+</span><span class="hs-identifier hs-var">U.maximum</span></span><span> </span><span class="annot"><span class="annottext">Vector w
+</span><a href="#local-6989586621679163695"><span class="hs-identifier hs-var">gr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Graph.Dense.TSP.html#tsp"><span class="hs-pragma hs-type">tsp</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-46"></span></pre></body></html>

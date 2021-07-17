@@ -1,0 +1,741 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE KindSignatures #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Heap.Binary</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor.Identity</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Ord</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">--</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="My.Prelude.html#rev"><span class="hs-identifier">rev</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">data</span><span> </span><span id="BinaryHeap"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-var">BinaryHeap</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679162731"><span class="annot"><a href="#local-6989586621679162731"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679162730"><span class="annot"><a href="#local-6989586621679162730"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679162732"><span class="annot"><a href="#local-6989586621679162732"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BinaryHeap"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-var">BinaryHeap</span></a></span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="priorityBH"><span class="annot"><span class="annottext">BinaryHeap f s a -&gt; a -&gt; f a
+</span><a href="Data.Heap.Binary.html#priorityBH"><span class="hs-identifier hs-var hs-var">priorityBH</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679162732"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162731"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162732"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="intVarsBH"><span class="annot"><span class="annottext">BinaryHeap f s a -&gt; MVector s Int
+</span><a href="Data.Heap.Binary.html#intVarsBH"><span class="hs-identifier hs-var hs-var">intVarsBH</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679162730"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="internalVecBH"><span class="annot"><span class="annottext">BinaryHeap f s a -&gt; MVector s a
+</span><a href="Data.Heap.Binary.html#internalVecBH"><span class="hs-identifier hs-var hs-var">internalVecBH</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679162730"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162732"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-type">_sizeBH</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-31"></span><span id="_sizeBH"><span class="annot"><span class="annottext">_sizeBH :: Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var hs-var">_sizeBH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-32"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-pragma hs-type">_sizeBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">type</span><span> </span><span id="MinBinaryHeap"><span class="annot"><a href="Data.Heap.Binary.html#MinBinaryHeap"><span class="hs-identifier hs-var">MinBinaryHeap</span></a></span></span><span> </span><span id="local-6989586621679162595"><span class="annot"><a href="#local-6989586621679162595"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679162594"><span class="annot"><a href="#local-6989586621679162594"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621679162595"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162594"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">type</span><span> </span><span id="MaxBinaryHeap"><span class="annot"><a href="Data.Heap.Binary.html#MaxBinaryHeap"><span class="hs-identifier hs-var">MaxBinaryHeap</span></a></span></span><span> </span><span id="local-6989586621679162593"><span class="annot"><a href="#local-6989586621679162593"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679162592"><span class="annot"><a href="#local-6989586621679162592"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Down</span></span><span> </span><span class="annot"><a href="#local-6989586621679162593"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162592"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span id="local-6989586621679162711"><span id="local-6989586621679162712"><span id="local-6989586621679162713"><span class="annot"><a href="Data.Heap.Binary.html#newBinaryHeap"><span class="hs-identifier hs-type">newBinaryHeap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162713"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162712"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162713"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162711"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162713"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162712"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162711"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162712"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162713"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-38"></span><span id="newBinaryHeap"><span class="annot"><span class="annottext">newBinaryHeap :: (a -&gt; f a) -&gt; Int -&gt; m (BinaryHeap f (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#newBinaryHeap"><span class="hs-identifier hs-var hs-var">newBinaryHeap</span></a></span></span><span> </span><span id="local-6989586621679162590"><span class="annot"><span class="annottext">prio :: a -&gt; f a
+</span><a href="#local-6989586621679162590"><span class="hs-identifier hs-var">prio</span></a></span></span><span> </span><span id="local-6989586621679162589"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679162589"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; f a)
+-&gt; MVector (PrimState m) Int
+-&gt; MVector (PrimState m) a
+-&gt; BinaryHeap f (PrimState m) a
+forall (f :: * -&gt; *) s a.
+(a -&gt; f a) -&gt; MVector s Int -&gt; MVector s a -&gt; BinaryHeap f s a
+</span><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-var">BinaryHeap</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f a
+</span><a href="#local-6989586621679162590"><span class="hs-identifier hs-var">prio</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int
+ -&gt; MVector (PrimState m) a -&gt; BinaryHeap f (PrimState m) a)
+-&gt; m (MVector (PrimState m) Int)
+-&gt; m (MVector (PrimState m) a -&gt; BinaryHeap f (PrimState m) a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">m (MVector (PrimState m) a -&gt; BinaryHeap f (PrimState m) a)
+-&gt; m (MVector (PrimState m) a) -&gt; m (BinaryHeap f (PrimState m) a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (MVector (PrimState m) a)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.unsafeNew</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162589"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679162584"><span id="local-6989586621679162585"><span class="annot"><a href="Data.Heap.Binary.html#newMinBinaryHeap"><span class="hs-identifier hs-type">newMinBinaryHeap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162585"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162584"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162584"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#MinBinaryHeap"><span class="hs-identifier hs-type">MinBinaryHeap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162584"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162585"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-41"></span><span id="newMinBinaryHeap"><span class="annot"><span class="annottext">newMinBinaryHeap :: Int -&gt; m (MinBinaryHeap (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#newMinBinaryHeap"><span class="hs-identifier hs-var hs-var">newMinBinaryHeap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Identity a) -&gt; Int -&gt; m (MinBinaryHeap (PrimState m) a)
+forall a (m :: * -&gt; *) (f :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; f a) -&gt; Int -&gt; m (BinaryHeap f (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#newBinaryHeap"><span class="hs-identifier hs-var">newBinaryHeap</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Identity a
+forall a. a -&gt; Identity a
+</span><span class="hs-identifier hs-var">Identity</span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679162580"><span id="local-6989586621679162581"><span class="annot"><a href="Data.Heap.Binary.html#newMaxBinaryHeap"><span class="hs-identifier hs-type">newMaxBinaryHeap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162581"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162580"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162580"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#MaxBinaryHeap"><span class="hs-identifier hs-type">MaxBinaryHeap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162580"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162581"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-44"></span><span id="newMaxBinaryHeap"><span class="annot"><span class="annottext">newMaxBinaryHeap :: Int -&gt; m (MaxBinaryHeap (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#newMaxBinaryHeap"><span class="hs-identifier hs-var hs-var">newMaxBinaryHeap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Down a) -&gt; Int -&gt; m (MaxBinaryHeap (PrimState m) a)
+forall a (m :: * -&gt; *) (f :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; f a) -&gt; Int -&gt; m (BinaryHeap f (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#newBinaryHeap"><span class="hs-identifier hs-var">newBinaryHeap</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Down a
+forall a. a -&gt; Down a
+</span><span class="hs-identifier hs-var">Down</span></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span id="local-6989586621679162639"><span id="local-6989586621679162640"><span id="local-6989586621679162641"><span class="annot"><a href="Data.Heap.Binary.html#getBinaryHeapSize"><span class="hs-identifier hs-type">getBinaryHeapSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162641"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162640"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162641"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162639"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162641"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span></span></span><span>
+</span><span id="line-47"></span><span id="getBinaryHeapSize"><span class="annot"><span class="annottext">getBinaryHeapSize :: BinaryHeap f (PrimState m) a -&gt; m Int
+</span><a href="Data.Heap.Binary.html#getBinaryHeapSize"><span class="hs-identifier hs-var hs-var">getBinaryHeapSize</span></a></span></span><span> </span><span id="local-6989586621679162574"><span id="local-6989586621679162575"><span id="local-6989586621679162576"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162575"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span>
+</span><span id="line-48"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#getBinaryHeapSize"><span class="hs-pragma hs-type">getBinaryHeapSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span id="local-6989586621679162571"><span id="local-6989586621679162572"><span class="annot"><a href="Data.Heap.Binary.html#siftUpBy"><span class="hs-identifier hs-type">siftUpBy</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162572"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162571"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162572"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162572"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ordering</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162571"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162572"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><a href="#local-6989586621679162571"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-56"></span><span id="siftUpBy"><span class="annot"><span class="annottext">siftUpBy :: (a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#siftUpBy"><span class="hs-identifier hs-var hs-var">siftUpBy</span></a></span></span><span> </span><span id="local-6989586621679162569"><span class="annot"><span class="annottext">cmp :: a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162569"><span class="hs-identifier hs-var">cmp</span></a></span></span><span> </span><span id="local-6989586621679162568"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679162568"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679162567"><span class="annot"><span class="annottext">vec :: MVector (PrimState m) a
+</span><a href="#local-6989586621679162567"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679162566"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162566"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162567"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162568"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162568"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679162563"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679162563"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679162562"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162562"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162562"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-60"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-61"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679162560"><span class="annot"><span class="annottext">parent :: Int
+</span><a href="#local-6989586621679162560"><span class="hs-identifier hs-var hs-var">parent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162562"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">`unsafeShiftR`</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-62"></span><span>        </span><span id="local-6989586621679162558"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162558"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162567"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162560"><span class="hs-identifier hs-var">parent</span></a></span><span>
+</span><span id="line-63"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162569"><span class="hs-identifier hs-var">cmp</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162558"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162566"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-64"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162567"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162562"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162558"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679162563"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162560"><span class="hs-identifier hs-var">parent</span></a></span><span>
+</span><span id="line-65"></span><span>          </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162567"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162562"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162566"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-66"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162567"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162566"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-67"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#siftUpBy"><span class="hs-pragma hs-type">siftUpBy</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span id="local-6989586621679162672"><span id="local-6989586621679162673"><span class="annot"><a href="Data.Heap.Binary.html#siftDownBy"><span class="hs-identifier hs-type">siftDownBy</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162673"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162672"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162673"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162673"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ordering</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162672"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162673"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-74"></span><span>  </span><span class="annot"><a href="#local-6989586621679162672"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-75"></span><span id="siftDownBy"><span class="annot"><span class="annottext">siftDownBy :: (a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#siftDownBy"><span class="hs-identifier hs-var hs-var">siftDownBy</span></a></span></span><span> </span><span id="local-6989586621679162555"><span class="annot"><span class="annottext">cmp :: a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162555"><span class="hs-identifier hs-var">cmp</span></a></span></span><span> </span><span id="local-6989586621679162554"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679162554"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679162553"><span class="annot"><span class="annottext">vec :: MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679162552"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162554"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679162551"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679162551"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int
+forall a s. Unbox a =&gt; MVector s a -&gt; Int
+</span><span class="hs-identifier hs-var">UM.length</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-78"></span><span>  </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162554"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679162549"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679162549"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679162548"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679162547"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679162547"><span class="hs-identifier hs-var hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679162544"><span class="annot"><span class="annottext">r :: Int
+</span><a href="#local-6989586621679162544"><span class="hs-identifier hs-var hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162547"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162551"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162547"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-82"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-83"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-84"></span><span>        </span><span id="local-6989586621679162541"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162541"><span class="hs-identifier hs-var">vl</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162547"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-85"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162544"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162551"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-86"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-87"></span><span>            </span><span id="local-6989586621679162539"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162539"><span class="hs-identifier hs-var">vr</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162544"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-88"></span><span>            </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162555"><span class="hs-identifier hs-var">cmp</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162539"><span class="hs-identifier hs-var">vr</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162541"><span class="hs-identifier hs-var">vl</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-89"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162555"><span class="hs-identifier hs-var">cmp</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162539"><span class="hs-identifier hs-var">vr</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-90"></span><span>                </span><span class="annot"><span class="hs-identifier hs-type">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162539"><span class="hs-identifier hs-var">vr</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679162549"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162544"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-91"></span><span>                </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-92"></span><span>              </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162555"><span class="hs-identifier hs-var">cmp</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162541"><span class="hs-identifier hs-var">vl</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-93"></span><span>                </span><span class="annot"><span class="hs-identifier hs-type">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162541"><span class="hs-identifier hs-var">vl</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679162549"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162547"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-94"></span><span>                </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-95"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162555"><span class="hs-identifier hs-var">cmp</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162541"><span class="hs-identifier hs-var">vl</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-96"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162541"><span class="hs-identifier hs-var">vl</span></a></span><span> </span><span class="annot"><span class="annottext">m () -&gt; m () -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679162549"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162547"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-97"></span><span>            </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162553"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162548"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162552"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-98"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#siftDownBy"><span class="hs-pragma hs-type">siftDownBy</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span id="local-6989586621679162656"><span id="local-6989586621679162657"><span class="annot"><a href="Data.Heap.Binary.html#heapifyBy"><span class="hs-identifier hs-type">heapifyBy</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162657"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162656"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162657"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162657"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ordering</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-103"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162656"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162657"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-104"></span><span>  </span><span class="annot"><a href="#local-6989586621679162656"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-105"></span><span id="heapifyBy"><span class="annot"><span class="annottext">heapifyBy :: (a -&gt; a -&gt; Ordering) -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#heapifyBy"><span class="hs-identifier hs-var hs-var">heapifyBy</span></a></span></span><span> </span><span id="local-6989586621679162537"><span class="annot"><span class="annottext">cmp :: a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162537"><span class="hs-identifier hs-var">cmp</span></a></span></span><span> </span><span id="local-6989586621679162536"><span class="annot"><span class="annottext">vec :: MVector (PrimState m) a
+</span><a href="#local-6989586621679162536"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-106"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rev"><span class="hs-identifier hs-var">rev</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int
+forall a s. Unbox a =&gt; MVector s a -&gt; Int
+</span><span class="hs-identifier hs-var">UM.length</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162536"><span class="hs-identifier hs-var">vec</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`quot`</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; m ()) -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679162534"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679162534"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-107"></span><span>    </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#siftDownBy"><span class="hs-identifier hs-var">siftDownBy</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162537"><span class="hs-identifier hs-var">cmp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162534"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162536"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-108"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#heapifyBy"><span class="hs-pragma hs-type">heapifyBy</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-keyword">class</span><span> </span><span id="OrdVia"><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-var">OrdVia</span></a></span></span><span> </span><span id="local-6989586621679162668"><span class="annot"><a href="#local-6989586621679162668"><span class="hs-identifier hs-type">f</span></a></span></span><span> </span><span id="local-6989586621679162669"><span class="annot"><a href="#local-6989586621679162669"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-111"></span><span>  </span><span id="compareVia"><span class="annot"><a href="Data.Heap.Binary.html#compareVia"><span class="hs-identifier hs-type">compareVia</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162668"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162669"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ordering</span></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span id="local-6989586621679162532"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679162532"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621679162532"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-114"></span><span>  </span><span id="local-6989586621679162529"><span class="annot"><span class="annottext">compareVia :: (a -&gt; Identity a) -&gt; a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162529"><span class="hs-identifier hs-var hs-var hs-var hs-var">compareVia</span></a></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Identity a -&gt; Identity a -&gt; Ordering) -&gt; a -&gt; a -&gt; Ordering
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Identity a -&gt; Identity a -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621679162532"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="annot"><a href="#local-6989586621679162532"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ordering</span></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#compareVia"><span class="hs-pragma hs-type">compareVia</span></a></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-116"></span><span>
+</span><span id="line-117"></span><span id="local-6989586621679162527"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679162527"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Down</span></span><span> </span><span class="annot"><a href="#local-6989586621679162527"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-118"></span><span>  </span><span id="local-6989586621679162525"><span class="annot"><span class="annottext">compareVia :: (a -&gt; Down a) -&gt; a -&gt; a -&gt; Ordering
+</span><a href="#local-6989586621679162525"><span class="hs-identifier hs-var hs-var hs-var hs-var">compareVia</span></a></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Down a -&gt; Down a -&gt; Ordering) -&gt; a -&gt; a -&gt; Ordering
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Down a -&gt; Down a -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Down</span></span><span> </span><span class="annot"><a href="#local-6989586621679162527"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Down</span></span><span> </span><span class="annot"><a href="#local-6989586621679162527"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ordering</span></span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#compareVia"><span class="hs-pragma hs-type">compareVia</span></a></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span id="local-6989586621679162650"><span id="local-6989586621679162651"><span id="local-6989586621679162652"><span class="annot"><a href="Data.Heap.Binary.html#buildBinaryHeapVia"><span class="hs-identifier hs-type">buildBinaryHeapVia</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162652"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162650"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162651"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162652"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679162651"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-125"></span><span>  </span><span class="annot"><a href="#local-6989586621679162650"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162652"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162650"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-126"></span><span id="buildBinaryHeapVia"><span class="annot"><span class="annottext">buildBinaryHeapVia :: (a -&gt; f a) -&gt; Vector a -&gt; m (BinaryHeap f (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#buildBinaryHeapVia"><span class="hs-identifier hs-var hs-var">buildBinaryHeapVia</span></a></span></span><span> </span><span id="local-6989586621679162523"><span class="annot"><span class="annottext">priorityBH :: a -&gt; f a
+</span><a href="#local-6989586621679162523"><span class="hs-identifier hs-var">priorityBH</span></a></span></span><span> </span><span id="local-6989586621679162522"><span class="annot"><span class="annottext">vec :: Vector a
+</span><a href="#local-6989586621679162522"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-127"></span><span>  </span><span id="local-6989586621679162521"><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162521"><span class="hs-identifier hs-var">intVarsBH</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m (MVector (PrimState m) Int))
+-&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679162522"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621679162519"><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162519"><span class="hs-identifier hs-var">internalVecBH</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; m (MVector (PrimState m) a)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Vector a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">U.thaw</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679162522"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Ordering) -&gt; MVector (PrimState m) a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; a -&gt; Ordering) -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#heapifyBy"><span class="hs-identifier hs-var">heapifyBy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+forall (f :: * -&gt; *) a.
+OrdVia f a =&gt;
+(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+</span><a href="Data.Heap.Binary.html#compareVia"><span class="hs-identifier hs-var">compareVia</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f a
+</span><a href="#local-6989586621679162523"><span class="hs-identifier hs-var">priorityBH</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162519"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span>
+</span><span id="line-130"></span><span>  </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a -&gt; m (BinaryHeap f (PrimState m) a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(BinaryHeap f (PrimState m) a -&gt; m (BinaryHeap f (PrimState m) a))
+-&gt; BinaryHeap f (PrimState m) a -&gt; m (BinaryHeap f (PrimState m) a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">$WBinaryHeap :: forall (f :: * -&gt; *) s a.
+(a -&gt; f a) -&gt; MVector s Int -&gt; MVector s a -&gt; BinaryHeap f s a
+</span><a href="Data.Heap.Binary.html#%24WBinaryHeap"><span class="hs-identifier hs-type hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span>
+</span><span id="line-131"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#buildBinaryHeapVia"><span class="hs-pragma hs-type">buildBinaryHeapVia</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span id="local-6989586621679162514"><span id="local-6989586621679162515"><span class="annot"><a href="Data.Heap.Binary.html#buildMinBinaryHeap"><span class="hs-identifier hs-type">buildMinBinaryHeap</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-134"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679162515"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162515"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162514"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-135"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679162515"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-136"></span><span>  </span><span class="annot"><a href="#local-6989586621679162514"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Identity</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162514"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162515"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-137"></span><span id="buildMinBinaryHeap"><span class="annot"><span class="annottext">buildMinBinaryHeap :: Vector a -&gt; m (BinaryHeap Identity (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#buildMinBinaryHeap"><span class="hs-identifier hs-var hs-var">buildMinBinaryHeap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Identity a)
+-&gt; Vector a -&gt; m (BinaryHeap Identity (PrimState m) a)
+forall (f :: * -&gt; *) a (m :: * -&gt; *).
+(OrdVia f a, Unbox a, PrimMonad m) =&gt;
+(a -&gt; f a) -&gt; Vector a -&gt; m (BinaryHeap f (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#buildBinaryHeapVia"><span class="hs-identifier hs-var">buildBinaryHeapVia</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Identity a
+forall a. a -&gt; Identity a
+</span><span class="hs-identifier hs-var">Identity</span></span><span>
+</span><span id="line-138"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#buildMinBinaryHeap"><span class="hs-pragma hs-type">buildMinBinaryHeap</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-139"></span><span>
+</span><span id="line-140"></span><span id="local-6989586621679162511"><span id="local-6989586621679162512"><span class="annot"><a href="Data.Heap.Binary.html#buildMaxBinaryHeap"><span class="hs-identifier hs-type">buildMaxBinaryHeap</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-141"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679162512"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162512"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162511"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-142"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679162512"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-143"></span><span>  </span><span class="annot"><a href="#local-6989586621679162511"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Down</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162511"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162512"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-144"></span><span id="buildMaxBinaryHeap"><span class="annot"><span class="annottext">buildMaxBinaryHeap :: Vector a -&gt; m (BinaryHeap Down (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#buildMaxBinaryHeap"><span class="hs-identifier hs-var hs-var">buildMaxBinaryHeap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Down a) -&gt; Vector a -&gt; m (BinaryHeap Down (PrimState m) a)
+forall (f :: * -&gt; *) a (m :: * -&gt; *).
+(OrdVia f a, Unbox a, PrimMonad m) =&gt;
+(a -&gt; f a) -&gt; Vector a -&gt; m (BinaryHeap f (PrimState m) a)
+</span><a href="Data.Heap.Binary.html#buildBinaryHeapVia"><span class="hs-identifier hs-var">buildBinaryHeapVia</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Down a
+forall a. a -&gt; Down a
+</span><span class="hs-identifier hs-var">Down</span></span><span>
+</span><span id="line-145"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#buildMaxBinaryHeap"><span class="hs-pragma hs-type">buildMaxBinaryHeap</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span id="local-6989586621679162633"><span id="local-6989586621679162634"><span id="local-6989586621679162635"><span class="annot"><a href="Data.Heap.Binary.html#unsafeViewBH"><span class="hs-identifier hs-type">unsafeViewBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-148"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162635"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162634"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162633"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162634"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162635"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-150"></span><span>  </span><span class="annot"><a href="#local-6989586621679162634"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162635"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-151"></span><span id="unsafeViewBH"><span class="annot"><span class="annottext">unsafeViewBH :: BinaryHeap f (PrimState m) a -&gt; m a
+</span><a href="Data.Heap.Binary.html#unsafeViewBH"><span class="hs-identifier hs-var hs-var">unsafeViewBH</span></a></span></span><span> </span><span id="local-6989586621679162506"><span id="local-6989586621679162507"><span id="local-6989586621679162508"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162506"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-152"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#unsafeViewBH"><span class="hs-pragma hs-type">unsafeViewBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-153"></span><span>
+</span><span id="line-154"></span><span id="local-6989586621679162503"><span id="local-6989586621679162504"><span id="local-6989586621679162505"><span class="annot"><a href="Data.Heap.Binary.html#viewBH"><span class="hs-identifier hs-type">viewBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-155"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162505"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162504"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-156"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162503"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162504"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162505"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-157"></span><span>  </span><span class="annot"><a href="#local-6989586621679162504"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679162505"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-158"></span><span id="viewBH"><span class="annot"><span class="annottext">viewBH :: BinaryHeap f (PrimState m) a -&gt; m (Maybe a)
+</span><a href="Data.Heap.Binary.html#viewBH"><span class="hs-identifier hs-var hs-var">viewBH</span></a></span></span><span> </span><span id="local-6989586621679162501"><span class="annot"><span class="annottext">bh :: BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162501"><span class="hs-identifier hs-var">bh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-159"></span><span>  </span><span id="local-6989586621679162500"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162500"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a -&gt; m Int
+forall (m :: * -&gt; *) (f :: * -&gt; *) a.
+PrimMonad m =&gt;
+BinaryHeap f (PrimState m) a -&gt; m Int
+</span><a href="Data.Heap.Binary.html#getBinaryHeapSize"><span class="hs-identifier hs-var">getBinaryHeapSize</span></a></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162501"><span class="hs-identifier hs-var">bh</span></a></span><span>
+</span><span id="line-160"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162500"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-161"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; m a -&gt; m (Maybe a)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">&lt;$!&gt;</span></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a -&gt; m a
+forall a (m :: * -&gt; *) (f :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+BinaryHeap f (PrimState m) a -&gt; m a
+</span><a href="Data.Heap.Binary.html#unsafeViewBH"><span class="hs-identifier hs-var">unsafeViewBH</span></a></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162501"><span class="hs-identifier hs-var">bh</span></a></span><span>
+</span><span id="line-162"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; m (Maybe a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-163"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#viewBH"><span class="hs-pragma hs-type">viewBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-164"></span><span>
+</span><span id="line-165"></span><span id="local-6989586621679162496"><span id="local-6989586621679162497"><span id="local-6989586621679162498"><span class="annot"><a href="Data.Heap.Binary.html#insertBH"><span class="hs-identifier hs-type">insertBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-166"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162498"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162497"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162497"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162496"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-167"></span><span>  </span><span class="annot"><a href="#local-6989586621679162497"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-168"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162498"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162496"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162497"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-169"></span><span>  </span><span class="annot"><a href="#local-6989586621679162496"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-170"></span><span id="insertBH"><span class="annot"><span class="annottext">insertBH :: a -&gt; BinaryHeap f (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#insertBH"><span class="hs-identifier hs-var hs-var">insertBH</span></a></span></span><span> </span><span id="local-6989586621679162494"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679162494"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679162491"><span id="local-6989586621679162492"><span id="local-6989586621679162493"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-171"></span><span>  </span><span id="local-6989586621679162490"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162490"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162492"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span>
+</span><span id="line-172"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162492"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162490"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-173"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162491"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162490"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162494"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-174"></span><span>  </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#siftUpBy"><span class="hs-identifier hs-var">siftUpBy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+forall (f :: * -&gt; *) a.
+OrdVia f a =&gt;
+(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+</span><a href="Data.Heap.Binary.html#compareVia"><span class="hs-identifier hs-var">compareVia</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f a
+</span><a href="#local-6989586621679162493"><span class="hs-identifier hs-var">priorityBH</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162490"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162491"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span>
+</span><span id="line-175"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#insertBH"><span class="hs-pragma hs-type">insertBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-176"></span><span>
+</span><span id="line-177"></span><span id="local-6989586621679162610"><span id="local-6989586621679162611"><span id="local-6989586621679162612"><span class="annot"><a href="Data.Heap.Binary.html#unsafeDeleteBH"><span class="hs-identifier hs-type">unsafeDeleteBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162612"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162611"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162611"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162610"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-179"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162612"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162610"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162611"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-180"></span><span>  </span><span class="annot"><a href="#local-6989586621679162610"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-181"></span><span id="unsafeDeleteBH"><span class="annot"><span class="annottext">unsafeDeleteBH :: BinaryHeap f (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#unsafeDeleteBH"><span class="hs-identifier hs-var hs-var">unsafeDeleteBH</span></a></span></span><span> </span><span id="local-6989586621679162486"><span id="local-6989586621679162487"><span id="local-6989586621679162488"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-182"></span><span>  </span><span id="local-6989586621679162485"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162485"><span class="hs-identifier hs-var">size'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">subtract</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; m Int -&gt; m Int
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">&lt;$!&gt;</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162487"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span>
+</span><span id="line-183"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162487"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162485"><span class="hs-identifier hs-var">size'</span></a></span><span>
+</span><span id="line-184"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeSwap</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162486"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162485"><span class="hs-identifier hs-var">size'</span></a></span><span>
+</span><span id="line-185"></span><span>  </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#siftDownBy"><span class="hs-identifier hs-var">siftDownBy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+forall (f :: * -&gt; *) a.
+OrdVia f a =&gt;
+(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+</span><a href="Data.Heap.Binary.html#compareVia"><span class="hs-identifier hs-var">compareVia</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f a
+</span><a href="#local-6989586621679162488"><span class="hs-identifier hs-var">priorityBH</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; MVector (PrimState m) a -&gt; MVector (PrimState m) a
+forall a s. Unbox a =&gt; Int -&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.unsafeTake</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162485"><span class="hs-identifier hs-var">size'</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162486"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-186"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#unsafeDeleteBH"><span class="hs-pragma hs-type">unsafeDeleteBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-187"></span><span>
+</span><span id="line-188"></span><span id="local-6989586621679162479"><span id="local-6989586621679162480"><span id="local-6989586621679162481"><span class="annot"><a href="Data.Heap.Binary.html#modifyTopBH"><span class="hs-identifier hs-type">modifyTopBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-189"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162481"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162480"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162480"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162479"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-190"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679162480"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162480"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-191"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162481"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162479"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162480"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-192"></span><span>  </span><span class="annot"><a href="#local-6989586621679162479"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-193"></span><span id="modifyTopBH"><span class="annot"><span class="annottext">modifyTopBH :: (a -&gt; a) -&gt; BinaryHeap f (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#modifyTopBH"><span class="hs-identifier hs-var hs-var">modifyTopBH</span></a></span></span><span> </span><span id="local-6989586621679162477"><span class="annot"><span class="annottext">f :: a -&gt; a
+</span><a href="#local-6989586621679162477"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679162474"><span id="local-6989586621679162475"><span id="local-6989586621679162476"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-194"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162474"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+</span><a href="#local-6989586621679162477"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-195"></span><span>  </span><span id="local-6989586621679162472"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162472"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162475"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span>
+</span><span id="line-196"></span><span>  </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+(a -&gt; a -&gt; Ordering) -&gt; Int -&gt; MVector (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#siftDownBy"><span class="hs-identifier hs-var">siftDownBy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+forall (f :: * -&gt; *) a.
+OrdVia f a =&gt;
+(a -&gt; f a) -&gt; a -&gt; a -&gt; Ordering
+</span><a href="Data.Heap.Binary.html#compareVia"><span class="hs-identifier hs-var">compareVia</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; f a
+</span><a href="#local-6989586621679162476"><span class="hs-identifier hs-var">priorityBH</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; MVector (PrimState m) a -&gt; MVector (PrimState m) a
+forall a s. Unbox a =&gt; Int -&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.unsafeTake</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162472"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162474"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-197"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#modifyTopBH"><span class="hs-pragma hs-type">modifyTopBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-198"></span><span>
+</span><span id="line-199"></span><span id="local-6989586621679162469"><span id="local-6989586621679162470"><span id="local-6989586621679162471"><span class="annot"><a href="Data.Heap.Binary.html#deleteFindTopBH"><span class="hs-identifier hs-type">deleteFindTopBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-200"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Heap.Binary.html#OrdVia"><span class="hs-identifier hs-type">OrdVia</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162471"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162470"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162470"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162469"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-201"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162471"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162469"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162470"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-202"></span><span>  </span><span class="annot"><a href="#local-6989586621679162469"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679162470"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-203"></span><span id="deleteFindTopBH"><span class="annot"><span class="annottext">deleteFindTopBH :: BinaryHeap f (PrimState m) a -&gt; m (Maybe a)
+</span><a href="Data.Heap.Binary.html#deleteFindTopBH"><span class="hs-identifier hs-var hs-var">deleteFindTopBH</span></a></span></span><span> </span><span id="local-6989586621679162467"><span class="annot"><span class="annottext">bh :: BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162467"><span class="hs-identifier hs-var">bh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-204"></span><span>  </span><span id="local-6989586621679162466"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162466"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a -&gt; m Int
+forall (m :: * -&gt; *) (f :: * -&gt; *) a.
+PrimMonad m =&gt;
+BinaryHeap f (PrimState m) a -&gt; m Int
+</span><a href="Data.Heap.Binary.html#getBinaryHeapSize"><span class="hs-identifier hs-var">getBinaryHeapSize</span></a></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162467"><span class="hs-identifier hs-var">bh</span></a></span><span>
+</span><span id="line-205"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162466"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-206"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-207"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679162465"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162465"><span class="hs-identifier hs-var">top</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a -&gt; m a
+forall a (m :: * -&gt; *) (f :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+BinaryHeap f (PrimState m) a -&gt; m a
+</span><a href="Data.Heap.Binary.html#unsafeViewBH"><span class="hs-identifier hs-var">unsafeViewBH</span></a></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162467"><span class="hs-identifier hs-var">bh</span></a></span><span> </span><span class="annot"><span class="annottext">m a -&gt; m () -&gt; m a
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;*</span></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a -&gt; m ()
+forall (f :: * -&gt; *) a (m :: * -&gt; *).
+(OrdVia f a, Unbox a, PrimMonad m) =&gt;
+BinaryHeap f (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#unsafeDeleteBH"><span class="hs-identifier hs-var">unsafeDeleteBH</span></a></span><span> </span><span class="annot"><span class="annottext">BinaryHeap f (PrimState m) a
+</span><a href="#local-6989586621679162467"><span class="hs-identifier hs-var">bh</span></a></span><span>
+</span><span id="line-208"></span><span>      </span><span class="annot"><span class="annottext">Maybe a -&gt; m (Maybe a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe a -&gt; m (Maybe a)) -&gt; Maybe a -&gt; m (Maybe a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679162465"><span class="hs-identifier hs-var">top</span></a></span><span>
+</span><span id="line-209"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; m (Maybe a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-210"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#deleteFindTopBH"><span class="hs-pragma hs-type">deleteFindTopBH</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-211"></span><span>
+</span><span id="line-212"></span><span id="local-6989586621679162461"><span id="local-6989586621679162462"><span id="local-6989586621679162463"><span class="annot"><a href="Data.Heap.Binary.html#clearBH"><span class="hs-identifier hs-type">clearBH</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162463"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162462"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162463"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162461"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679162463"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-213"></span><span id="clearBH"><span class="annot"><span class="annottext">clearBH :: BinaryHeap f (PrimState m) a -&gt; m ()
+</span><a href="Data.Heap.Binary.html#clearBH"><span class="hs-identifier hs-var hs-var">clearBH</span></a></span></span><span> </span><span id="local-6989586621679162457"><span id="local-6989586621679162458"><span id="local-6989586621679162459"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162458"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-214"></span><span>
+</span><span id="line-215"></span><span id="local-6989586621679162454"><span id="local-6989586621679162455"><span id="local-6989586621679162456"><span class="annot"><a href="Data.Heap.Binary.html#freezeInternalVecBH"><span class="hs-identifier hs-type">freezeInternalVecBH</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-216"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679162456"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679162455"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-217"></span><span>  </span><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679162454"><span class="hs-identifier hs-type">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679162455"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679162456"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-218"></span><span>  </span><span class="annot"><a href="#local-6989586621679162455"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679162456"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-219"></span><span id="freezeInternalVecBH"><span class="annot"><span class="annottext">freezeInternalVecBH :: BinaryHeap f (PrimState m) a -&gt; m (Vector a)
+</span><a href="Data.Heap.Binary.html#freezeInternalVecBH"><span class="hs-identifier hs-var hs-var">freezeInternalVecBH</span></a></span></span><span> </span><span id="local-6989586621679162450"><span id="local-6989586621679162451"><span id="local-6989586621679162452"><span class="annot"><a href="Data.Heap.Binary.html#BinaryHeap"><span class="hs-identifier hs-type">BinaryHeap</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-220"></span><span>  </span><span id="local-6989586621679162449"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162449"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679162451"><span class="hs-identifier hs-var">intVarsBH</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Heap.Binary.html#_sizeBH"><span class="hs-identifier hs-var">_sizeBH</span></a></span><span>
+</span><span id="line-221"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) a -&gt; m (Vector a)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.unsafeFreeze</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; MVector (PrimState m) a -&gt; MVector (PrimState m) a
+forall a s. Unbox a =&gt; Int -&gt; MVector s a -&gt; MVector s a
+</span><span class="hs-identifier hs-var">UM.unsafeTake</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679162449"><span class="hs-identifier hs-var">size</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) a
+</span><a href="#local-6989586621679162450"><span class="hs-identifier hs-var">internalVecBH</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-222"></span></pre></body></html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Graph.Sparse.SCC</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.ST</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Buffer.html"><span class="hs-identifier">Data.Buffer</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html"><span class="hs-identifier">Data.Graph.Sparse</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="My.Prelude.html#rep"><span class="hs-identifier">rep</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">type</span><span> </span><span id="ComponentId"><span class="annot"><a href="Data.Graph.Sparse.SCC.html#ComponentId"><span class="hs-identifier hs-var">ComponentId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span id="local-6989586621679163057"><span class="annot"><a href="Data.Graph.Sparse.SCC.html#stronglyConnectedComponents"><span class="hs-identifier hs-type">stronglyConnectedComponents</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Graph.Sparse.html#SparseGraph"><span class="hs-identifier hs-type">SparseGraph</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679163057"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="Data.Graph.Sparse.SCC.html#ComponentId"><span class="hs-identifier hs-type">ComponentId</span></a></span></span><span>
+</span><span id="line-18"></span><span id="stronglyConnectedComponents"><span class="annot"><span class="annottext">stronglyConnectedComponents :: SparseGraph w -&gt; Vector ComponentId
+</span><a href="Data.Graph.Sparse.SCC.html#stronglyConnectedComponents"><span class="hs-identifier hs-var hs-var">stronglyConnectedComponents</span></a></span></span><span> </span><span id="local-6989586621679163055"><span class="annot"><span class="annottext">gr :: SparseGraph w
+</span><a href="#local-6989586621679163055"><span class="hs-identifier hs-var">gr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. ST s (Vector ComponentId)) -&gt; Vector ComponentId
+forall a. (forall s. ST s a) -&gt; a
+</span><span class="hs-identifier hs-var">runST</span></span><span> </span><span class="annot"><span class="annottext">((forall s. ST s (Vector ComponentId)) -&gt; Vector ComponentId)
+-&gt; (forall s. ST s (Vector ComponentId)) -&gt; Vector ComponentId
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679163053"><span class="annot"><span class="annottext">numV :: ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var hs-var">numV</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SparseGraph w -&gt; ComponentId
+forall w. SparseGraph w -&gt; ComponentId
+</span><a href="Data.Graph.Sparse.html#numVerticesCSR"><span class="hs-identifier hs-var hs-var">numVerticesCSR</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679163055"><span class="hs-identifier hs-var">gr</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span id="local-6989586621679163051"><span class="annot"><span class="annottext">MVector s ComponentId
+</span><a href="#local-6989586621679163051"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ComponentId
+-&gt; ComponentId -&gt; ST s (MVector (PrimState (ST s)) ComponentId)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+ComponentId -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var">numV</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163049"><span class="hs-identifier hs-var">nothing</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span id="local-6989586621679163048"><span class="annot"><span class="annottext">MVector s ComponentId
+</span><a href="#local-6989586621679163048"><span class="hs-identifier hs-var">preord</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ComponentId
+-&gt; ComponentId -&gt; ST s (MVector (PrimState (ST s)) ComponentId)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+ComponentId -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var">numV</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163049"><span class="hs-identifier hs-var">nothing</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679163047"><span class="annot"><span class="annottext">Buffer s ComponentId
+</span><a href="#local-6989586621679163047"><span class="hs-identifier hs-var">stack</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ST s (Buffer (PrimState (ST s)) ComponentId)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+ComponentId -&gt; m (Buffer (PrimState m) a)
+</span><a href="Data.Buffer.html#newBufferAsStack"><span class="hs-identifier hs-var">newBufferAsStack</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var">numV</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span id="local-6989586621679163045"><span class="annot"><span class="annottext">MVector s ComponentId
+</span><a href="#local-6989586621679163045"><span class="hs-identifier hs-var">component</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ComponentId
+-&gt; ComponentId -&gt; ST s (MVector (PrimState (ST s)) ComponentId)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+ComponentId -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var">numV</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163049"><span class="hs-identifier hs-var">nothing</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span id="local-6989586621679163044"><span class="annot"><span class="annottext">MVector s ComponentId
+</span><a href="#local-6989586621679163044"><span class="hs-identifier hs-var">vars</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ComponentId
+-&gt; ComponentId -&gt; ST s (MVector (PrimState (ST s)) ComponentId)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+ComponentId -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="annottext">ComponentId -&gt; (ComponentId -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *).
+Monad m =&gt;
+ComponentId -&gt; (ComponentId -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var">numV</span></a></span><span> </span><span class="annot"><span class="annottext">((ComponentId -&gt; ST s ()) -&gt; ST s ())
+-&gt; (ComponentId -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163043"><span class="annot"><span class="annottext">root :: ComponentId
+</span><a href="#local-6989586621679163043"><span class="hs-identifier hs-var">root</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>    </span><span id="local-6989586621679163042"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163042"><span class="hs-identifier hs-var">rootOrd</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163048"><span class="hs-identifier hs-var">preord</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163043"><span class="hs-identifier hs-var">root</span></a></span><span>
+</span><span id="line-28"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; ST s () -&gt; ST s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163042"><span class="hs-identifier hs-var">rootOrd</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163049"><span class="hs-identifier hs-var">nothing</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ST s () -&gt; ST s ()) -&gt; ST s () -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-29"></span><span>      </span><span class="annot"><span class="annottext">(((ComponentId -&gt; ST s ()) -&gt; ComponentId -&gt; ST s ())
+ -&gt; ComponentId -&gt; ST s ())
+-&gt; ComponentId
+-&gt; ((ComponentId -&gt; ST s ()) -&gt; ComponentId -&gt; ST s ())
+-&gt; ST s ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((ComponentId -&gt; ST s ()) -&gt; ComponentId -&gt; ST s ())
+-&gt; ComponentId -&gt; ST s ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163043"><span class="hs-identifier hs-var">root</span></a></span><span> </span><span class="annot"><span class="annottext">(((ComponentId -&gt; ST s ()) -&gt; ComponentId -&gt; ST s ()) -&gt; ST s ())
+-&gt; ((ComponentId -&gt; ST s ()) -&gt; ComponentId -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163037"><span class="annot"><span class="annottext">dfs :: ComponentId -&gt; ST s ()
+</span><a href="#local-6989586621679163037"><span class="hs-identifier hs-var">dfs</span></a></span></span><span> </span><span id="local-6989586621679163036"><span class="annot"><span class="annottext">v :: ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>        </span><span id="local-6989586621679163035"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163035"><span class="hs-identifier hs-var">preordId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163044"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163034"><span class="hs-identifier hs-var">_preordId</span></a></span><span>
+</span><span id="line-31"></span><span>        </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163044"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163034"><span class="hs-identifier hs-var">_preordId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163035"><span class="hs-identifier hs-var">preordId</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; ComponentId
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span>        </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163048"><span class="hs-identifier hs-var">preord</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163035"><span class="hs-identifier hs-var">preordId</span></a></span><span>
+</span><span id="line-34"></span><span>        </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163051"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163035"><span class="hs-identifier hs-var">preordId</span></a></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span>        </span><span class="annot"><span class="annottext">ComponentId -&gt; Buffer (PrimState (ST s)) ComponentId -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+a -&gt; Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#pushBack"><span class="hs-identifier hs-var">pushBack</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Buffer s ComponentId
+Buffer (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163047"><span class="hs-identifier hs-var">stack</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>        </span><span class="annot"><span class="annottext">Vector ComponentId -&gt; (ComponentId -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *) a b.
+(Monad m, Unbox a) =&gt;
+Vector a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">U.forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SparseGraph w -&gt; ComponentId -&gt; Vector ComponentId
+forall w. SparseGraph w -&gt; ComponentId -&gt; Vector ComponentId
+</span><a href="Data.Graph.Sparse.html#adj"><span class="hs-identifier hs-var">adj</span></a></span><span> </span><span class="annot"><span class="annottext">SparseGraph w
+</span><a href="#local-6989586621679163055"><span class="hs-identifier hs-var">gr</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((ComponentId -&gt; ST s ()) -&gt; ST s ())
+-&gt; (ComponentId -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163028"><span class="annot"><span class="annottext">u :: ComponentId
+</span><a href="#local-6989586621679163028"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-39"></span><span>          </span><span id="local-6989586621679163027"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163027"><span class="hs-identifier hs-var">ordU</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163048"><span class="hs-identifier hs-var">preord</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163028"><span class="hs-identifier hs-var">u</span></a></span><span>
+</span><span id="line-40"></span><span>          </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163027"><span class="hs-identifier hs-var">ordU</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163049"><span class="hs-identifier hs-var">nothing</span></a></span><span>
+</span><span id="line-41"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>              </span><span class="annot"><span class="annottext">ComponentId -&gt; ST s ()
+</span><a href="#local-6989586621679163037"><span class="hs-identifier hs-var">dfs</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163028"><span class="hs-identifier hs-var">u</span></a></span><span>
+</span><span id="line-43"></span><span>              </span><span id="local-6989586621679163026"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163026"><span class="hs-identifier hs-var">lowU</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163051"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163028"><span class="hs-identifier hs-var">u</span></a></span><span>
+</span><span id="line-44"></span><span>              </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; (ComponentId -&gt; ComponentId) -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; ComponentId -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163051"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; ComponentId
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163026"><span class="hs-identifier hs-var">lowU</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-45"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; (ComponentId -&gt; ComponentId) -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; ComponentId -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163051"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; ComponentId
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163027"><span class="hs-identifier hs-var">ordU</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span>        </span><span id="local-6989586621679163023"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163023"><span class="hs-identifier hs-var">lowV</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163051"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-48"></span><span>        </span><span id="local-6989586621679163022"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163022"><span class="hs-identifier hs-var">ordV</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163048"><span class="hs-identifier hs-var">preord</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-49"></span><span>        </span><span class="annot"><span class="annottext">Bool -&gt; ST s () -&gt; ST s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163023"><span class="hs-identifier hs-var">lowV</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163022"><span class="hs-identifier hs-var">ordV</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(ST s () -&gt; ST s ()) -&gt; ST s () -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-50"></span><span>          </span><span id="local-6989586621679163021"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163021"><span class="hs-identifier hs-var">compId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163044"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163020"><span class="hs-identifier hs-var">_compId</span></a></span><span>
+</span><span id="line-51"></span><span>          </span><span class="annot"><span class="annottext">(ST s () -&gt; ST s ()) -&gt; ST s ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">((ST s () -&gt; ST s ()) -&gt; ST s ())
+-&gt; (ST s () -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679163019"><span class="annot"><span class="annottext">loop :: ST s ()
+</span><a href="#local-6989586621679163019"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-52"></span><span>            </span><span class="annot"><span class="annottext">Buffer (PrimState (ST s)) ComponentId -&gt; ST s (Maybe ComponentId)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Buffer (PrimState m) a -&gt; m (Maybe a)
+</span><a href="Data.Buffer.html#popBack"><span class="hs-identifier hs-var">popBack</span></a></span><span> </span><span class="annot"><span class="annottext">Buffer s ComponentId
+Buffer (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163047"><span class="hs-identifier hs-var">stack</span></a></span><span> </span><span class="annot"><span class="annottext">ST s (Maybe ComponentId)
+-&gt; (Maybe ComponentId -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-53"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679163017"><span class="annot"><span class="annottext">x :: ComponentId
+</span><a href="#local-6989586621679163017"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-54"></span><span>                </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163048"><span class="hs-identifier hs-var">preord</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163017"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163053"><span class="hs-identifier hs-var">numV</span></a></span><span>
+</span><span id="line-55"></span><span>                </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163045"><span class="hs-identifier hs-var">component</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163017"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163021"><span class="hs-identifier hs-var">compId</span></a></span><span>
+</span><span id="line-56"></span><span>                </span><span class="annot"><span class="annottext">Bool -&gt; ST s () -&gt; ST s ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163017"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163036"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ST s ()
+</span><a href="#local-6989586621679163019"><span class="hs-identifier hs-var">loop</span></a></span><span>
+</span><span id="line-57"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ST s ()
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span>
+</span><span id="line-58"></span><span>          </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ComponentId -&gt; ST s ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163044"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163020"><span class="hs-identifier hs-var">_compId</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163021"><span class="hs-identifier hs-var">compId</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; ComponentId
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679163014"><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163014"><span class="hs-identifier hs-var">maxCompId</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; ComponentId
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">subtract</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(ComponentId -&gt; ComponentId)
+-&gt; ST s ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">&lt;$!&gt;</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId
+-&gt; ComponentId -&gt; ST s ComponentId
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; ComponentId -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163044"><span class="hs-identifier hs-var">vars</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163020"><span class="hs-identifier hs-var">_compId</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><span class="annottext">(ComponentId -&gt; ComponentId)
+-&gt; Vector ComponentId -&gt; Vector ComponentId
+forall a b. (Unbox a, Unbox b) =&gt; (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">U.map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ComponentId
+</span><a href="#local-6989586621679163014"><span class="hs-identifier hs-var">maxCompId</span></a></span><span> </span><span class="annot"><span class="annottext">ComponentId -&gt; ComponentId -&gt; ComponentId
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Vector ComponentId -&gt; Vector ComponentId)
+-&gt; ST s (Vector ComponentId) -&gt; ST s (Vector ComponentId)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState (ST s)) ComponentId -&gt; ST s (Vector ComponentId)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.unsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector s ComponentId
+MVector (PrimState (ST s)) ComponentId
+</span><a href="#local-6989586621679163045"><span class="hs-identifier hs-var">component</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>    </span><span id="local-6989586621679163049"><span class="annot"><span class="annottext">nothing :: ComponentId
+</span><a href="#local-6989586621679163049"><span class="hs-identifier hs-var hs-var">nothing</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">-</span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-63"></span><span>    </span><span id="local-6989586621679163034"><span class="annot"><span class="annottext">_preordId :: ComponentId
+</span><a href="#local-6989586621679163034"><span class="hs-identifier hs-var hs-var">_preordId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-64"></span><span>    </span><span id="local-6989586621679163020"><span class="annot"><span class="annottext">_compId :: ComponentId
+</span><a href="#local-6989586621679163020"><span class="hs-identifier hs-var hs-var">_compId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-65"></span></pre></body></html>

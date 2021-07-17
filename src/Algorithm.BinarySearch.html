@@ -1,0 +1,399 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Algorithm.BinarySearch</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bool</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Functor.Identity</span></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="My.Prelude.html#unsafeShiftRL"><span class="hs-identifier">unsafeShiftRL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- | assert (p high)</span><span>
+</span><span id="line-12"></span><span id="local-6989586621679164350"><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundM"><span class="hs-identifier hs-type">lowerBoundM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679164350"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164350"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164350"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-13"></span><span id="lowerBoundM"><span class="annot"><span class="annottext">lowerBoundM :: Int -&gt; Int -&gt; (Int -&gt; m Bool) -&gt; m Int
+</span><a href="Algorithm.BinarySearch.html#lowerBoundM"><span class="hs-identifier hs-var hs-var">lowerBoundM</span></a></span></span><span> </span><span id="local-6989586621679164324"><span class="annot"><span class="annottext">low0 :: Int
+</span><a href="#local-6989586621679164324"><span class="hs-identifier hs-var">low0</span></a></span></span><span> </span><span id="local-6989586621679164323"><span class="annot"><span class="annottext">high0 :: Int
+</span><a href="#local-6989586621679164323"><span class="hs-identifier hs-var">high0</span></a></span></span><span> </span><span id="local-6989586621679164322"><span class="annot"><span class="annottext">p :: Int -&gt; m Bool
+</span><a href="#local-6989586621679164322"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679164321"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164324"><span class="hs-identifier hs-var">low0</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164323"><span class="hs-identifier hs-var">high0</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-15"></span><span>    </span><span id="local-6989586621679164321"><span class="annot"><span class="annottext">go :: Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679164321"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164320"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164320"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164319"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164319"><span class="hs-identifier hs-var">high</span></a></span></span><span>
+</span><span id="line-16"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164319"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164320"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164319"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-17"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Bool
+</span><a href="#local-6989586621679164322"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164317"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="annot"><span class="annottext">m Bool -&gt; (Bool -&gt; m Int) -&gt; m Int
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">m Int -&gt; m Int -&gt; Bool -&gt; m Int
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679164321"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164317"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164319"><span class="hs-identifier hs-var">high</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679164321"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164320"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164317"><span class="hs-identifier hs-var">mid</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>        </span><span id="local-6989586621679164317"><span class="annot"><span class="annottext">mid :: Int
+</span><a href="#local-6989586621679164317"><span class="hs-identifier hs-var hs-var">mid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164320"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="My.Prelude.html#unsafeShiftRL"><span class="hs-identifier hs-var">unsafeShiftRL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164319"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164320"><span class="hs-identifier hs-var">low</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-20"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundM"><span class="hs-pragma hs-type">lowerBoundM</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | assert (p low)</span><span>
+</span><span id="line-23"></span><span id="local-6989586621679164314"><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundM"><span class="hs-identifier hs-type">upperBoundM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679164314"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164314"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164314"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-24"></span><span id="upperBoundM"><span class="annot"><span class="annottext">upperBoundM :: Int -&gt; Int -&gt; (Int -&gt; m Bool) -&gt; m Int
+</span><a href="Algorithm.BinarySearch.html#upperBoundM"><span class="hs-identifier hs-var hs-var">upperBoundM</span></a></span></span><span> </span><span id="local-6989586621679164312"><span class="annot"><span class="annottext">low :: Int
+</span><a href="#local-6989586621679164312"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span id="local-6989586621679164311"><span class="annot"><span class="annottext">high :: Int
+</span><a href="#local-6989586621679164311"><span class="hs-identifier hs-var">high</span></a></span></span><span> </span><span id="local-6989586621679164310"><span class="annot"><span class="annottext">p :: Int -&gt; m Bool
+</span><a href="#local-6989586621679164310"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679164309"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679164309"><span class="hs-identifier hs-var">flg</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Bool
+</span><a href="#local-6989586621679164310"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164311"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679164309"><span class="hs-identifier hs-var">flg</span></a></span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164311"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">subtract</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; m Int -&gt; m Int
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">&lt;$!&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; (Int -&gt; m Bool) -&gt; m Int
+forall (m :: * -&gt; *).
+Monad m =&gt;
+Int -&gt; Int -&gt; (Int -&gt; m Bool) -&gt; m Int
+</span><a href="Algorithm.BinarySearch.html#lowerBoundM"><span class="hs-identifier hs-var">lowerBoundM</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164312"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164311"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; m Bool -&gt; m Bool
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(m Bool -&gt; m Bool) -&gt; (Int -&gt; m Bool) -&gt; Int -&gt; m Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Bool
+</span><a href="#local-6989586621679164310"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundM"><span class="hs-pragma hs-type">upperBoundM</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- | assert (p high)</span><span>
+</span><span id="line-32"></span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBound"><span class="hs-identifier hs-type">lowerBound</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-33"></span><span id="lowerBound"><span class="annot"><span class="annottext">lowerBound :: Int -&gt; Int -&gt; (Int -&gt; Bool) -&gt; Int
+</span><a href="Algorithm.BinarySearch.html#lowerBound"><span class="hs-identifier hs-var hs-var">lowerBound</span></a></span></span><span> </span><span id="local-6989586621679164303"><span class="annot"><span class="annottext">low :: Int
+</span><a href="#local-6989586621679164303"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span id="local-6989586621679164302"><span class="annot"><span class="annottext">high :: Int
+</span><a href="#local-6989586621679164302"><span class="hs-identifier hs-var">high</span></a></span></span><span> </span><span id="local-6989586621679164301"><span class="annot"><span class="annottext">p :: Int -&gt; Bool
+</span><a href="#local-6989586621679164301"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Identity Int -&gt; Int
+forall a. Identity a -&gt; a
+</span><span class="hs-identifier hs-var hs-var">runIdentity</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; (Int -&gt; Identity Bool) -&gt; Identity Int
+forall (m :: * -&gt; *).
+Monad m =&gt;
+Int -&gt; Int -&gt; (Int -&gt; m Bool) -&gt; m Int
+</span><a href="Algorithm.BinarySearch.html#lowerBoundM"><span class="hs-identifier hs-var">lowerBoundM</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164303"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164302"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Identity Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Identity Bool) -&gt; (Int -&gt; Bool) -&gt; Int -&gt; Identity Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679164301"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBound"><span class="hs-pragma hs-type">lowerBound</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- | assert (p low)</span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBound"><span class="hs-identifier hs-type">upperBound</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-38"></span><span id="upperBound"><span class="annot"><span class="annottext">upperBound :: Int -&gt; Int -&gt; (Int -&gt; Bool) -&gt; Int
+</span><a href="Algorithm.BinarySearch.html#upperBound"><span class="hs-identifier hs-var hs-var">upperBound</span></a></span></span><span> </span><span id="local-6989586621679164298"><span class="annot"><span class="annottext">low :: Int
+</span><a href="#local-6989586621679164298"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span id="local-6989586621679164297"><span class="annot"><span class="annottext">high :: Int
+</span><a href="#local-6989586621679164297"><span class="hs-identifier hs-var">high</span></a></span></span><span> </span><span id="local-6989586621679164296"><span class="annot"><span class="annottext">p :: Int -&gt; Bool
+</span><a href="#local-6989586621679164296"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Identity Int -&gt; Int
+forall a. Identity a -&gt; a
+</span><span class="hs-identifier hs-var hs-var">runIdentity</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; (Int -&gt; Identity Bool) -&gt; Identity Int
+forall (m :: * -&gt; *).
+Monad m =&gt;
+Int -&gt; Int -&gt; (Int -&gt; m Bool) -&gt; m Int
+</span><a href="Algorithm.BinarySearch.html#upperBoundM"><span class="hs-identifier hs-var">upperBoundM</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164298"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164297"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Identity Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Identity Bool) -&gt; (Int -&gt; Bool) -&gt; Int -&gt; Identity Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679164296"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBound"><span class="hs-pragma hs-type">upperBound</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundInteger"><span class="hs-identifier hs-type">lowerBoundInteger</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-42"></span><span id="lowerBoundInteger"><span class="annot"><span class="annottext">lowerBoundInteger :: Integer -&gt; Integer -&gt; (Integer -&gt; Bool) -&gt; Integer
+</span><a href="Algorithm.BinarySearch.html#lowerBoundInteger"><span class="hs-identifier hs-var hs-var">lowerBoundInteger</span></a></span></span><span> </span><span id="local-6989586621679164294"><span class="annot"><span class="annottext">low :: Integer
+</span><a href="#local-6989586621679164294"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span id="local-6989586621679164293"><span class="annot"><span class="annottext">high :: Integer
+</span><a href="#local-6989586621679164293"><span class="hs-identifier hs-var">high</span></a></span></span><span> </span><span id="local-6989586621679164292"><span class="annot"><span class="annottext">p :: Integer -&gt; Bool
+</span><a href="#local-6989586621679164292"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-43"></span><span>  </span><span class="annot"><span class="annottext">Identity Integer -&gt; Integer
+forall a. Identity a -&gt; a
+</span><span class="hs-identifier hs-var hs-var">runIdentity</span></span><span> </span><span class="annot"><span class="annottext">(Identity Integer -&gt; Integer) -&gt; Identity Integer -&gt; Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-44"></span><span>    </span><span class="annot"><span class="annottext">Integer
+-&gt; Integer -&gt; (Integer -&gt; Identity Bool) -&gt; Identity Integer
+forall (m :: * -&gt; *).
+Monad m =&gt;
+Integer -&gt; Integer -&gt; (Integer -&gt; m Bool) -&gt; m Integer
+</span><a href="Algorithm.BinarySearch.html#lowerBoundIntegerM"><span class="hs-identifier hs-var">lowerBoundIntegerM</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164294"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164293"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Identity Bool
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Identity Bool)
+-&gt; (Integer -&gt; Bool) -&gt; Integer -&gt; Identity Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679164292"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundInteger"><span class="hs-pragma hs-type">lowerBoundInteger</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundInteger"><span class="hs-identifier hs-type">upperBoundInteger</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-48"></span><span id="upperBoundInteger"><span class="annot"><span class="annottext">upperBoundInteger :: Integer -&gt; Integer -&gt; (Integer -&gt; Bool) -&gt; Integer
+</span><a href="Algorithm.BinarySearch.html#upperBoundInteger"><span class="hs-identifier hs-var hs-var">upperBoundInteger</span></a></span></span><span> </span><span id="local-6989586621679164289"><span class="annot"><span class="annottext">low :: Integer
+</span><a href="#local-6989586621679164289"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span id="local-6989586621679164288"><span class="annot"><span class="annottext">high :: Integer
+</span><a href="#local-6989586621679164288"><span class="hs-identifier hs-var">high</span></a></span></span><span> </span><span id="local-6989586621679164287"><span class="annot"><span class="annottext">p :: Integer -&gt; Bool
+</span><a href="#local-6989586621679164287"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><span class="annottext">Identity Integer -&gt; Integer
+forall a. Identity a -&gt; a
+</span><span class="hs-identifier hs-var hs-var">runIdentity</span></span><span> </span><span class="annot"><span class="annottext">(Identity Integer -&gt; Integer) -&gt; Identity Integer -&gt; Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-50"></span><span>    </span><span class="annot"><span class="annottext">Integer
+-&gt; Integer -&gt; (Integer -&gt; Identity Bool) -&gt; Identity Integer
+forall (m :: * -&gt; *).
+Monad m =&gt;
+Integer -&gt; Integer -&gt; (Integer -&gt; m Bool) -&gt; m Integer
+</span><a href="Algorithm.BinarySearch.html#upperBoundIntegerM"><span class="hs-identifier hs-var">upperBoundIntegerM</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164289"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164288"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Identity Bool
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Identity Bool)
+-&gt; (Integer -&gt; Bool) -&gt; Integer -&gt; Identity Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679164287"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundInteger"><span class="hs-pragma hs-type">upperBoundInteger</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span id="local-6989586621679164338"><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundIntegerM"><span class="hs-identifier hs-type">lowerBoundIntegerM</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679164338"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164338"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164338"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-55"></span><span id="lowerBoundIntegerM"><span class="annot"><span class="annottext">lowerBoundIntegerM :: Integer -&gt; Integer -&gt; (Integer -&gt; m Bool) -&gt; m Integer
+</span><a href="Algorithm.BinarySearch.html#lowerBoundIntegerM"><span class="hs-identifier hs-var hs-var">lowerBoundIntegerM</span></a></span></span><span> </span><span id="local-6989586621679164285"><span class="annot"><span class="annottext">low0 :: Integer
+</span><a href="#local-6989586621679164285"><span class="hs-identifier hs-var">low0</span></a></span></span><span> </span><span id="local-6989586621679164284"><span class="annot"><span class="annottext">high0 :: Integer
+</span><a href="#local-6989586621679164284"><span class="hs-identifier hs-var">high0</span></a></span></span><span> </span><span id="local-6989586621679164283"><span class="annot"><span class="annottext">p :: Integer -&gt; m Bool
+</span><a href="#local-6989586621679164283"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m Integer
+</span><a href="#local-6989586621679164282"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164285"><span class="hs-identifier hs-var">low0</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164284"><span class="hs-identifier hs-var">high0</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>    </span><span id="local-6989586621679164282"><span class="annot"><span class="annottext">go :: Integer -&gt; Integer -&gt; m Integer
+</span><a href="#local-6989586621679164282"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164281"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164281"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164280"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164280"><span class="hs-identifier hs-var">high</span></a></span></span><span>
+</span><span id="line-58"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164280"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164281"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; m Integer
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164280"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-59"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-60"></span><span>        </span><span id="local-6989586621679164279"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679164279"><span class="hs-identifier hs-var">pmid</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; m Bool
+</span><a href="#local-6989586621679164283"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164278"><span class="hs-identifier hs-var">mid</span></a></span><span>
+</span><span id="line-61"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679164279"><span class="hs-identifier hs-var">pmid</span></a></span><span>
+</span><span id="line-62"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m Integer
+</span><a href="#local-6989586621679164282"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164281"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164278"><span class="hs-identifier hs-var">mid</span></a></span><span>
+</span><span id="line-63"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m Integer
+</span><a href="#local-6989586621679164282"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164278"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164280"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-64"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>        </span><span id="local-6989586621679164277"><span class="annot"><span class="annottext">h :: Integer
+</span><a href="#local-6989586621679164277"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164280"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-66"></span><span>        </span><span id="local-6989586621679164276"><span class="annot"><span class="annottext">l :: Integer
+</span><a href="#local-6989586621679164276"><span class="hs-identifier hs-var hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164281"><span class="hs-identifier hs-var">low</span></a></span><span>
+</span><span id="line-67"></span><span>        </span><span id="local-6989586621679164278"><span class="annot"><span class="annottext">mid :: Integer
+</span><a href="#local-6989586621679164278"><span class="hs-identifier hs-var hs-var">mid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer) -&gt; Integer -&gt; Integer
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164276"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">div</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164277"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164276"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">2</span></span><span>
+</span><span id="line-68"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundIntegerM"><span class="hs-pragma hs-type">lowerBoundIntegerM</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span id="local-6989586621679164274"><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundIntegerM"><span class="hs-identifier hs-type">upperBoundIntegerM</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679164274"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164274"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span></span><span>
+</span><span id="line-72"></span><span id="upperBoundIntegerM"><span class="annot"><span class="annottext">upperBoundIntegerM :: Integer -&gt; Integer -&gt; (Integer -&gt; m Bool) -&gt; m Integer
+</span><a href="Algorithm.BinarySearch.html#upperBoundIntegerM"><span class="hs-identifier hs-var hs-var">upperBoundIntegerM</span></a></span></span><span> </span><span id="local-6989586621679164273"><span class="annot"><span class="annottext">low :: Integer
+</span><a href="#local-6989586621679164273"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span id="local-6989586621679164272"><span class="annot"><span class="annottext">high :: Integer
+</span><a href="#local-6989586621679164272"><span class="hs-identifier hs-var">high</span></a></span></span><span> </span><span id="local-6989586621679164271"><span class="annot"><span class="annottext">p :: Integer -&gt; m Bool
+</span><a href="#local-6989586621679164271"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-73"></span><span>  </span><span id="local-6989586621679164270"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679164270"><span class="hs-identifier hs-var">phigh</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; m Bool
+</span><a href="#local-6989586621679164271"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164272"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679164270"><span class="hs-identifier hs-var">phigh</span></a></span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; m Integer
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164272"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">subtract</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer) -&gt; m Integer -&gt; m Integer
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; (Integer -&gt; m Bool) -&gt; m Integer
+forall (m :: * -&gt; *).
+Monad m =&gt;
+Integer -&gt; Integer -&gt; (Integer -&gt; m Bool) -&gt; m Integer
+</span><a href="Algorithm.BinarySearch.html#lowerBoundIntegerM"><span class="hs-identifier hs-var">lowerBoundIntegerM</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164273"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679164272"><span class="hs-identifier hs-var">high</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; m Bool -&gt; m Bool
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(m Bool -&gt; m Bool) -&gt; (Integer -&gt; m Bool) -&gt; Integer -&gt; m Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; m Bool
+</span><a href="#local-6989586621679164271"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundIntegerM"><span class="hs-pragma hs-type">upperBoundIntegerM</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- | assert (p high)</span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Algorithm.BinarySearch.html#lowerBoundDouble"><span class="hs-identifier hs-type">lowerBoundDouble</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-81"></span><span id="lowerBoundDouble"><span class="annot"><span class="annottext">lowerBoundDouble :: Double -&gt; Double -&gt; (Double -&gt; Bool) -&gt; Double
+</span><a href="Algorithm.BinarySearch.html#lowerBoundDouble"><span class="hs-identifier hs-var hs-var">lowerBoundDouble</span></a></span></span><span> </span><span id="local-6989586621679164267"><span class="annot"><span class="annottext">low0 :: Double
+</span><a href="#local-6989586621679164267"><span class="hs-identifier hs-var">low0</span></a></span></span><span> </span><span id="local-6989586621679164266"><span class="annot"><span class="annottext">high0 :: Double
+</span><a href="#local-6989586621679164266"><span class="hs-identifier hs-var">high0</span></a></span></span><span> </span><span id="local-6989586621679164265"><span class="annot"><span class="annottext">p :: Double -&gt; Bool
+</span><a href="#local-6989586621679164265"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164264"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="hs-number">50</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164267"><span class="hs-identifier hs-var">low0</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164266"><span class="hs-identifier hs-var">high0</span></a></span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-83"></span><span>    </span><span class="annot"><a href="#local-6989586621679164264"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-84"></span><span>    </span><span id="local-6989586621679164264"><span class="annot"><span class="annottext">go :: Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164264"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164263"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164263"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164262"><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164262"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164261"><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164261"><span class="hs-identifier hs-var">high</span></a></span></span><span>
+</span><span id="line-85"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164263"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164261"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-86"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Bool
+</span><a href="#local-6989586621679164265"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164260"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164264"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164263"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164262"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164260"><span class="hs-identifier hs-var">mid</span></a></span><span>
+</span><span id="line-87"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164264"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164263"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164260"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164261"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-88"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-89"></span><span>        </span><span id="local-6989586621679164260"><span class="annot"><span class="annottext">mid :: Double
+</span><a href="#local-6989586621679164260"><span class="hs-identifier hs-var hs-var">mid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164262"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164261"><span class="hs-identifier hs-var">high</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">0.5</span></span><span>
+</span><span id="line-90"></span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- | assert (p low)</span><span>
+</span><span id="line-92"></span><span class="annot"><a href="Algorithm.BinarySearch.html#upperBoundDouble"><span class="hs-identifier hs-type">upperBoundDouble</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-93"></span><span id="upperBoundDouble"><span class="annot"><span class="annottext">upperBoundDouble :: Double -&gt; Double -&gt; (Double -&gt; Bool) -&gt; Double
+</span><a href="Algorithm.BinarySearch.html#upperBoundDouble"><span class="hs-identifier hs-var hs-var">upperBoundDouble</span></a></span></span><span> </span><span id="local-6989586621679164257"><span class="annot"><span class="annottext">low0 :: Double
+</span><a href="#local-6989586621679164257"><span class="hs-identifier hs-var">low0</span></a></span></span><span> </span><span id="local-6989586621679164256"><span class="annot"><span class="annottext">high0 :: Double
+</span><a href="#local-6989586621679164256"><span class="hs-identifier hs-var">high0</span></a></span></span><span> </span><span id="local-6989586621679164255"><span class="annot"><span class="annottext">p :: Double -&gt; Bool
+</span><a href="#local-6989586621679164255"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164254"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="hs-number">50</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164257"><span class="hs-identifier hs-var">low0</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164256"><span class="hs-identifier hs-var">high0</span></a></span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-95"></span><span>    </span><span class="annot"><a href="#local-6989586621679164254"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span>
+</span><span id="line-96"></span><span>    </span><span id="local-6989586621679164254"><span class="annot"><span class="annottext">go :: Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164254"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164253"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164253"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164252"><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164252"><span class="hs-identifier hs-var">low</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164251"><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164251"><span class="hs-identifier hs-var">high</span></a></span></span><span>
+</span><span id="line-97"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164253"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164252"><span class="hs-identifier hs-var">low</span></a></span><span>
+</span><span id="line-98"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Bool
+</span><a href="#local-6989586621679164255"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164250"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164254"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164253"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164250"><span class="hs-identifier hs-var">mid</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164251"><span class="hs-identifier hs-var">high</span></a></span><span>
+</span><span id="line-99"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Double -&gt; Double -&gt; Double
+</span><a href="#local-6989586621679164254"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679164253"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164252"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164250"><span class="hs-identifier hs-var">mid</span></a></span><span>
+</span><span id="line-100"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-101"></span><span>        </span><span id="local-6989586621679164250"><span class="annot"><span class="annottext">mid :: Double
+</span><a href="#local-6989586621679164250"><span class="hs-identifier hs-var hs-var">mid</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164252"><span class="hs-identifier hs-var">low</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679164251"><span class="hs-identifier hs-var">high</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">0.5</span></span><span>
+</span><span id="line-102"></span></pre></body></html>

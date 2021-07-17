@@ -1,0 +1,772 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TypeInType #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE UnboxedTuples #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Semiring</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Primitive</span></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">newtype</span><span> </span><span id="MaxPlus"><span class="annot"><a href="Data.Semiring.html#MaxPlus"><span class="hs-identifier hs-var">MaxPlus</span></a></span></span><span> </span><span id="local-6989586621679158474"><span class="annot"><a href="#local-6989586621679158474"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MaxPlus"><span class="annot"><a href="Data.Semiring.html#MaxPlus"><span class="hs-identifier hs-var">MaxPlus</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getMaxPlus"><span class="annot"><span class="annottext">MaxPlus a -&gt; a
+</span><a href="Data.Semiring.html#getMaxPlus"><span class="hs-identifier hs-var hs-var">getMaxPlus</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679158474"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679158438"><span id="local-6989586621679158440"><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a -&gt; Bool
+(MaxPlus a -&gt; MaxPlus a -&gt; Bool)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; Bool) -&gt; Eq (MaxPlus a)
+forall a. Eq a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: MaxPlus a -&gt; MaxPlus a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+== :: MaxPlus a -&gt; MaxPlus a -&gt; Bool
+$c== :: forall a. Eq a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158422"><span id="local-6989586621679158424"><span id="local-6989586621679158426"><span id="local-6989586621679158428"><span id="local-6989586621679158430"><span id="local-6989586621679158432"><span id="local-6989586621679158434"><span class="annot"><span class="annottext">Eq (MaxPlus a)
+Eq (MaxPlus a) =&gt;
+(MaxPlus a -&gt; MaxPlus a -&gt; Ordering)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; Bool)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; Bool)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; Bool)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; Bool)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a)
+-&gt; (MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a)
+-&gt; Ord (MaxPlus a)
+MaxPlus a -&gt; MaxPlus a -&gt; Bool
+MaxPlus a -&gt; MaxPlus a -&gt; Ordering
+MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (MaxPlus a)
+forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Ordering
+forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+min :: MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+$cmin :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+max :: MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+$cmax :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+&gt;= :: MaxPlus a -&gt; MaxPlus a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+&gt; :: MaxPlus a -&gt; MaxPlus a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+&lt;= :: MaxPlus a -&gt; MaxPlus a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+&lt; :: MaxPlus a -&gt; MaxPlus a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Bool
+compare :: MaxPlus a -&gt; MaxPlus a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; MaxPlus a -&gt; MaxPlus a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (MaxPlus a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158415"><span id="local-6989586621679158417"><span id="local-6989586621679158419"><span class="annot"><span class="annottext">Int -&gt; MaxPlus a -&gt; ShowS
+[MaxPlus a] -&gt; ShowS
+MaxPlus a -&gt; String
+(Int -&gt; MaxPlus a -&gt; ShowS)
+-&gt; (MaxPlus a -&gt; String)
+-&gt; ([MaxPlus a] -&gt; ShowS)
+-&gt; Show (MaxPlus a)
+forall a. Show a =&gt; Int -&gt; MaxPlus a -&gt; ShowS
+forall a. Show a =&gt; [MaxPlus a] -&gt; ShowS
+forall a. Show a =&gt; MaxPlus a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [MaxPlus a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [MaxPlus a] -&gt; ShowS
+show :: MaxPlus a -&gt; String
+$cshow :: forall a. Show a =&gt; MaxPlus a -&gt; String
+showsPrec :: Int -&gt; MaxPlus a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; MaxPlus a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158394"><span id="local-6989586621679158396"><span id="local-6989586621679158398"><span id="local-6989586621679158400"><span id="local-6989586621679158402"><span id="local-6989586621679158404"><span id="local-6989586621679158406"><span id="local-6989586621679158408"><span id="local-6989586621679158410"><span id="local-6989586621679158412"><span class="annot"><span class="annottext">Addr# -&gt; Int# -&gt; MaxPlus a
+Addr# -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+Addr# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+ByteArray# -&gt; Int# -&gt; MaxPlus a
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+MutableByteArray# s -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+MaxPlus a -&gt; Int#
+(MaxPlus a -&gt; Int#)
+-&gt; (MaxPlus a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; MaxPlus a)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; MaxPlus a)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s)
+-&gt; Prim (MaxPlus a)
+forall s.
+Addr# -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+forall s. Addr# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+forall s.
+MutableByteArray# s -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall a. Prim a =&gt; Addr# -&gt; Int# -&gt; MaxPlus a
+forall a. Prim a =&gt; ByteArray# -&gt; Int# -&gt; MaxPlus a
+forall a. Prim a =&gt; MaxPlus a -&gt; Int#
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+forall a.
+(a -&gt; Int#)
+-&gt; (a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; a)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; a)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; Prim a
+setOffAddr# :: Addr# -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+$csetOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+writeOffAddr# :: Addr# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+$cwriteOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+readOffAddr# :: Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+$creadOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+indexOffAddr# :: Addr# -&gt; Int# -&gt; MaxPlus a
+$cindexOffAddr# :: forall a. Prim a =&gt; Addr# -&gt; Int# -&gt; MaxPlus a
+setByteArray# :: MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+$csetByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+writeByteArray# :: MutableByteArray# s -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+$cwriteByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; MaxPlus a -&gt; State# s -&gt; State# s
+readByteArray# :: MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+$creadByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MaxPlus a #)
+indexByteArray# :: ByteArray# -&gt; Int# -&gt; MaxPlus a
+$cindexByteArray# :: forall a. Prim a =&gt; ByteArray# -&gt; Int# -&gt; MaxPlus a
+alignment# :: MaxPlus a -&gt; Int#
+$calignment# :: forall a. Prim a =&gt; MaxPlus a -&gt; Int#
+sizeOf# :: MaxPlus a -&gt; Int#
+$csizeOf# :: forall a. Prim a =&gt; MaxPlus a -&gt; Int#
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Prim</span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span id="local-6989586621679158392"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679158392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="#local-6989586621679158392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Semiring.html#MaxPlus"><span class="hs-identifier hs-type">MaxPlus</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Num</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Data.Semiring.html#MaxPlus"><span class="hs-pragma hs-type">MaxPlus</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-16"></span><span>  </span><span id="local-6989586621679158383"><span class="annot"><span class="annottext">+ :: MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(+)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">+</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-18"></span><span>  </span><span id="local-6989586621679158380"><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">-</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-20"></span><span>  </span><span id="local-6989586621679158378"><span class="annot"><span class="annottext">* :: MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(*)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a -&gt; MaxPlus a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">*</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679158376"><span class="annot"><span class="annottext">negate :: MaxPlus a -&gt; MaxPlus a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">negate</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">negate</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-24"></span><span>  </span><span id="local-6989586621679158375"><span class="annot"><span class="annottext">abs :: MaxPlus a -&gt; MaxPlus a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">abs</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">abs</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679158372"><span class="annot"><span class="annottext">signum :: MaxPlus a -&gt; MaxPlus a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">signum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaxPlus a -&gt; MaxPlus a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">signum</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-28"></span><span>  </span><span id="local-6989586621679158370"><span class="annot"><span class="annottext">fromInteger :: Integer -&gt; MaxPlus a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromInteger</span></span></span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; MaxPlus a
+forall a. a -&gt; MaxPlus a
+</span><a href="Data.Semiring.html#MaxPlus"><span class="hs-identifier hs-var">MaxPlus</span></a></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">minBound</span></span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; MaxPlus a
+forall a. a -&gt; MaxPlus a
+</span><a href="Data.Semiring.html#MaxPlus"><span class="hs-identifier hs-var">MaxPlus</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">fromInteger</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">newtype</span><span> </span><span id="MinPlus"><span class="annot"><a href="Data.Semiring.html#MinPlus"><span class="hs-identifier hs-var">MinPlus</span></a></span></span><span> </span><span id="local-6989586621679158459"><span class="annot"><a href="#local-6989586621679158459"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MinPlus"><span class="annot"><a href="Data.Semiring.html#MinPlus"><span class="hs-identifier hs-var">MinPlus</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getMinPlus"><span class="annot"><span class="annottext">MinPlus a -&gt; a
+</span><a href="Data.Semiring.html#getMinPlus"><span class="hs-identifier hs-var hs-var">getMinPlus</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679158459"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679158363"><span id="local-6989586621679158365"><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a -&gt; Bool
+(MinPlus a -&gt; MinPlus a -&gt; Bool)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; Bool) -&gt; Eq (MinPlus a)
+forall a. Eq a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: MinPlus a -&gt; MinPlus a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+== :: MinPlus a -&gt; MinPlus a -&gt; Bool
+$c== :: forall a. Eq a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158348"><span id="local-6989586621679158350"><span id="local-6989586621679158352"><span id="local-6989586621679158354"><span id="local-6989586621679158356"><span id="local-6989586621679158358"><span id="local-6989586621679158360"><span class="annot"><span class="annottext">Eq (MinPlus a)
+Eq (MinPlus a) =&gt;
+(MinPlus a -&gt; MinPlus a -&gt; Ordering)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; Bool)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; Bool)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; Bool)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; Bool)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; MinPlus a)
+-&gt; (MinPlus a -&gt; MinPlus a -&gt; MinPlus a)
+-&gt; Ord (MinPlus a)
+MinPlus a -&gt; MinPlus a -&gt; Bool
+MinPlus a -&gt; MinPlus a -&gt; Ordering
+MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (MinPlus a)
+forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Ordering
+forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+min :: MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+$cmin :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+max :: MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+$cmax :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+&gt;= :: MinPlus a -&gt; MinPlus a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+&gt; :: MinPlus a -&gt; MinPlus a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+&lt;= :: MinPlus a -&gt; MinPlus a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+&lt; :: MinPlus a -&gt; MinPlus a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Bool
+compare :: MinPlus a -&gt; MinPlus a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; MinPlus a -&gt; MinPlus a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (MinPlus a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158342"><span id="local-6989586621679158344"><span id="local-6989586621679158346"><span class="annot"><span class="annottext">Int -&gt; MinPlus a -&gt; ShowS
+[MinPlus a] -&gt; ShowS
+MinPlus a -&gt; String
+(Int -&gt; MinPlus a -&gt; ShowS)
+-&gt; (MinPlus a -&gt; String)
+-&gt; ([MinPlus a] -&gt; ShowS)
+-&gt; Show (MinPlus a)
+forall a. Show a =&gt; Int -&gt; MinPlus a -&gt; ShowS
+forall a. Show a =&gt; [MinPlus a] -&gt; ShowS
+forall a. Show a =&gt; MinPlus a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [MinPlus a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [MinPlus a] -&gt; ShowS
+show :: MinPlus a -&gt; String
+$cshow :: forall a. Show a =&gt; MinPlus a -&gt; String
+showsPrec :: Int -&gt; MinPlus a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; MinPlus a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158322"><span id="local-6989586621679158324"><span id="local-6989586621679158326"><span id="local-6989586621679158328"><span id="local-6989586621679158330"><span id="local-6989586621679158332"><span id="local-6989586621679158334"><span id="local-6989586621679158336"><span id="local-6989586621679158338"><span id="local-6989586621679158340"><span class="annot"><span class="annottext">Addr# -&gt; Int# -&gt; MinPlus a
+Addr# -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+Addr# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+ByteArray# -&gt; Int# -&gt; MinPlus a
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+MutableByteArray# s -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+MinPlus a -&gt; Int#
+(MinPlus a -&gt; Int#)
+-&gt; (MinPlus a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; MinPlus a)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; MinPlus a)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s)
+-&gt; Prim (MinPlus a)
+forall s.
+Addr# -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+forall s. Addr# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+forall s.
+MutableByteArray# s -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall a. Prim a =&gt; Addr# -&gt; Int# -&gt; MinPlus a
+forall a. Prim a =&gt; ByteArray# -&gt; Int# -&gt; MinPlus a
+forall a. Prim a =&gt; MinPlus a -&gt; Int#
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+forall a.
+(a -&gt; Int#)
+-&gt; (a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; a)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; a)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; Prim a
+setOffAddr# :: Addr# -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+$csetOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+writeOffAddr# :: Addr# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+$cwriteOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+readOffAddr# :: Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+$creadOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+indexOffAddr# :: Addr# -&gt; Int# -&gt; MinPlus a
+$cindexOffAddr# :: forall a. Prim a =&gt; Addr# -&gt; Int# -&gt; MinPlus a
+setByteArray# :: MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+$csetByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+writeByteArray# :: MutableByteArray# s -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+$cwriteByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; MinPlus a -&gt; State# s -&gt; State# s
+readByteArray# :: MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+$creadByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; State# s -&gt; (# State# s, MinPlus a #)
+indexByteArray# :: ByteArray# -&gt; Int# -&gt; MinPlus a
+$cindexByteArray# :: forall a. Prim a =&gt; ByteArray# -&gt; Int# -&gt; MinPlus a
+alignment# :: MinPlus a -&gt; Int#
+$calignment# :: forall a. Prim a =&gt; MinPlus a -&gt; Int#
+sizeOf# :: MinPlus a -&gt; Int#
+$csizeOf# :: forall a. Prim a =&gt; MinPlus a -&gt; Int#
+</span><a href="#local-6989586621679158322"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Prim</span></a></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span id="local-6989586621679158321"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679158321"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="#local-6989586621679158321"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679158321"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Semiring.html#MinPlus"><span class="hs-identifier hs-type">MinPlus</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158321"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Num</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Data.Semiring.html#MinPlus"><span class="hs-pragma hs-type">MinPlus</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679158313"><span class="annot"><span class="annottext">+ :: MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+</span><a href="#local-6989586621679158313"><span class="hs-operator hs-var hs-var hs-var hs-var">(+)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">+</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679158311"><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">-</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679158310"><span class="annot"><span class="annottext">* :: MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+</span><a href="#local-6989586621679158310"><span class="hs-operator hs-var hs-var hs-var hs-var">(*)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a -&gt; MinPlus a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">*</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679158309"><span class="annot"><span class="annottext">negate :: MinPlus a -&gt; MinPlus a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">negate</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">negate</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679158308"><span class="annot"><span class="annottext">abs :: MinPlus a -&gt; MinPlus a
+</span><a href="#local-6989586621679158308"><span class="hs-identifier hs-var hs-var hs-var hs-var">abs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">abs</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679158307"><span class="annot"><span class="annottext">signum :: MinPlus a -&gt; MinPlus a
+</span><a href="#local-6989586621679158307"><span class="hs-identifier hs-var hs-var hs-var hs-var">signum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MinPlus a -&gt; MinPlus a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">signum</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679158306"><span class="annot"><span class="annottext">fromInteger :: Integer -&gt; MinPlus a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromInteger</span></span></span><span> </span><span class="hs-number">0</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; MinPlus a
+forall a. a -&gt; MinPlus a
+</span><a href="Data.Semiring.html#MinPlus"><span class="hs-identifier hs-var">MinPlus</span></a></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">maxBound</span></span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; MinPlus a
+forall a. a -&gt; MinPlus a
+</span><a href="Data.Semiring.html#MinPlus"><span class="hs-identifier hs-var">MinPlus</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">fromInteger</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">newtype</span><span> </span><span id="XorAnd"><span class="annot"><a href="Data.Semiring.html#XorAnd"><span class="hs-identifier hs-var">XorAnd</span></a></span></span><span> </span><span id="local-6989586621679158304"><span class="annot"><a href="#local-6989586621679158304"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="XorAnd"><span class="annot"><a href="Data.Semiring.html#XorAnd"><span class="hs-identifier hs-var">XorAnd</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getXorAnd"><span class="annot"><span class="annottext">XorAnd a -&gt; a
+</span><a href="Data.Semiring.html#getXorAnd"><span class="hs-identifier hs-var hs-var">getXorAnd</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679158304"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679158298"><span id="local-6989586621679158300"><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a -&gt; Bool
+(XorAnd a -&gt; XorAnd a -&gt; Bool)
+-&gt; (XorAnd a -&gt; XorAnd a -&gt; Bool) -&gt; Eq (XorAnd a)
+forall a. Eq a =&gt; XorAnd a -&gt; XorAnd a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: XorAnd a -&gt; XorAnd a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; XorAnd a -&gt; XorAnd a -&gt; Bool
+== :: XorAnd a -&gt; XorAnd a -&gt; Bool
+$c== :: forall a. Eq a =&gt; XorAnd a -&gt; XorAnd a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158292"><span id="local-6989586621679158294"><span id="local-6989586621679158296"><span class="annot"><span class="annottext">Int -&gt; XorAnd a -&gt; ShowS
+[XorAnd a] -&gt; ShowS
+XorAnd a -&gt; String
+(Int -&gt; XorAnd a -&gt; ShowS)
+-&gt; (XorAnd a -&gt; String) -&gt; ([XorAnd a] -&gt; ShowS) -&gt; Show (XorAnd a)
+forall a. Show a =&gt; Int -&gt; XorAnd a -&gt; ShowS
+forall a. Show a =&gt; [XorAnd a] -&gt; ShowS
+forall a. Show a =&gt; XorAnd a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [XorAnd a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [XorAnd a] -&gt; ShowS
+show :: XorAnd a -&gt; String
+$cshow :: forall a. Show a =&gt; XorAnd a -&gt; String
+showsPrec :: Int -&gt; XorAnd a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; XorAnd a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158247"><span id="local-6989586621679158249"><span id="local-6989586621679158251"><span id="local-6989586621679158253"><span id="local-6989586621679158255"><span id="local-6989586621679158257"><span id="local-6989586621679158259"><span id="local-6989586621679158261"><span id="local-6989586621679158263"><span id="local-6989586621679158265"><span id="local-6989586621679158267"><span id="local-6989586621679158269"><span id="local-6989586621679158271"><span id="local-6989586621679158273"><span id="local-6989586621679158275"><span id="local-6989586621679158277"><span id="local-6989586621679158279"><span id="local-6989586621679158281"><span id="local-6989586621679158283"><span id="local-6989586621679158285"><span id="local-6989586621679158287"><span id="local-6989586621679158289"><span class="annot"><span class="annottext">Eq (XorAnd a)
+XorAnd a
+Eq (XorAnd a) =&gt;
+(XorAnd a -&gt; XorAnd a -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; XorAnd a -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; XorAnd a -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; XorAnd a
+-&gt; (Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; Bool)
+-&gt; (XorAnd a -&gt; Maybe Int)
+-&gt; (XorAnd a -&gt; Int)
+-&gt; (XorAnd a -&gt; Bool)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int -&gt; XorAnd a)
+-&gt; (XorAnd a -&gt; Int)
+-&gt; Bits (XorAnd a)
+Int -&gt; XorAnd a
+XorAnd a -&gt; Bool
+XorAnd a -&gt; Int
+XorAnd a -&gt; Maybe Int
+XorAnd a -&gt; XorAnd a
+XorAnd a -&gt; Int -&gt; Bool
+XorAnd a -&gt; Int -&gt; XorAnd a
+XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; a
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; Bool)
+-&gt; (a -&gt; Maybe Int)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; Bool)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; Bits a
+forall a. Bits a =&gt; Eq (XorAnd a)
+forall a. Bits a =&gt; XorAnd a
+forall a. Bits a =&gt; Int -&gt; XorAnd a
+forall a. Bits a =&gt; XorAnd a -&gt; Bool
+forall a. Bits a =&gt; XorAnd a -&gt; Int
+forall a. Bits a =&gt; XorAnd a -&gt; Maybe Int
+forall a. Bits a =&gt; XorAnd a -&gt; XorAnd a
+forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+forall a. Bits a =&gt; XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+popCount :: XorAnd a -&gt; Int
+$cpopCount :: forall a. Bits a =&gt; XorAnd a -&gt; Int
+rotateR :: XorAnd a -&gt; Int -&gt; XorAnd a
+$crotateR :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+rotateL :: XorAnd a -&gt; Int -&gt; XorAnd a
+$crotateL :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+unsafeShiftR :: XorAnd a -&gt; Int -&gt; XorAnd a
+$cunsafeShiftR :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+shiftR :: XorAnd a -&gt; Int -&gt; XorAnd a
+$cshiftR :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+unsafeShiftL :: XorAnd a -&gt; Int -&gt; XorAnd a
+$cunsafeShiftL :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+shiftL :: XorAnd a -&gt; Int -&gt; XorAnd a
+$cshiftL :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+isSigned :: XorAnd a -&gt; Bool
+$cisSigned :: forall a. Bits a =&gt; XorAnd a -&gt; Bool
+bitSize :: XorAnd a -&gt; Int
+$cbitSize :: forall a. Bits a =&gt; XorAnd a -&gt; Int
+bitSizeMaybe :: XorAnd a -&gt; Maybe Int
+$cbitSizeMaybe :: forall a. Bits a =&gt; XorAnd a -&gt; Maybe Int
+testBit :: XorAnd a -&gt; Int -&gt; Bool
+$ctestBit :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; Bool
+complementBit :: XorAnd a -&gt; Int -&gt; XorAnd a
+$ccomplementBit :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+clearBit :: XorAnd a -&gt; Int -&gt; XorAnd a
+$cclearBit :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+setBit :: XorAnd a -&gt; Int -&gt; XorAnd a
+$csetBit :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+bit :: Int -&gt; XorAnd a
+$cbit :: forall a. Bits a =&gt; Int -&gt; XorAnd a
+zeroBits :: XorAnd a
+$czeroBits :: forall a. Bits a =&gt; XorAnd a
+rotate :: XorAnd a -&gt; Int -&gt; XorAnd a
+$crotate :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+shift :: XorAnd a -&gt; Int -&gt; XorAnd a
+$cshift :: forall a. Bits a =&gt; XorAnd a -&gt; Int -&gt; XorAnd a
+complement :: XorAnd a -&gt; XorAnd a
+$ccomplement :: forall a. Bits a =&gt; XorAnd a -&gt; XorAnd a
+xor :: XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+$cxor :: forall a. Bits a =&gt; XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+.|. :: XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+$c.|. :: forall a. Bits a =&gt; XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+.&amp;. :: XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+$c.&amp;. :: forall a. Bits a =&gt; XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+$cp1Bits :: forall a. Bits a =&gt; Eq (XorAnd a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Bits</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158226"><span id="local-6989586621679158228"><span id="local-6989586621679158230"><span id="local-6989586621679158232"><span id="local-6989586621679158234"><span id="local-6989586621679158236"><span id="local-6989586621679158238"><span id="local-6989586621679158240"><span id="local-6989586621679158242"><span id="local-6989586621679158244"><span class="annot"><span class="annottext">Addr# -&gt; Int# -&gt; XorAnd a
+Addr# -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+Addr# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+ByteArray# -&gt; Int# -&gt; XorAnd a
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+MutableByteArray# s -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+XorAnd a -&gt; Int#
+(XorAnd a -&gt; Int#)
+-&gt; (XorAnd a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; XorAnd a)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; XorAnd a)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s)
+-&gt; Prim (XorAnd a)
+forall s. Addr# -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+forall s. Addr# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+forall s.
+MutableByteArray# s -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall a. Prim a =&gt; Addr# -&gt; Int# -&gt; XorAnd a
+forall a. Prim a =&gt; ByteArray# -&gt; Int# -&gt; XorAnd a
+forall a. Prim a =&gt; XorAnd a -&gt; Int#
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+forall a.
+(a -&gt; Int#)
+-&gt; (a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; a)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; a)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; Prim a
+setOffAddr# :: Addr# -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+$csetOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+writeOffAddr# :: Addr# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+$cwriteOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+readOffAddr# :: Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+$creadOffAddr# :: forall a s.
+Prim a =&gt;
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+indexOffAddr# :: Addr# -&gt; Int# -&gt; XorAnd a
+$cindexOffAddr# :: forall a. Prim a =&gt; Addr# -&gt; Int# -&gt; XorAnd a
+setByteArray# :: MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+$csetByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+writeByteArray# :: MutableByteArray# s -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+$cwriteByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; XorAnd a -&gt; State# s -&gt; State# s
+readByteArray# :: MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+$creadByteArray# :: forall a s.
+Prim a =&gt;
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, XorAnd a #)
+indexByteArray# :: ByteArray# -&gt; Int# -&gt; XorAnd a
+$cindexByteArray# :: forall a. Prim a =&gt; ByteArray# -&gt; Int# -&gt; XorAnd a
+alignment# :: XorAnd a -&gt; Int#
+$calignment# :: forall a. Prim a =&gt; XorAnd a -&gt; Int#
+sizeOf# :: XorAnd a -&gt; Int#
+$csizeOf# :: forall a. Prim a =&gt; XorAnd a -&gt; Int#
+</span><a href="#local-6989586621679158226"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Prim</span></a></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span id="local-6989586621679158225"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679158225"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Semiring.html#XorAnd"><span class="hs-identifier hs-type">XorAnd</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158225"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Num</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Data.Semiring.html#XorAnd"><span class="hs-pragma hs-type">XorAnd</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679158217"><span class="annot"><span class="annottext">+ :: XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+</span><a href="#local-6989586621679158217"><span class="hs-operator hs-var hs-var hs-var hs-var">(+)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">xor</span></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">+</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679158215"><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">xor</span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">-</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-62"></span><span>  </span><span id="local-6989586621679158214"><span class="annot"><span class="annottext">* :: XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+</span><a href="#local-6989586621679158214"><span class="hs-operator hs-var hs-var hs-var hs-var">(*)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a -&gt; XorAnd a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(.&amp;.)</span></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">*</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679158212"><span class="annot"><span class="annottext">negate :: XorAnd a -&gt; XorAnd a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">negate</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">negate</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679158211"><span class="annot"><span class="annottext">abs :: XorAnd a -&gt; XorAnd a
+</span><a href="#local-6989586621679158211"><span class="hs-identifier hs-var hs-var hs-var hs-var">abs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">abs</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679158210"><span class="annot"><span class="annottext">signum :: XorAnd a -&gt; XorAnd a
+</span><a href="#local-6989586621679158210"><span class="hs-identifier hs-var hs-var hs-var hs-var">signum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">signum</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-70"></span><span>  </span><span id="local-6989586621679158209"><span class="annot"><span class="annottext">fromInteger :: Integer -&gt; XorAnd a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromInteger</span></span></span><span> </span><span id="local-6989586621679158208"><span class="annot"><span class="annottext">x :: Integer
+</span><a href="#local-6989586621679158208"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679158208"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a
+forall a. Bits a =&gt; a
+</span><span class="hs-identifier hs-var">zeroBits</span></span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XorAnd a -&gt; XorAnd a
+forall a. Bits a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">complement</span></span><span> </span><span class="annot"><span class="annottext">XorAnd a
+forall a. Bits a =&gt; a
+</span><span class="hs-identifier hs-var">zeroBits</span></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">fromInteger</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-74"></span></pre></body></html>

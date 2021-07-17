@@ -1,0 +1,838 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards #-}</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Graph.MaxFlow</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.ST</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Buffer.html"><span class="hs-identifier">Data.Buffer</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-type">nothingMF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-19"></span><span id="nothingMF"><span class="annot"><span class="annottext">nothingMF :: Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var hs-var">nothingMF</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">-</span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">type</span><span> </span><span id="Vertex"><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-var">Vertex</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">--</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">{- |
+Dinic /O(V^2E)/
+
+&gt;&gt;&gt; :set -XTypeApplications
+&gt;&gt;&gt; :{
+maxFlow @Int 5 0 4 $ \builder -&gt; do
+    addEdgeMFB builder (0, 1, 10)
+    addEdgeMFB builder (0, 2, 2)
+    addEdgeMFB builder (1, 2, 6)
+    addEdgeMFB builder (1, 3, 6)
+    addEdgeMFB builder (3, 2, 2)
+    addEdgeMFB builder (2, 4, 5)
+    addEdgeMFB builder (3, 4, 8)
+:}
+11
+&gt;&gt;&gt; maxFlow @Int 2 0 1 $ const (return ())
+0
+-}</span><span>
+</span><span id="line-43"></span><span id="local-6989586621679155289"><span class="annot"><a href="Data.Graph.MaxFlow.html#maxFlow"><span class="hs-identifier hs-type">maxFlow</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155289"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155289"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679155289"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="#local-6989586621679155289"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-comment">-- | number of vertices</span><span>
+</span><span id="line-46"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-comment">-- | source</span><span>
+</span><span id="line-48"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-comment">-- | sink</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679155413"><span class="annot"><a href="#local-6989586621679155413"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-type">MaxFlowBuilder</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155413"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155289"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679155413"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><a href="#local-6989586621679155289"><span class="hs-identifier hs-type">cap</span></a></span></span><span>
+</span><span id="line-53"></span><span id="maxFlow"><span class="annot"><span class="annottext">maxFlow :: Int
+-&gt; Int -&gt; Int -&gt; (forall s. MaxFlowBuilder s cap -&gt; ST s ()) -&gt; cap
+</span><a href="Data.Graph.MaxFlow.html#maxFlow"><span class="hs-identifier hs-var hs-var">maxFlow</span></a></span></span><span> </span><span id="local-6989586621679155287"><span class="annot"><span class="annottext">numVertices :: Int
+</span><a href="#local-6989586621679155287"><span class="hs-identifier hs-var">numVertices</span></a></span></span><span> </span><span id="local-6989586621679155286"><span class="annot"><span class="annottext">src :: Int
+</span><a href="#local-6989586621679155286"><span class="hs-identifier hs-var">src</span></a></span></span><span> </span><span id="local-6989586621679155285"><span class="annot"><span class="annottext">sink :: Int
+</span><a href="#local-6989586621679155285"><span class="hs-identifier hs-var">sink</span></a></span></span><span> </span><span id="local-6989586621679155284"><span class="annot"><span class="annottext">run :: forall s. MaxFlowBuilder s cap -&gt; ST s ()
+</span><a href="#local-6989586621679155284"><span class="hs-identifier hs-var">run</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. ST s cap) -&gt; cap
+forall a. (forall s. ST s a) -&gt; a
+</span><span class="hs-identifier hs-var">runST</span></span><span> </span><span class="annot"><span class="annottext">((forall s. ST s cap) -&gt; cap) -&gt; (forall s. ST s cap) -&gt; cap
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679155282"><span class="annot"><span class="annottext">MaxFlowBuilder s cap
+</span><a href="#local-6989586621679155282"><span class="hs-identifier hs-var">builder</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ST s (MaxFlowBuilder (PrimState (ST s)) cap)
+forall cap (m :: * -&gt; *).
+(Unbox cap, PrimMonad m) =&gt;
+Int -&gt; m (MaxFlowBuilder (PrimState m) cap)
+</span><a href="Data.Graph.MaxFlow.html#newMaxFlowBuilder"><span class="hs-identifier hs-var">newMaxFlowBuilder</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155287"><span class="hs-identifier hs-var">numVertices</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="annottext">MaxFlowBuilder s cap -&gt; ST s ()
+forall s. MaxFlowBuilder s cap -&gt; ST s ()
+</span><a href="#local-6989586621679155284"><span class="hs-identifier hs-var">run</span></a></span><span> </span><span class="annot"><span class="annottext">MaxFlowBuilder s cap
+</span><a href="#local-6989586621679155282"><span class="hs-identifier hs-var">builder</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="annot"><span class="annottext">MaxFlowBuilder (PrimState (ST s)) cap
+-&gt; ST s (MaxFlow (PrimState (ST s)) cap)
+forall cap (m :: * -&gt; *).
+(Num cap, Unbox cap, PrimMonad m) =&gt;
+MaxFlowBuilder (PrimState m) cap -&gt; m (MaxFlow (PrimState m) cap)
+</span><a href="Data.Graph.MaxFlow.html#buildMaxFlow"><span class="hs-identifier hs-var">buildMaxFlow</span></a></span><span> </span><span class="annot"><span class="annottext">MaxFlowBuilder s cap
+MaxFlowBuilder (PrimState (ST s)) cap
+</span><a href="#local-6989586621679155282"><span class="hs-identifier hs-var">builder</span></a></span><span> </span><span class="annot"><span class="annottext">ST s (MaxFlow s cap) -&gt; (MaxFlow s cap -&gt; ST s cap) -&gt; ST s cap
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; MaxFlow (PrimState (ST s)) cap -&gt; ST s cap
+forall cap (m :: * -&gt; *).
+(Unbox cap, Num cap, Ord cap, Bounded cap, PrimMonad m) =&gt;
+Int -&gt; Int -&gt; MaxFlow (PrimState m) cap -&gt; m cap
+</span><a href="Data.Graph.MaxFlow.html#runMaxFlow"><span class="hs-identifier hs-var">runMaxFlow</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155286"><span class="hs-identifier hs-var">src</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155285"><span class="hs-identifier hs-var">sink</span></a></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-keyword">data</span><span> </span><span id="MaxFlow"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-var">MaxFlow</span></a></span></span><span> </span><span id="local-6989586621679155367"><span class="annot"><a href="#local-6989586621679155367"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679155366"><span class="annot"><a href="#local-6989586621679155366"><span class="hs-identifier hs-type">cap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MaxFlow"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-var">MaxFlow</span></a></span></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="numVerticesMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; Int
+</span><a href="Data.Graph.MaxFlow.html#numVerticesMF"><span class="hs-identifier hs-var hs-var">numVerticesMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="numEdgesMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; Int
+</span><a href="Data.Graph.MaxFlow.html#numEdgesMF"><span class="hs-identifier hs-var hs-var">numEdgesMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="offsetMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; Vector Int
+</span><a href="Data.Graph.MaxFlow.html#offsetMF"><span class="hs-identifier hs-var hs-var">offsetMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="dstMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; Vector Int
+</span><a href="Data.Graph.MaxFlow.html#dstMF"><span class="hs-identifier hs-var hs-var">dstMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="residualMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; MVector s cap
+</span><a href="Data.Graph.MaxFlow.html#residualMF"><span class="hs-identifier hs-var hs-var">residualMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679155367"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155366"><span class="hs-identifier hs-type">cap</span></a></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="levelMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; MVector s Int
+</span><a href="Data.Graph.MaxFlow.html#levelMF"><span class="hs-identifier hs-var hs-var">levelMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679155367"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="revEdgeMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; Vector Int
+</span><a href="Data.Graph.MaxFlow.html#revEdgeMF"><span class="hs-identifier hs-var hs-var">revEdgeMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="iterMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; MVector s Int
+</span><a href="Data.Graph.MaxFlow.html#iterMF"><span class="hs-identifier hs-var hs-var">iterMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679155367"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="queueMF"><span class="annot"><span class="annottext">MaxFlow s cap -&gt; Queue s Int
+</span><a href="Data.Graph.MaxFlow.html#queueMF"><span class="hs-identifier hs-var hs-var">queueMF</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Buffer.html#Queue"><span class="hs-identifier hs-type">Queue</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155367"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span id="local-6989586621679155391"><span id="local-6989586621679155392"><span class="annot"><a href="Data.Graph.MaxFlow.html#runMaxFlow"><span class="hs-identifier hs-type">runMaxFlow</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155392"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155392"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679155392"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="#local-6989586621679155392"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679155391"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-74"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155391"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155392"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><a href="#local-6989586621679155391"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155392"><span class="hs-identifier hs-type">cap</span></a></span></span></span><span>
+</span><span id="line-76"></span><span id="runMaxFlow"><span class="annot"><span class="annottext">runMaxFlow :: Int -&gt; Int -&gt; MaxFlow (PrimState m) cap -&gt; m cap
+</span><a href="Data.Graph.MaxFlow.html#runMaxFlow"><span class="hs-identifier hs-var hs-var">runMaxFlow</span></a></span></span><span> </span><span id="local-6989586621679155268"><span class="annot"><span class="annottext">src :: Int
+</span><a href="#local-6989586621679155268"><span class="hs-identifier hs-var">src</span></a></span></span><span> </span><span id="local-6989586621679155267"><span class="annot"><span class="annottext">sink :: Int
+</span><a href="#local-6989586621679155267"><span class="hs-identifier hs-var">sink</span></a></span></span><span> </span><span id="local-6989586621679155266"><span class="annot"><span class="annottext">mf :: MaxFlow (PrimState m) cap
+</span><a href="#local-6989586621679155266"><span class="hs-identifier hs-var">mf</span></a></span></span><span class="hs-glyph">@</span><span id="local-6989586621679155257"><span id="local-6989586621679155258"><span id="local-6989586621679155259"><span id="local-6989586621679155260"><span id="local-6989586621679155261"><span id="local-6989586621679155262"><span id="local-6989586621679155263"><span id="local-6989586621679155264"><span id="local-6989586621679155265"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span></span></span></span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><span class="annottext">(((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; cap -&gt; m cap)
+-&gt; cap -&gt; ((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; m cap
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; cap -&gt; m cap
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; m cap)
+-&gt; ((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; m cap
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155254"><span class="annot"><span class="annottext">loopBFS :: cap -&gt; m cap
+</span><a href="#local-6989586621679155254"><span class="hs-identifier hs-var">loopBFS</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679155253"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155253"><span class="hs-identifier hs-var">flow</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.set</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155260"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><span class="annottext">Queue (PrimState m) Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+PrimMonad m =&gt;
+Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#clearBuffer"><span class="hs-identifier hs-var">clearBuffer</span></a></span><span> </span><span class="annot"><span class="annottext">Queue (PrimState m) Int
+</span><a href="#local-6989586621679155257"><span class="hs-identifier hs-var">queueMF</span></a></span><span>
+</span><span id="line-80"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; MaxFlow (PrimState m) cap -&gt; m ()
+forall cap (m :: * -&gt; *).
+(Num cap, Ord cap, Unbox cap, PrimMonad m) =&gt;
+Int -&gt; Int -&gt; MaxFlow (PrimState m) cap -&gt; m ()
+</span><a href="Data.Graph.MaxFlow.html#bfsMF"><span class="hs-identifier hs-var">bfsMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155268"><span class="hs-identifier hs-var">src</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155267"><span class="hs-identifier hs-var">sink</span></a></span><span> </span><span class="annot"><span class="annottext">MaxFlow (PrimState m) cap
+</span><a href="#local-6989586621679155266"><span class="hs-identifier hs-var">mf</span></a></span><span>
+</span><span id="line-81"></span><span>    </span><span id="local-6989586621679155249"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155249"><span class="hs-identifier hs-var">lsink</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155260"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155267"><span class="hs-identifier hs-var">sink</span></a></span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155249"><span class="hs-identifier hs-var">lsink</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span>
+</span><span id="line-83"></span><span>      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">cap -&gt; m cap
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155253"><span class="hs-identifier hs-var">flow</span></a></span><span>
+</span><span id="line-84"></span><span>      </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-85"></span><span>        </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Vector Int -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; Vector a -&gt; m ()
+</span><span class="hs-identifier hs-var">U.unsafeCopy</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155258"><span class="hs-identifier hs-var">iterMF</span></a></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155263"><span class="hs-identifier hs-var">offsetMF</span></a></span><span>
+</span><span id="line-86"></span><span>        </span><span class="annot"><span class="annottext">(((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; cap -&gt; m cap)
+-&gt; cap -&gt; ((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; m cap
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; cap -&gt; m cap
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155253"><span class="hs-identifier hs-var">flow</span></a></span><span> </span><span class="annot"><span class="annottext">(((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; m cap)
+-&gt; ((cap -&gt; m cap) -&gt; cap -&gt; m cap) -&gt; m cap
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155246"><span class="annot"><span class="annottext">loopDFS :: cap -&gt; m cap
+</span><a href="#local-6989586621679155246"><span class="hs-identifier hs-var">loopDFS</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679155245"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155245"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-87"></span><span>          </span><span id="local-6989586621679155244"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155244"><span class="hs-identifier hs-var">df</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; cap -&gt; MaxFlow (PrimState m) cap -&gt; m cap
+forall cap (m :: * -&gt; *).
+(Unbox cap, Num cap, Ord cap, Bounded cap, PrimMonad m) =&gt;
+Int -&gt; Int -&gt; cap -&gt; MaxFlow (PrimState m) cap -&gt; m cap
+</span><a href="Data.Graph.MaxFlow.html#dfsMF"><span class="hs-identifier hs-var">dfsMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155268"><span class="hs-identifier hs-var">src</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155267"><span class="hs-identifier hs-var">sink</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">maxBound</span></span><span> </span><span class="annot"><span class="annottext">MaxFlow (PrimState m) cap
+</span><a href="#local-6989586621679155266"><span class="hs-identifier hs-var">mf</span></a></span><span>
+</span><span id="line-88"></span><span>          </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155244"><span class="hs-identifier hs-var">df</span></a></span><span> </span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-89"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">cap -&gt; m cap
+</span><a href="#local-6989586621679155246"><span class="hs-identifier hs-var">loopDFS</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155245"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; cap
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155244"><span class="hs-identifier hs-var">df</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">cap -&gt; m cap
+</span><a href="#local-6989586621679155254"><span class="hs-identifier hs-var">loopBFS</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155245"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span id="local-6989586621679155355"><span id="local-6989586621679155356"><span class="annot"><a href="Data.Graph.MaxFlow.html#bfsMF"><span class="hs-identifier hs-type">bfsMF</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155356"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679155356"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155356"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679155355"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-94"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155355"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155356"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-97"></span><span>  </span><span class="annot"><a href="#local-6989586621679155355"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-98"></span><span id="bfsMF"><span class="annot"><span class="annottext">bfsMF :: Int -&gt; Int -&gt; MaxFlow (PrimState m) cap -&gt; m ()
+</span><a href="Data.Graph.MaxFlow.html#bfsMF"><span class="hs-identifier hs-var hs-var">bfsMF</span></a></span></span><span> </span><span id="local-6989586621679155239"><span class="annot"><span class="annottext">src :: Int
+</span><a href="#local-6989586621679155239"><span class="hs-identifier hs-var">src</span></a></span></span><span> </span><span id="local-6989586621679155238"><span class="annot"><span class="annottext">sink :: Int
+</span><a href="#local-6989586621679155238"><span class="hs-identifier hs-var">sink</span></a></span></span><span> </span><span id="local-6989586621679155229"><span id="local-6989586621679155230"><span id="local-6989586621679155231"><span id="local-6989586621679155232"><span id="local-6989586621679155233"><span id="local-6989586621679155234"><span id="local-6989586621679155235"><span id="local-6989586621679155236"><span id="local-6989586621679155237"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span></span></span></span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-99"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155232"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155239"><span class="hs-identifier hs-var">src</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-100"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; Queue (PrimState m) Int -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+a -&gt; Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#pushBack"><span class="hs-identifier hs-var">pushBack</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155239"><span class="hs-identifier hs-var">src</span></a></span><span> </span><span class="annot"><span class="annottext">Queue (PrimState m) Int
+</span><a href="#local-6989586621679155229"><span class="hs-identifier hs-var">queueMF</span></a></span><span>
+</span><span id="line-101"></span><span>  </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">((m () -&gt; m ()) -&gt; m ()) -&gt; (m () -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155226"><span class="annot"><span class="annottext">loop :: m ()
+</span><a href="#local-6989586621679155226"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-102"></span><span>    </span><span class="annot"><span class="annottext">Queue (PrimState m) Int -&gt; m (Maybe Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Buffer (PrimState m) a -&gt; m (Maybe a)
+</span><a href="Data.Buffer.html#popFront"><span class="hs-identifier hs-var">popFront</span></a></span><span> </span><span class="annot"><span class="annottext">Queue (PrimState m) Int
+</span><a href="#local-6989586621679155229"><span class="hs-identifier hs-var">queueMF</span></a></span><span> </span><span class="annot"><span class="annottext">m (Maybe Int) -&gt; (Maybe Int -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-103"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679155224"><span class="annot"><span class="annottext">v :: Int
+</span><a href="#local-6989586621679155224"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-104"></span><span>        </span><span id="local-6989586621679155223"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155223"><span class="hs-identifier hs-var">lsink</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155232"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155238"><span class="hs-identifier hs-var">sink</span></a></span><span>
+</span><span id="line-105"></span><span>        </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155223"><span class="hs-identifier hs-var">lsink</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-106"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679155221"><span class="annot"><span class="annottext">start :: Int
+</span><a href="#local-6989586621679155221"><span class="hs-identifier hs-var hs-var">start</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155235"><span class="hs-identifier hs-var">offsetMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155224"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-107"></span><span>              </span><span id="local-6989586621679155219"><span class="annot"><span class="annottext">end :: Int
+</span><a href="#local-6989586621679155219"><span class="hs-identifier hs-var hs-var">end</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155235"><span class="hs-identifier hs-var">offsetMF</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155224"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-108"></span><span>          </span><span id="local-6989586621679155218"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155218"><span class="hs-identifier hs-var">lv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155232"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155224"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-109"></span><span>          </span><span class="annot"><span class="annottext">Vector Int -&gt; (Int -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *) a b.
+(Monad m, Unbox a) =&gt;
+Vector a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">U.forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; Int) -&gt; Vector Int
+forall a. Unbox a =&gt; Int -&gt; (Int -&gt; a) -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.generate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155219"><span class="hs-identifier hs-var">end</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155221"><span class="hs-identifier hs-var">start</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155221"><span class="hs-identifier hs-var">start</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; m ()) -&gt; (Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155215"><span class="annot"><span class="annottext">e :: Int
+</span><a href="#local-6989586621679155215"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-110"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679155214"><span class="annot"><span class="annottext">nv :: Int
+</span><a href="#local-6989586621679155214"><span class="hs-identifier hs-var hs-var">nv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155234"><span class="hs-identifier hs-var">dstMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155215"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-111"></span><span>            </span><span id="local-6989586621679155213"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155213"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) cap -&gt; Int -&gt; m cap
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) cap
+</span><a href="#local-6989586621679155233"><span class="hs-identifier hs-var">residualMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155215"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-112"></span><span>            </span><span id="local-6989586621679155212"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155212"><span class="hs-identifier hs-var">lnv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155232"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155214"><span class="hs-identifier hs-var">nv</span></a></span><span>
+</span><span id="line-113"></span><span>            </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155213"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155212"><span class="hs-identifier hs-var">lnv</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-114"></span><span>              </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155232"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155214"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155218"><span class="hs-identifier hs-var">lv</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>              </span><span class="annot"><span class="annottext">Int -&gt; Queue (PrimState m) Int -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+a -&gt; Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#pushBack"><span class="hs-identifier hs-var">pushBack</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155214"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="annot"><span class="annottext">Queue (PrimState m) Int
+</span><a href="#local-6989586621679155229"><span class="hs-identifier hs-var">queueMF</span></a></span><span>
+</span><span id="line-116"></span><span>          </span><span class="annot"><span class="annottext">m ()
+</span><a href="#local-6989586621679155226"><span class="hs-identifier hs-var">loop</span></a></span><span>
+</span><span id="line-117"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; m ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#bfsMF"><span class="hs-pragma hs-type">bfsMF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span id="local-6989586621679155347"><span id="local-6989586621679155348"><span class="annot"><a href="Data.Graph.MaxFlow.html#dfsMF"><span class="hs-identifier hs-type">dfsMF</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-121"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679155347"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-122"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-123"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-125"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155347"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-126"></span><span>  </span><span class="annot"><a href="#local-6989586621679155347"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155348"><span class="hs-identifier hs-type">cap</span></a></span></span></span><span>
+</span><span id="line-127"></span><span id="dfsMF"><span class="annot"><span class="annottext">dfsMF :: Int -&gt; Int -&gt; cap -&gt; MaxFlow (PrimState m) cap -&gt; m cap
+</span><a href="Data.Graph.MaxFlow.html#dfsMF"><span class="hs-identifier hs-var hs-var">dfsMF</span></a></span></span><span> </span><span id="local-6989586621679155210"><span class="annot"><span class="annottext">v0 :: Int
+</span><a href="#local-6989586621679155210"><span class="hs-identifier hs-var">v0</span></a></span></span><span> </span><span id="local-6989586621679155209"><span class="annot"><span class="annottext">sink :: Int
+</span><a href="#local-6989586621679155209"><span class="hs-identifier hs-var">sink</span></a></span></span><span> </span><span id="local-6989586621679155208"><span class="annot"><span class="annottext">flow0 :: cap
+</span><a href="#local-6989586621679155208"><span class="hs-identifier hs-var">flow0</span></a></span></span><span> </span><span id="local-6989586621679155199"><span id="local-6989586621679155200"><span id="local-6989586621679155201"><span id="local-6989586621679155202"><span id="local-6989586621679155203"><span id="local-6989586621679155204"><span id="local-6989586621679155205"><span id="local-6989586621679155206"><span id="local-6989586621679155207"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span></span></span></span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; cap -&gt; (cap -&gt; m cap) -&gt; m cap
+forall b. Int -&gt; cap -&gt; (cap -&gt; m b) -&gt; m b
+</span><a href="#local-6989586621679155198"><span class="hs-identifier hs-var">dfs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155210"><span class="hs-identifier hs-var">v0</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155208"><span class="hs-identifier hs-var">flow0</span></a></span><span> </span><span class="annot"><span class="annottext">cap -&gt; m cap
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span>
+</span><span id="line-128"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-129"></span><span>    </span><span id="local-6989586621679155198"><span class="annot"><span class="annottext">dfs :: Int -&gt; cap -&gt; (cap -&gt; m b) -&gt; m b
+</span><a href="#local-6989586621679155198"><span class="hs-identifier hs-var hs-var">dfs</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679155197"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155197"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679155196"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155196"><span class="hs-identifier hs-var">flow</span></a></span></span><span> </span><span id="local-6989586621679155195"><span class="annot"><span class="annottext">k :: cap -&gt; m b
+</span><a href="#local-6989586621679155195"><span class="hs-identifier hs-var">k</span></a></span></span><span>
+</span><span id="line-130"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155197"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155209"><span class="hs-identifier hs-var">sink</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">cap -&gt; m b
+</span><a href="#local-6989586621679155195"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155196"><span class="hs-identifier hs-var">flow</span></a></span><span>
+</span><span id="line-131"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(m b -&gt; m b) -&gt; m b
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">((m b -&gt; m b) -&gt; m b) -&gt; (m b -&gt; m b) -&gt; m b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155194"><span class="annot"><span class="annottext">loop :: m b
+</span><a href="#local-6989586621679155194"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-132"></span><span>        </span><span id="local-6989586621679155193"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155200"><span class="hs-identifier hs-var">iterMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155197"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-133"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155205"><span class="hs-identifier hs-var">offsetMF</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155197"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-135"></span><span>            </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155200"><span class="hs-identifier hs-var">iterMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155197"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-136"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679155191"><span class="annot"><span class="annottext">nv :: Int
+</span><a href="#local-6989586621679155191"><span class="hs-identifier hs-var hs-var">nv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155204"><span class="hs-identifier hs-var">dstMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-137"></span><span>            </span><span id="local-6989586621679155190"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155190"><span class="hs-identifier hs-var">cap</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) cap -&gt; Int -&gt; m cap
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) cap
+</span><a href="#local-6989586621679155203"><span class="hs-identifier hs-var">residualMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-138"></span><span>            </span><span id="local-6989586621679155189"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155189"><span class="hs-identifier hs-var">lv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155202"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155197"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-139"></span><span>            </span><span id="local-6989586621679155188"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155188"><span class="hs-identifier hs-var">lnv</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155202"><span class="hs-identifier hs-var">levelMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155191"><span class="hs-identifier hs-var">nv</span></a></span><span>
+</span><span id="line-140"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155190"><span class="hs-identifier hs-var">cap</span></a></span><span> </span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155189"><span class="hs-identifier hs-var">lv</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155188"><span class="hs-identifier hs-var">lnv</span></a></span><span>
+</span><span id="line-141"></span><span>              </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-142"></span><span>                </span><span class="annot"><span class="annottext">Int -&gt; cap -&gt; (cap -&gt; m b) -&gt; m b
+</span><a href="#local-6989586621679155198"><span class="hs-identifier hs-var">dfs</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155191"><span class="hs-identifier hs-var">nv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; cap
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155196"><span class="hs-identifier hs-var">flow</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155190"><span class="hs-identifier hs-var">cap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((cap -&gt; m b) -&gt; m b) -&gt; (cap -&gt; m b) -&gt; m b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679155186"><span class="annot"><span class="annottext">f :: cap
+</span><a href="#local-6989586621679155186"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-143"></span><span>                  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155186"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-144"></span><span>                    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-145"></span><span>                      </span><span class="annot"><span class="annottext">MVector (PrimState m) cap -&gt; (cap -&gt; cap) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) cap
+</span><a href="#local-6989586621679155203"><span class="hs-identifier hs-var">residualMF</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; cap
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">subtract</span></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155186"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-146"></span><span>                      </span><span class="annot"><span class="annottext">MVector (PrimState m) cap -&gt; (cap -&gt; cap) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span>
+</span><span id="line-147"></span><span>                        </span><span class="annot"><span class="annottext">MVector (PrimState m) cap
+</span><a href="#local-6989586621679155203"><span class="hs-identifier hs-var">residualMF</span></a></span><span>
+</span><span id="line-148"></span><span>                        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cap -&gt; cap -&gt; cap
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155186"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-149"></span><span>                        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">U.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155201"><span class="hs-identifier hs-var">revEdgeMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155193"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>                      </span><span class="annot"><span class="annottext">cap -&gt; m b
+</span><a href="#local-6989586621679155195"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155186"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-151"></span><span>                    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">m b
+</span><a href="#local-6989586621679155194"><span class="hs-identifier hs-var">loop</span></a></span><span>
+</span><span id="line-152"></span><span>              </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">m b
+</span><a href="#local-6989586621679155194"><span class="hs-identifier hs-var">loop</span></a></span><span>
+</span><span id="line-153"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">cap -&gt; m b
+</span><a href="#local-6989586621679155195"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-154"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#dfsMF"><span class="hs-pragma hs-type">dfsMF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-155"></span><span>
+</span><span id="line-156"></span><span class="hs-keyword">data</span><span> </span><span id="MaxFlowBuilder"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-var">MaxFlowBuilder</span></a></span></span><span> </span><span id="local-6989586621679155316"><span class="annot"><a href="#local-6989586621679155316"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679155315"><span class="annot"><a href="#local-6989586621679155315"><span class="hs-identifier hs-type">cap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MaxFlowBuilder"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-var">MaxFlowBuilder</span></a></span></span><span>
+</span><span id="line-157"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="numVerticesMFB"><span class="annot"><span class="annottext">MaxFlowBuilder s cap -&gt; Int
+</span><a href="Data.Graph.MaxFlow.html#numVerticesMFB"><span class="hs-identifier hs-var hs-var">numVerticesMFB</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-158"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="inDegreeMFB"><span class="annot"><span class="annottext">MaxFlowBuilder s cap -&gt; MVector s Int
+</span><a href="Data.Graph.MaxFlow.html#inDegreeMFB"><span class="hs-identifier hs-var hs-var">inDegreeMFB</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679155316"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-159"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- | default buffer size: /1024 * 1024/</span><span>
+</span><span id="line-160"></span><span>    </span><span id="edgesMFB"><span class="annot"><span class="annottext">MaxFlowBuilder s cap -&gt; Buffer s (Int, Int, cap)
+</span><a href="Data.Graph.MaxFlow.html#edgesMFB"><span class="hs-identifier hs-var hs-var">edgesMFB</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Buffer.html#Buffer"><span class="hs-identifier hs-type">Buffer</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679155316"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679155315"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-161"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-162"></span><span>
+</span><span id="line-163"></span><span id="local-6989586621679155400"><span id="local-6989586621679155402"><span class="annot"><a href="Data.Graph.MaxFlow.html#newMaxFlowBuilder"><span class="hs-identifier hs-type">newMaxFlowBuilder</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-164"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155402"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679155400"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-165"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-166"></span><span>  </span><span class="annot"><a href="#local-6989586621679155400"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-type">MaxFlowBuilder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155400"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155402"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-167"></span><span id="newMaxFlowBuilder"><span class="annot"><span class="annottext">newMaxFlowBuilder :: Int -&gt; m (MaxFlowBuilder (PrimState m) cap)
+</span><a href="Data.Graph.MaxFlow.html#newMaxFlowBuilder"><span class="hs-identifier hs-var hs-var">newMaxFlowBuilder</span></a></span></span><span> </span><span id="local-6989586621679155179"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679155179"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-168"></span><span>  </span><span class="annot"><span class="annottext">Int
+-&gt; MVector (PrimState m) Int
+-&gt; Buffer (PrimState m) (Int, Int, cap)
+-&gt; MaxFlowBuilder (PrimState m) cap
+forall s cap.
+Int
+-&gt; MVector s Int
+-&gt; Buffer s (Int, Int, cap)
+-&gt; MaxFlowBuilder s cap
+</span><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-var">MaxFlowBuilder</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155179"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-169"></span><span>    </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int
+ -&gt; Buffer (PrimState m) (Int, Int, cap)
+ -&gt; MaxFlowBuilder (PrimState m) cap)
+-&gt; m (MVector (PrimState m) Int)
+-&gt; m (Buffer (PrimState m) (Int, Int, cap)
+      -&gt; MaxFlowBuilder (PrimState m) cap)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155179"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-170"></span><span>    </span><span class="annot"><span class="annottext">m (Buffer (PrimState m) (Int, Int, cap)
+   -&gt; MaxFlowBuilder (PrimState m) cap)
+-&gt; m (Buffer (PrimState m) (Int, Int, cap))
+-&gt; m (MaxFlowBuilder (PrimState m) cap)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (Buffer (PrimState m) (Int, Int, cap))
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Int -&gt; m (Buffer (PrimState m) a)
+</span><a href="Data.Buffer.html#newBuffer"><span class="hs-identifier hs-var">newBuffer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">1024</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">1024</span></span><span class="hs-special">)</span><span>
+</span><span id="line-171"></span><span>
+</span><span id="line-172"></span><span id="local-6989586621679155396"><span id="local-6989586621679155397"><span class="annot"><a href="Data.Graph.MaxFlow.html#buildMaxFlow"><span class="hs-identifier hs-type">buildMaxFlow</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-173"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679155397"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155397"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679155396"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-174"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-type">MaxFlowBuilder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155396"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155397"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-175"></span><span>  </span><span class="annot"><a href="#local-6989586621679155396"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlow"><span class="hs-identifier hs-type">MaxFlow</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155396"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155397"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-176"></span><span id="buildMaxFlow"><span class="annot"><span class="annottext">buildMaxFlow :: MaxFlowBuilder (PrimState m) cap -&gt; m (MaxFlow (PrimState m) cap)
+</span><a href="Data.Graph.MaxFlow.html#buildMaxFlow"><span class="hs-identifier hs-var hs-var">buildMaxFlow</span></a></span></span><span> </span><span id="local-6989586621679155172"><span id="local-6989586621679155173"><span id="local-6989586621679155174"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-type">MaxFlowBuilder</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-177"></span><span>  </span><span id="local-6989586621679155171"><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155171"><span class="hs-identifier hs-var">offsetMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; Int -&gt; Vector Int -&gt; Vector Int
+forall a b.
+(Unbox a, Unbox b) =&gt;
+(a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.scanl'</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; Vector Int) -&gt; m (Vector Int) -&gt; m (Vector Int)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; m (Vector Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.unsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155173"><span class="hs-identifier hs-var">inDegreeMFB</span></a></span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679155168"><span class="annot"><span class="annottext">numVerticesMF :: Int
+</span><a href="#local-6989586621679155168"><span class="hs-identifier hs-var hs-var">numVerticesMF</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155174"><span class="hs-identifier hs-var">numVerticesMFB</span></a></span><span>
+</span><span id="line-179"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679155167"><span class="annot"><span class="annottext">numEdgesMF :: Int
+</span><a href="#local-6989586621679155167"><span class="hs-identifier hs-var hs-var">numEdgesMF</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; a
+</span><span class="hs-identifier hs-var">U.last</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155171"><span class="hs-identifier hs-var">offsetMF</span></a></span><span>
+</span><span id="line-180"></span><span>
+</span><span id="line-181"></span><span>  </span><span id="local-6989586621679155165"><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155165"><span class="hs-identifier hs-var">moffset</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; m (MVector (PrimState m) Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Vector a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">U.thaw</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155171"><span class="hs-identifier hs-var">offsetMF</span></a></span><span>
+</span><span id="line-182"></span><span>  </span><span id="local-6989586621679155163"><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155163"><span class="hs-identifier hs-var">mdstMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155167"><span class="hs-identifier hs-var">numEdgesMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span>
+</span><span id="line-183"></span><span>  </span><span id="local-6989586621679155162"><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155162"><span class="hs-identifier hs-var">mrevEdgeMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155167"><span class="hs-identifier hs-var">numEdgesMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span>
+</span><span id="line-184"></span><span>  </span><span id="local-6989586621679155161"><span class="annot"><span class="annottext">MVector (PrimState m) cap
+</span><a href="#local-6989586621679155161"><span class="hs-identifier hs-var">residualMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; cap -&gt; m (MVector (PrimState m) cap)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155167"><span class="hs-identifier hs-var">numEdgesMF</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-185"></span><span>
+</span><span id="line-186"></span><span>  </span><span id="local-6989586621679155160"><span class="annot"><span class="annottext">Vector (Int, Int, cap)
+</span><a href="#local-6989586621679155160"><span class="hs-identifier hs-var">edges</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Buffer (PrimState m) (Int, Int, cap) -&gt; m (Vector (Int, Int, cap))
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Buffer (PrimState m) a -&gt; m (Vector a)
+</span><a href="Data.Buffer.html#unsafeFreezeBuffer"><span class="hs-identifier hs-var">unsafeFreezeBuffer</span></a></span><span> </span><span class="annot"><span class="annottext">Buffer (PrimState m) (Int, Int, cap)
+</span><a href="#local-6989586621679155172"><span class="hs-identifier hs-var">edgesMFB</span></a></span><span>
+</span><span id="line-187"></span><span>  </span><span class="annot"><span class="annottext">Vector (Int, Int, cap) -&gt; ((Int, Int, cap) -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *) a b.
+(Monad m, Unbox a) =&gt;
+Vector a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">U.forM_</span></span><span> </span><span class="annot"><span class="annottext">Vector (Int, Int, cap)
+</span><a href="#local-6989586621679155160"><span class="hs-identifier hs-var">edges</span></a></span><span> </span><span class="annot"><span class="annottext">(((Int, Int, cap) -&gt; m ()) -&gt; m ())
+-&gt; ((Int, Int, cap) -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679155158"><span class="annot"><span class="annottext">src :: Int
+</span><a href="#local-6989586621679155158"><span class="hs-identifier hs-var">src</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679155157"><span class="annot"><span class="annottext">dst :: Int
+</span><a href="#local-6989586621679155157"><span class="hs-identifier hs-var">dst</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679155156"><span class="annot"><span class="annottext">cap :: cap
+</span><a href="#local-6989586621679155156"><span class="hs-identifier hs-var">cap</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-188"></span><span>    </span><span id="local-6989586621679155155"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155155"><span class="hs-identifier hs-var">srcOffset</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155165"><span class="hs-identifier hs-var">moffset</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155158"><span class="hs-identifier hs-var">src</span></a></span><span>
+</span><span id="line-189"></span><span>    </span><span id="local-6989586621679155154"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155154"><span class="hs-identifier hs-var">dstOffset</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155165"><span class="hs-identifier hs-var">moffset</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155157"><span class="hs-identifier hs-var">dst</span></a></span><span>
+</span><span id="line-190"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155165"><span class="hs-identifier hs-var">moffset</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155158"><span class="hs-identifier hs-var">src</span></a></span><span>
+</span><span id="line-191"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155165"><span class="hs-identifier hs-var">moffset</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155157"><span class="hs-identifier hs-var">dst</span></a></span><span>
+</span><span id="line-192"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155163"><span class="hs-identifier hs-var">mdstMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155155"><span class="hs-identifier hs-var">srcOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155157"><span class="hs-identifier hs-var">dst</span></a></span><span>
+</span><span id="line-193"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155163"><span class="hs-identifier hs-var">mdstMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155154"><span class="hs-identifier hs-var">dstOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155158"><span class="hs-identifier hs-var">src</span></a></span><span>
+</span><span id="line-194"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155162"><span class="hs-identifier hs-var">mrevEdgeMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155155"><span class="hs-identifier hs-var">srcOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155154"><span class="hs-identifier hs-var">dstOffset</span></a></span><span>
+</span><span id="line-195"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155162"><span class="hs-identifier hs-var">mrevEdgeMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155154"><span class="hs-identifier hs-var">dstOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155155"><span class="hs-identifier hs-var">srcOffset</span></a></span><span>
+</span><span id="line-196"></span><span>    </span><span class="annot"><span class="annottext">MVector (PrimState m) cap -&gt; Int -&gt; cap -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) cap
+</span><a href="#local-6989586621679155161"><span class="hs-identifier hs-var">residualMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155155"><span class="hs-identifier hs-var">srcOffset</span></a></span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155156"><span class="hs-identifier hs-var">cap</span></a></span><span>
+</span><span id="line-197"></span><span>
+</span><span id="line-198"></span><span>  </span><span id="local-6989586621679155153"><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155153"><span class="hs-identifier hs-var">dstMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; m (Vector Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.unsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155163"><span class="hs-identifier hs-var">mdstMF</span></a></span><span>
+</span><span id="line-199"></span><span>  </span><span id="local-6989586621679155152"><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155152"><span class="hs-identifier hs-var">levelMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155168"><span class="hs-identifier hs-var">numVerticesMF</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Data.Graph.MaxFlow.html#nothingMF"><span class="hs-identifier hs-var">nothingMF</span></a></span><span>
+</span><span id="line-200"></span><span>  </span><span id="local-6989586621679155151"><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155151"><span class="hs-identifier hs-var">revEdgeMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; m (Vector Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.unsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155162"><span class="hs-identifier hs-var">mrevEdgeMF</span></a></span><span>
+</span><span id="line-201"></span><span>  </span><span id="local-6989586621679155150"><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155150"><span class="hs-identifier hs-var">iterMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155168"><span class="hs-identifier hs-var">numVerticesMF</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-202"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Vector Int -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; Vector a -&gt; m ()
+</span><span class="hs-identifier hs-var">U.unsafeCopy</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155150"><span class="hs-identifier hs-var">iterMF</span></a></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679155171"><span class="hs-identifier hs-var">offsetMF</span></a></span><span>
+</span><span id="line-203"></span><span>  </span><span id="local-6989586621679155149"><span class="annot"><span class="annottext">Queue (PrimState m) Int
+</span><a href="#local-6989586621679155149"><span class="hs-identifier hs-var">queueMF</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (Queue (PrimState m) Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+Int -&gt; m (Buffer (PrimState m) a)
+</span><a href="Data.Buffer.html#newBufferAsQueue"><span class="hs-identifier hs-var">newBufferAsQueue</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155168"><span class="hs-identifier hs-var">numVerticesMF</span></a></span><span>
+</span><span id="line-204"></span><span>  </span><span class="annot"><span class="annottext">MaxFlow (PrimState m) cap -&gt; m (MaxFlow (PrimState m) cap)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">$WMaxFlow :: forall s cap.
+Int
+-&gt; Int
+-&gt; Vector Int
+-&gt; Vector Int
+-&gt; MVector s cap
+-&gt; MVector s Int
+-&gt; Vector Int
+-&gt; MVector s Int
+-&gt; Queue s Int
+-&gt; MaxFlow s cap
+</span><a href="Data.Graph.MaxFlow.html#%24WMaxFlow"><span class="hs-identifier hs-type hs-type">MaxFlow</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span><span>
+</span><span id="line-205"></span><span>
+</span><span id="line-206"></span><span id="local-6989586621679155145"><span id="local-6989586621679155146"><span class="annot"><a href="Data.Graph.MaxFlow.html#addEdgeMFB"><span class="hs-identifier hs-type">addEdgeMFB</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-207"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="#local-6989586621679155146"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679155145"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-208"></span><span>  </span><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-type">MaxFlowBuilder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679155145"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679155146"><span class="hs-identifier hs-type">cap</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-209"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#Vertex"><span class="hs-identifier hs-type">Vertex</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679155146"><span class="hs-identifier hs-type">cap</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-210"></span><span>  </span><span class="annot"><a href="#local-6989586621679155145"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-211"></span><span id="addEdgeMFB"><span class="annot"><span class="annottext">addEdgeMFB :: MaxFlowBuilder (PrimState m) cap -&gt; (Int, Int, cap) -&gt; m ()
+</span><a href="Data.Graph.MaxFlow.html#addEdgeMFB"><span class="hs-identifier hs-var hs-var">addEdgeMFB</span></a></span></span><span> </span><span id="local-6989586621679155141"><span id="local-6989586621679155142"><span id="local-6989586621679155143"><span class="annot"><a href="Data.Graph.MaxFlow.html#MaxFlowBuilder"><span class="hs-identifier hs-type">MaxFlowBuilder</span></a></span><span class="hs-special">{</span><span class="hs-glyph">..</span><span class="hs-special">}</span></span></span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">!</span><span id="local-6989586621679155140"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155140"><span class="hs-identifier hs-var">src</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679155139"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155139"><span class="hs-identifier hs-var">dst</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679155138"><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155138"><span class="hs-identifier hs-var">cap</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-212"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155142"><span class="hs-identifier hs-var">inDegreeMFB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155140"><span class="hs-identifier hs-var">src</span></a></span><span>
+</span><span id="line-213"></span><span>  </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679155142"><span class="hs-identifier hs-var">inDegreeMFB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155139"><span class="hs-identifier hs-var">dst</span></a></span><span>
+</span><span id="line-214"></span><span>  </span><span class="annot"><span class="annottext">(Int, Int, cap) -&gt; Buffer (PrimState m) (Int, Int, cap) -&gt; m ()
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+a -&gt; Buffer (PrimState m) a -&gt; m ()
+</span><a href="Data.Buffer.html#pushBack"><span class="hs-identifier hs-var">pushBack</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155140"><span class="hs-identifier hs-var">src</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679155139"><span class="hs-identifier hs-var">dst</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">cap
+</span><a href="#local-6989586621679155138"><span class="hs-identifier hs-var">cap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Buffer (PrimState m) (Int, Int, cap)
+</span><a href="#local-6989586621679155141"><span class="hs-identifier hs-var">edgesMFB</span></a></span><span>
+</span><span id="line-215"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Graph.MaxFlow.html#addEdgeMFB"><span class="hs-pragma hs-type">addEdgeMFB</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-216"></span></pre></body></html>

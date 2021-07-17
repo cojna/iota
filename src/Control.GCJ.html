@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Control.GCJ</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.Environment</span></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Control.Monad.Interactive.html"><span class="hs-identifier">Control.Monad.Interactive</span></a></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="annot"><a href="Control.GCJ.html#formatGCJ"><span class="hs-identifier hs-type">formatGCJ</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-12"></span><span id="formatGCJ"><span class="annot"><span class="annottext">formatGCJ :: Int -&gt; String
+</span><a href="Control.GCJ.html#formatGCJ"><span class="hs-identifier hs-var hs-var">formatGCJ</span></a></span></span><span> </span><span id="local-6989586621679153207"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679153207"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-string">&quot;Case #&quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String
+forall a. Show a =&gt; a -&gt; String -&gt; String
+</span><span class="hs-identifier hs-var">shows</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679153207"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;: &quot;</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="annot"><a href="Control.GCJ.html#withGCJ"><span class="hs-identifier hs-type">withGCJ</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span id="withGCJ"><span class="annot"><span class="annottext">withGCJ :: IO () -&gt; IO ()
+</span><a href="Control.GCJ.html#withGCJ"><span class="hs-identifier hs-var hs-var">withGCJ</span></a></span></span><span> </span><span id="local-6989586621679153204"><span class="annot"><span class="annottext">f :: IO ()
+</span><a href="#local-6989586621679153204"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-16"></span><span>  </span><span class="annot"><span class="annottext">IO [String]
+</span><span class="hs-identifier hs-var">getArgs</span></span><span> </span><span class="annot"><span class="annottext">IO [String] -&gt; ([String] -&gt; IO ()) -&gt; IO ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-special">[</span><span class="hs-string">&quot;--debug&quot;</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">IO ()
+</span><a href="#local-6989586621679153204"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-19"></span><span>      </span><span id="local-6989586621679153202"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679153202"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Int
+forall a. Read a =&gt; IO a
+</span><span class="hs-identifier hs-var">readLn</span></span><span>
+</span><span id="line-20"></span><span>      </span><span class="annot"><span class="annottext">(Int -&gt; IO ()) -&gt; [Int] -&gt; IO ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m ()
+</span><span class="hs-identifier hs-var">mapM_</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO () -&gt; IO () -&gt; IO ()
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f a -&gt; f b -&gt; f b
+</span><span class="hs-operator hs-var">*&gt;</span></span><span> </span><span class="annot"><span class="annottext">IO ()
+</span><a href="#local-6989586621679153204"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; (Int -&gt; IO ()) -&gt; Int -&gt; IO ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; IO ()
+</span><span class="hs-identifier hs-var">putStr</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; IO ()) -&gt; (Int -&gt; String) -&gt; Int -&gt; IO ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String
+</span><a href="Control.GCJ.html#formatGCJ"><span class="hs-identifier hs-var">formatGCJ</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679153202"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-21"></span><span>    </span><span id="local-6989586621679153197"><span class="annot"><span class="annottext">args :: [String]
+</span><a href="#local-6989586621679153197"><span class="hs-identifier hs-var">args</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; IO ()
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; IO ()) -&gt; String -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[String] -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">[String]
+</span><a href="#local-6989586621679153197"><span class="hs-identifier hs-var">args</span></a></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span id="local-6989586621679153194"><span class="annot"><a href="Control.GCJ.html#withGCJInteractive"><span class="hs-identifier hs-type">withGCJInteractive</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Control.Monad.Interactive.html#Interactive"><span class="hs-identifier hs-type">Interactive</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679153194"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-24"></span><span id="withGCJInteractive"><span class="annot"><span class="annottext">withGCJInteractive :: ([Int] -&gt; Interactive a) -&gt; IO ()
+</span><a href="Control.GCJ.html#withGCJInteractive"><span class="hs-identifier hs-var hs-var">withGCJInteractive</span></a></span></span><span> </span><span id="local-6989586621679153192"><span class="annot"><span class="annottext">f :: [Int] -&gt; Interactive a
+</span><a href="#local-6989586621679153192"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interactive a -&gt; IO ()
+forall a. Interactive a -&gt; IO ()
+</span><a href="Control.Monad.Interactive.html#withInteractive"><span class="hs-identifier hs-var">withInteractive</span></a></span><span> </span><span class="annot"><span class="annottext">(Interactive a -&gt; IO ()) -&gt; Interactive a -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679153190"><span class="annot"><span class="annottext">t :: Int
+</span><a href="#local-6989586621679153190"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679153189"><span class="annot"><span class="annottext">params :: [Int]
+</span><a href="#local-6989586621679153189"><span class="hs-identifier hs-var">params</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(String -&gt; Int) -&gt; [String] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+forall a. Read a =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">read</span></span><span> </span><span class="annot"><span class="annottext">([String] -&gt; [Int]) -&gt; (String -&gt; [String]) -&gt; String -&gt; [Int]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; [String]
+</span><span class="hs-identifier hs-var">words</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; [Int])
+-&gt; Judge (ReaderT InteractiveHandle IO) String
+-&gt; Judge (ReaderT InteractiveHandle IO) [Int]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ReaderT InteractiveHandle IO String
+-&gt; Judge (ReaderT InteractiveHandle IO) String
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">ReaderT InteractiveHandle IO String
+forall (m :: * -&gt; *). MonadInteractive m =&gt; m String
+</span><a href="Control.Monad.Interactive.html#recvLine"><span class="hs-identifier hs-var">recvLine</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="annottext">(Int -&gt; Interactive a -&gt; Interactive a)
+-&gt; Interactive a -&gt; [Int] -&gt; Interactive a
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Interactive a -&gt; Interactive a -&gt; Interactive a
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">(&lt;|&gt;)</span></span><span> </span><span class="annot"><span class="annottext">(Interactive a -&gt; Interactive a -&gt; Interactive a)
+-&gt; (Int -&gt; Interactive a) -&gt; Int -&gt; Interactive a -&gt; Interactive a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Interactive a -&gt; Int -&gt; Interactive a
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int] -&gt; Interactive a
+</span><a href="#local-6989586621679153192"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679153189"><span class="hs-identifier hs-var">params</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Interactive a
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a
+</span><span class="hs-identifier hs-var">empty</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679153190"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-27"></span></pre></body></html>

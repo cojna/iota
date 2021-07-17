@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE BinaryLiterals #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Math.Prime</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span id="local-6989586621679160305"><span class="annot"><a href="Math.Prime.html#smallPrimes"><span class="hs-identifier hs-type">smallPrimes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679160305"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679160305"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-9"></span><span id="smallPrimes"><span class="annot"><span class="annottext">smallPrimes :: [i]
+</span><a href="Math.Prime.html#smallPrimes"><span class="hs-identifier hs-var hs-var">smallPrimes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">i -&gt; [i] -&gt; [i]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160285"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679160285"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160285"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">3</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-number">5</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="hs-number">46337</span></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(i -&gt; Bool) -&gt; [i] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">i -&gt; i -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(i -&gt; Bool) -&gt; (i -&gt; i) -&gt; i -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; i
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">rem</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160285"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([i] -&gt; Bool) -&gt; [i] -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(i -&gt; Bool) -&gt; [i] -&gt; [i]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">takeWhile</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679160279"><span class="annot"><span class="annottext">x :: i
+</span><a href="#local-6989586621679160279"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160279"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; i
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160279"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160285"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[i]
+forall i. Integral i =&gt; [i]
+</span><a href="Math.Prime.html#smallPrimes"><span class="hs-identifier hs-var">smallPrimes</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="annot"><a href="Math.Prime.html#smallPrimes"><span class="hs-pragma hs-type">smallPrimes</span></a></span><span> </span><span class="hs-pragma">::</span><span> </span><span class="hs-pragma">[</span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span class="hs-pragma">]</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; primeFactors 60
+ [2,2,3,5]
+ &gt;&gt;&gt; primeFactors 0
+ []
+ &gt;&gt;&gt; primeFactors 1
+ []
+ &gt;&gt;&gt; primeFactors 2
+ [2]
+ &gt;&gt;&gt; primeFactors 2147483647
+ [2147483647]
+ &gt;&gt;&gt; primeFactors 999999999989
+ [999999999989]
+ &gt;&gt;&gt; primeFactors 999999999997
+ [5507,181587071]
+-}</span><span>
+</span><span id="line-28"></span><span id="local-6989586621679160300"><span class="annot"><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-type">primeFactors</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679160300"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679160300"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679160300"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-29"></span><span id="primeFactors"><span class="annot"><span class="annottext">primeFactors :: i -&gt; [i]
+</span><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-var hs-var">primeFactors</span></a></span></span><span> </span><span id="local-6989586621679160275"><span class="annot"><span class="annottext">n :: i
+</span><a href="#local-6989586621679160275"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160275"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-var">primeFactors</span></a></span><span> </span><span id="local-6989586621679160273"><span class="annot"><span class="annottext">n0 :: i
+</span><a href="#local-6989586621679160273"><span class="hs-identifier hs-var">n0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">i -&gt; [i] -&gt; [i]
+forall a. Integral a =&gt; a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679160272"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160273"><span class="hs-identifier hs-var">n0</span></a></span><span> </span><span class="annot"><span class="annottext">[i]
+forall i. Integral i =&gt; [i]
+</span><a href="Math.Prime.html#smallPrimes"><span class="hs-identifier hs-var">smallPrimes</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>    </span><span id="local-6989586621679160272"><span class="annot"><span class="annottext">go :: a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679160272"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679160271"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160271"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679160270"><span class="annot"><span class="annottext">pps :: [a]
+</span><a href="#local-6989586621679160270"><span class="hs-identifier hs-var">pps</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679160269"><span class="annot"><span class="annottext">p :: a
+</span><a href="#local-6989586621679160269"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679160268"><span class="annot"><span class="annottext">ps :: [a]
+</span><a href="#local-6989586621679160268"><span class="hs-identifier hs-var">ps</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160271"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160269"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160269"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160271"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-34"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160267"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679160272"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160271"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679160268"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-35"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160269"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679160272"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160266"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679160270"><span class="hs-identifier hs-var">pps</span></a></span><span>
+</span><span id="line-36"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679160266"><span class="annot"><span class="annottext">q :: a
+</span><a href="#local-6989586621679160266"><span class="hs-identifier hs-var">q</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679160267"><span class="annot"><span class="annottext">r :: a
+</span><a href="#local-6989586621679160267"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; (a, a)
+forall a. Integral a =&gt; a -&gt; a -&gt; (a, a)
+</span><span class="hs-identifier hs-var">quotRem</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160271"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160269"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><a href="#local-6989586621679160272"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679160264"><span class="annot"><span class="annottext">n :: a
+</span><a href="#local-6989586621679160264"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679160272"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679160264"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-number">46339</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-number">46341</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span>
+</span><span id="line-39"></span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="annot"><a href="Math.Prime.html#primeFactors"><span class="hs-pragma hs-type">primeFactors</span></a></span><span> </span><span class="hs-pragma">::</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span> </span><span class="hs-pragma">-&gt;</span><span> </span><span class="hs-pragma">[</span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span class="hs-pragma">]</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; isPrime 4649
+ True
+ &gt;&gt;&gt; isPrime 0
+ False
+ &gt;&gt;&gt; isPrime 1
+ False
+ &gt;&gt;&gt; isPrime 2
+ True
+ &gt;&gt;&gt; isPrime 2147483647
+ True
+ &gt;&gt;&gt; isPrime 999999999989
+ True
+ &gt;&gt;&gt; isPrime 999999999997
+ False
+-}</span><span>
+</span><span id="line-57"></span><span id="local-6989586621679160263"><span class="annot"><a href="Math.Prime.html#isPrime"><span class="hs-identifier hs-type">isPrime</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679160263"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679160263"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-58"></span><span id="isPrime"><span class="annot"><span class="annottext">isPrime :: i -&gt; Bool
+</span><a href="Math.Prime.html#isPrime"><span class="hs-identifier hs-var hs-var">isPrime</span></a></span></span><span> </span><span id="local-6989586621679160261"><span class="annot"><span class="annottext">n :: i
+</span><a href="#local-6989586621679160261"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160261"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[i] -&gt; [i] -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">i -&gt; [i]
+forall i. Integral i =&gt; i -&gt; [i]
+</span><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-var">primeFactors</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679160261"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-59"></span><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="annot"><a href="Math.Prime.html#isPrime"><span class="hs-pragma hs-type">isPrime</span></a></span><span> </span><span class="hs-pragma">::</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span> </span><span class="hs-pragma">-&gt;</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Bool</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">{- |
+ prop&gt; \n -&gt; not (n &gt;= 0) || totient n == length [x|x&lt;-[1..n], gcd n x == 1]
+ +++ OK, passed 100 tests.
+ &gt;&gt;&gt; totient 0
+ 0
+ &gt;&gt;&gt; totient 1
+ 1
+-}</span><span>
+</span><span id="line-69"></span><span class="annot"><a href="Math.Prime.html#totient"><span class="hs-identifier hs-type">totient</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-70"></span><span id="totient"><span class="annot"><span class="annottext">totient :: Int -&gt; Int
+</span><a href="Math.Prime.html#totient"><span class="hs-identifier hs-var hs-var">totient</span></a></span></span><span> </span><span id="local-6989586621679160259"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679160259"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160259"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`quot`</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Num a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">product</span></span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679160256"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Num a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">product</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; [Int] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">subtract</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679160256"><span class="hs-identifier hs-var">ps</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-72"></span><span>    </span><span id="local-6989586621679160256"><span class="annot"><span class="annottext">ps :: [Int]
+</span><a href="#local-6989586621679160256"><span class="hs-identifier hs-var hs-var">ps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; Int) -&gt; [[Int]] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">([[Int]] -&gt; [Int]) -&gt; ([Int] -&gt; [[Int]]) -&gt; [Int] -&gt; [Int]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [[Int]]
+forall a. Eq a =&gt; [a] -&gt; [[a]]
+</span><span class="hs-identifier hs-var">L.group</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; [Int]) -&gt; [Int] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int]
+forall i. Integral i =&gt; i -&gt; [i]
+</span><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-var">primeFactors</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160259"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; divisors 12
+ [1,2,3,4,6,12]
+ &gt;&gt;&gt; divisors 0
+ [1]
+ &gt;&gt;&gt; divisors 1
+ [1]
+ &gt;&gt;&gt; length (divisors 735134400)
+ 1344
+-}</span><span>
+</span><span id="line-84"></span><span class="annot"><a href="Math.Prime.html#divisors"><span class="hs-identifier hs-type">divisors</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span>
+</span><span id="line-85"></span><span id="divisors"><span class="annot"><span class="annottext">divisors :: Int -&gt; [Int]
+</span><a href="Math.Prime.html#divisors"><span class="hs-identifier hs-var hs-var">divisors</span></a></span></span><span> </span><span id="local-6989586621679160251"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679160251"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [Int]
+forall a. Ord a =&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">L.sort</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; [Int]) -&gt; ([Int] -&gt; [Int]) -&gt; [Int] -&gt; [Int]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; Int) -&gt; [[Int]] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Num a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">product</span></span><span> </span><span class="annot"><span class="annottext">([[Int]] -&gt; [Int]) -&gt; ([Int] -&gt; [[Int]]) -&gt; [Int] -&gt; [Int]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; [Int]) -&gt; [[Int]] -&gt; [[Int]]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; Int -&gt; [Int] -&gt; [Int]
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">scanl</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([[Int]] -&gt; [[Int]]) -&gt; ([Int] -&gt; [[Int]]) -&gt; [Int] -&gt; [[Int]]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; [[Int]]
+forall a. Eq a =&gt; [a] -&gt; [[a]]
+</span><span class="hs-identifier hs-var">L.group</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; [Int]) -&gt; [Int] -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int]
+forall i. Integral i =&gt; i -&gt; [i]
+</span><a href="Math.Prime.html#primeFactors"><span class="hs-identifier hs-var">primeFactors</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679160251"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-86"></span></pre></body></html>

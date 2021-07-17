@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Word64</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Unsafe.Coerce</span></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-comment">{- |
+ @encode64@ / @decode64@
+
+ +-------------------+-------------+-----------+
+ | @Int@             | - 4 * 10^18 | 4 * 10^18 |
+ +-------------------+-------------+-----------+
+ | @(Int, Int)@      |      -10^9  |     10^9  |
+ +-------------------+-------------+-----------+
+ | @(Int, Int, Int)@ |      -10^6  |     10^6  |
+ +-------------------+-------------+-----------+
+
+ @encodeNonNegative64@ / @decodeNonNegative64@
+
+ +-------------------+---+-----------+
+ | @Int@             | 0 | 9 * 10^18 |
+ +-------------------+---+-----------+
+ | @(Int, Int)@      | 0 | 2 * 10^9  |
+ +-------------------+---+-----------+
+ | @(Int, Int, Int)@ | 0 | 2 * 10^6  |
+ +-------------------+---+-----------+
+-}</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">class</span><span> </span><span id="Word64Encode"><span class="annot"><a href="Data.Word64.html#Word64Encode"><span class="hs-identifier hs-var">Word64Encode</span></a></span></span><span> </span><span id="local-6989586621679159037"><span class="annot"><a href="#local-6989586621679159037"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>  </span><span id="encode64"><span class="annot"><a href="Data.Word64.html#encode64"><span class="hs-identifier hs-type">encode64</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679159037"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-33"></span><span>  </span><span id="decode64"><span class="annot"><a href="Data.Word64.html#decode64"><span class="hs-identifier hs-type">decode64</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679159037"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-comment">-- | for non-negative</span><span>
+</span><span id="line-36"></span><span>  </span><span id="encodeNonNegative64"><span class="annot"><a href="Data.Word64.html#encodeNonNegative64"><span class="hs-identifier hs-type">encodeNonNegative64</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679159037"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679159024"><span class="annot"><a href="Data.Word64.html#encodeNonNegative64"><span class="hs-identifier hs-var hs-var">encodeNonNegative64</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Word64
+forall a. Word64Encode a =&gt; a -&gt; Word64
+</span><a href="Data.Word64.html#encode64"><span class="hs-identifier hs-var">encode64</span></a></span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-comment">-- | for non-negative</span><span>
+</span><span id="line-40"></span><span>  </span><span id="decodeNonNegative64"><span class="annot"><a href="Data.Word64.html#decodeNonNegative64"><span class="hs-identifier hs-type">decodeNonNegative64</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679159037"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679159022"><span class="annot"><a href="Data.Word64.html#decodeNonNegative64"><span class="hs-identifier hs-var hs-var">decodeNonNegative64</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; a
+forall a. Word64Encode a =&gt; Word64 -&gt; a
+</span><a href="Data.Word64.html#decode64"><span class="hs-identifier hs-var">decode64</span></a></span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Word64.html#Word64Encode"><span class="hs-identifier hs-type">Word64Encode</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679159016"><span class="annot"><span class="annottext">encode64 :: Int -&gt; Word64
+</span><a href="#local-6989586621679159016"><span class="hs-identifier hs-var hs-var hs-var hs-var">encode64</span></a></span></span><span> </span><span id="local-6989586621679159015"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679159015"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159015"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">0x3fffffffffffffff</span></span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679159012"><span class="annot"><span class="annottext">decode64 :: Word64 -&gt; Int
+</span><a href="#local-6989586621679159012"><span class="hs-identifier hs-var hs-var hs-var hs-var">decode64</span></a></span></span><span> </span><span id="local-6989586621679159011"><span class="annot"><span class="annottext">x :: Word64
+</span><a href="#local-6989586621679159011"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679159011"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">0x3fffffffffffffff</span></span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679159010"><span class="annot"><span class="annottext">encodeNonNegative64 :: Int -&gt; Word64
+</span><a href="#local-6989586621679159010"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeNonNegative64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679159009"><span class="annot"><span class="annottext">decodeNonNegative64 :: Word64 -&gt; Int
+</span><a href="#local-6989586621679159009"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeNonNegative64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Word64.html#Word64Encode"><span class="hs-identifier hs-type">Word64Encode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679159004"><span class="annot"><span class="annottext">encode64 :: (Int, Int) -&gt; Word64
+</span><a href="#local-6989586621679159004"><span class="hs-identifier hs-var hs-var hs-var hs-var">encode64</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679159003"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679159003"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679159002"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679159002"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-52"></span><span>      </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159003"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">0x3fffffff</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">31</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679159002"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">0x3fffffff</span></span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679158999"><span class="annot"><span class="annottext">decode64 :: Word64 -&gt; (Int, Int)
+</span><a href="#local-6989586621679158999"><span class="hs-identifier hs-var hs-var hs-var hs-var">decode64</span></a></span></span><span> </span><span id="local-6989586621679158998"><span class="annot"><span class="annottext">xy :: Word64
+</span><a href="#local-6989586621679158998"><span class="hs-identifier hs-var">xy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Word64, Word64) -&gt; (Int, Int)
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158997"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158996"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158997"><span class="annot"><span class="annottext">x :: Word64
+</span><a href="#local-6989586621679158997"><span class="hs-identifier hs-var hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158998"><span class="hs-identifier hs-var">xy</span></a></span><span> </span><span class="annot"><span class="hs-number">31</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">0x3fffffff</span></span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158996"><span class="annot"><span class="annottext">y :: Word64
+</span><a href="#local-6989586621679158996"><span class="hs-identifier hs-var hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158998"><span class="hs-identifier hs-var">xy</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0x7fffffff</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">0x3fffffff</span></span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679158993"><span class="annot"><span class="annottext">encodeNonNegative64 :: (Int, Int) -&gt; Word64
+</span><a href="#local-6989586621679158993"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeNonNegative64</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679158992"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158992"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158991"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679158991"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158992"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="hs-number">31</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158991"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679158990"><span class="annot"><span class="annottext">decodeNonNegative64 :: Word64 -&gt; (Int, Int)
+</span><a href="#local-6989586621679158990"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeNonNegative64</span></a></span></span><span> </span><span id="local-6989586621679158989"><span class="annot"><span class="annottext">xy :: Word64
+</span><a href="#local-6989586621679158989"><span class="hs-identifier hs-var">xy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Word64, Word64) -&gt; (Int, Int)
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158988"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158987"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-60"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158988"><span class="annot"><span class="annottext">x :: Word64
+</span><a href="#local-6989586621679158988"><span class="hs-identifier hs-var hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158989"><span class="hs-identifier hs-var">xy</span></a></span><span> </span><span class="annot"><span class="hs-number">31</span></span><span>
+</span><span id="line-61"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158987"><span class="annot"><span class="annottext">y :: Word64
+</span><a href="#local-6989586621679158987"><span class="hs-identifier hs-var hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158989"><span class="hs-identifier hs-var">xy</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0x7fffffff</span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Word64.html#Word64Encode"><span class="hs-identifier hs-type">Word64Encode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679158982"><span class="annot"><span class="annottext">encode64 :: (Int, Int, Int) -&gt; Word64
+</span><a href="#local-6989586621679158982"><span class="hs-identifier hs-var hs-var hs-var hs-var">encode64</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679158981"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158981"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158980"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679158980"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158979"><span class="annot"><span class="annottext">z :: Int
+</span><a href="#local-6989586621679158979"><span class="hs-identifier hs-var">z</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-66"></span><span>      </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158981"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">21</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158980"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">21</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158979"><span class="hs-identifier hs-var">z</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679158978"><span class="annot"><span class="annottext">decode64 :: Word64 -&gt; (Int, Int, Int)
+</span><a href="#local-6989586621679158978"><span class="hs-identifier hs-var hs-var hs-var hs-var">decode64</span></a></span></span><span> </span><span id="local-6989586621679158977"><span class="annot"><span class="annottext">xyz :: Word64
+</span><a href="#local-6989586621679158977"><span class="hs-identifier hs-var">xyz</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Word64, Word64, Word64) -&gt; (Int, Int, Int)
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158976"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158975"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158974"><span class="hs-identifier hs-var">z</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-69"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158976"><span class="annot"><span class="annottext">x :: Word64
+</span><a href="#local-6989586621679158976"><span class="hs-identifier hs-var hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158977"><span class="hs-identifier hs-var">xyz</span></a></span><span> </span><span class="annot"><span class="hs-number">42</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span>
+</span><span id="line-70"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158975"><span class="annot"><span class="annottext">y :: Word64
+</span><a href="#local-6989586621679158975"><span class="hs-identifier hs-var hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158977"><span class="hs-identifier hs-var">xyz</span></a></span><span> </span><span class="annot"><span class="hs-number">21</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0x1fffff</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span>
+</span><span id="line-71"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158974"><span class="annot"><span class="annottext">z :: Word64
+</span><a href="#local-6989586621679158974"><span class="hs-identifier hs-var hs-var">z</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158977"><span class="hs-identifier hs-var">xyz</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0x1fffff</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">0xfffff</span></span><span>
+</span><span id="line-72"></span><span>  </span><span id="local-6989586621679158973"><span class="annot"><span class="annottext">encodeNonNegative64 :: (Int, Int, Int) -&gt; Word64
+</span><a href="#local-6989586621679158973"><span class="hs-identifier hs-var hs-var hs-var hs-var">encodeNonNegative64</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679158972"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158972"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158971"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679158971"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679158970"><span class="annot"><span class="annottext">z :: Int
+</span><a href="#local-6989586621679158970"><span class="hs-identifier hs-var">z</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-73"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-74"></span><span>      </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158972"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="hs-number">21</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158971"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">21</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158970"><span class="hs-identifier hs-var">z</span></a></span><span>
+</span><span id="line-75"></span><span>  </span><span id="local-6989586621679158969"><span class="annot"><span class="annottext">decodeNonNegative64 :: Word64 -&gt; (Int, Int, Int)
+</span><a href="#local-6989586621679158969"><span class="hs-identifier hs-var hs-var hs-var hs-var">decodeNonNegative64</span></a></span></span><span> </span><span id="local-6989586621679158968"><span class="annot"><span class="annottext">xyz :: Word64
+</span><a href="#local-6989586621679158968"><span class="hs-identifier hs-var">xyz</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Word64, Word64, Word64) -&gt; (Int, Int, Int)
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158967"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158966"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158965"><span class="hs-identifier hs-var">z</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-77"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158967"><span class="annot"><span class="annottext">x :: Word64
+</span><a href="#local-6989586621679158967"><span class="hs-identifier hs-var hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158968"><span class="hs-identifier hs-var">xyz</span></a></span><span> </span><span class="annot"><span class="hs-number">42</span></span><span>
+</span><span id="line-78"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158966"><span class="annot"><span class="annottext">y :: Word64
+</span><a href="#local-6989586621679158966"><span class="hs-identifier hs-var hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158968"><span class="hs-identifier hs-var">xyz</span></a></span><span> </span><span class="annot"><span class="hs-number">21</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0x1fffff</span></span><span>
+</span><span id="line-79"></span><span>      </span><span class="hs-glyph">!</span><span id="local-6989586621679158965"><span class="annot"><span class="annottext">z :: Word64
+</span><a href="#local-6989586621679158965"><span class="hs-identifier hs-var hs-var">z</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679158968"><span class="hs-identifier hs-var">xyz</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">0x1fffff</span></span><span>
+</span><span id="line-80"></span></pre></body></html>

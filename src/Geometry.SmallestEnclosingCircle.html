@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Geometry.SmallestEnclosingCircle</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">G</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Geometry.html"><span class="hs-identifier">Geometry</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Geometry.Circle.html"><span class="hs-identifier">Geometry.Circle</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="System.Random.XoRoShiRo.html"><span class="hs-identifier">System.Random.XoRoShiRo</span></a></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span id="local-6989586621679164687"><span id="local-6989586621679164688"><span class="annot"><a href="Geometry.SmallestEnclosingCircle.html#smallestEnclosingCircle"><span class="hs-identifier hs-type">smallestEnclosingCircle</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679164688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679164688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">G.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679164687"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Geometry.html#Point"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679164687"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Geometry.html#Point"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-type">Circle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164688"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-15"></span><span id="smallestEnclosingCircle"><span class="annot"><span class="annottext">smallestEnclosingCircle :: v (Point a) -&gt; Circle a
+</span><a href="Geometry.SmallestEnclosingCircle.html#smallestEnclosingCircle"><span class="hs-identifier hs-var hs-var">smallestEnclosingCircle</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; Circle a
+forall a. (Floating a, Ord a) =&gt; [Point a] -&gt; [Point a] -&gt; Circle a
+</span><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">([Point a] -&gt; Circle a)
+-&gt; (v (Point a) -&gt; [Point a]) -&gt; v (Point a) -&gt; Circle a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">v (Point a) -&gt; [Point a]
+forall (v :: * -&gt; *) a. Vector v a =&gt; v a -&gt; [a]
+</span><span class="hs-identifier hs-var">G.toList</span></span><span> </span><span class="annot"><span class="annottext">(v (Point a) -&gt; [Point a])
+-&gt; (v (Point a) -&gt; v (Point a)) -&gt; v (Point a) -&gt; [Point a]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">v (Point a) -&gt; v (Point a)
+forall (v :: * -&gt; *) a. Vector v a =&gt; v a -&gt; v a
+</span><a href="System.Random.XoRoShiRo.html#shuffle"><span class="hs-identifier hs-var">shuffle</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>    </span><span id="local-6989586621679164685"><span class="annot"><span class="annottext">welzl :: [Point a] -&gt; [Point a] -&gt; Circle a
+</span><a href="#local-6989586621679164685"><span class="hs-identifier hs-var hs-var">welzl</span></a></span></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679164681"><span class="annot"><span class="annottext">p0 :: Point a
+</span><a href="#local-6989586621679164681"><span class="hs-identifier hs-var">p0</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164680"><span class="annot"><span class="annottext">p1 :: Point a
+</span><a href="#local-6989586621679164680"><span class="hs-identifier hs-var">p1</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164679"><span class="annot"><span class="annottext">p2 :: Point a
+</span><a href="#local-6989586621679164679"><span class="hs-identifier hs-var">p2</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-18"></span><span>      </span><span class="hs-comment">-- not equal to the smallest enclosing circle</span><span>
+</span><span id="line-19"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679164678"><span class="annot"><span class="annottext">c :: Point a
+</span><a href="#local-6989586621679164678"><span class="hs-identifier hs-var hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a -&gt; Point a
+forall a. Fractional a =&gt; Point a -&gt; Point a -&gt; Point a -&gt; Point a
+</span><a href="Geometry.Circle.html#circumcenter"><span class="hs-identifier hs-var">circumcenter</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164681"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164680"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164679"><span class="hs-identifier hs-var">p2</span></a></span><span>
+</span><span id="line-20"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164678"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a -&gt; a
+forall a. Floating a =&gt; Point a -&gt; a
+</span><a href="Geometry.html#norm"><span class="hs-identifier hs-var">norm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164681"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164678"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Point a
+forall a. a -&gt; a -&gt; Point a
+</span><a href="Geometry.html#P"><span class="hs-identifier hs-var">P</span></a></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679164673"><span class="annot"><span class="annottext">p :: Point a
+</span><a href="#local-6989586621679164673"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164673"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span>
+</span><span id="line-23"></span><span>    </span><span class="annot"><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679164672"><span class="annot"><span class="annottext">p0 :: Point a
+</span><a href="#local-6989586621679164672"><span class="hs-identifier hs-var">p0</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164671"><span class="annot"><span class="annottext">p1 :: Point a
+</span><a href="#local-6989586621679164671"><span class="hs-identifier hs-var">p1</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; Point a -&gt; Point a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">0.5</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164672"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164671"><span class="hs-identifier hs-var">p1</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a -&gt; a
+forall a. Floating a =&gt; Point a -&gt; a
+</span><a href="Geometry.html#norm"><span class="hs-identifier hs-var">norm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164671"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164672"><span class="hs-identifier hs-var">p0</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">0.5</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span id="local-6989586621679164668"><span class="annot"><span class="annottext">rs :: [Point a]
+</span><a href="#local-6989586621679164668"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679164667"><span class="annot"><span class="annottext">p :: Point a
+</span><a href="#local-6989586621679164667"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679164666"><span class="annot"><span class="annottext">ps :: [Point a]
+</span><a href="#local-6989586621679164666"><span class="hs-identifier hs-var">ps</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Circle a -&gt; Bool
+forall a. (Num a, Ord a) =&gt; Point a -&gt; Circle a -&gt; Bool
+</span><a href="Geometry.Circle.html#inCircle"><span class="hs-identifier hs-var">inCircle</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164667"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Circle a
+</span><a href="#local-6989586621679164664"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Circle a
+</span><a href="#local-6989586621679164664"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-26"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; Circle a
+</span><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164667"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164668"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164666"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-27"></span><span>      </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>        </span><span class="hs-glyph">!</span><span id="local-6989586621679164664"><span class="annot"><span class="annottext">c :: Circle a
+</span><a href="#local-6989586621679164664"><span class="hs-identifier hs-var hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; Circle a
+</span><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164668"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164666"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span class="annot"><a href="#local-6989586621679164685"><span class="hs-identifier hs-var">welzl</span></a></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Circle a
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="hs-string">&quot;unreachable&quot;</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span id="local-6989586621679164662"><span class="annot"><a href="Geometry.SmallestEnclosingCircle.html#naiveSmallestEnclosingCircle"><span class="hs-identifier hs-type">naiveSmallestEnclosingCircle</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679164662"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679164662"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Geometry.html#Point"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164662"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-type">Circle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679164662"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-32"></span><span id="naiveSmallestEnclosingCircle"><span class="annot"><span class="annottext">naiveSmallestEnclosingCircle :: [Point a] -&gt; Circle a
+</span><a href="Geometry.SmallestEnclosingCircle.html#naiveSmallestEnclosingCircle"><span class="hs-identifier hs-var hs-var">naiveSmallestEnclosingCircle</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Point a
+forall a. a -&gt; a -&gt; Point a
+</span><a href="Geometry.html#P"><span class="hs-identifier hs-var">P</span></a></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Geometry.SmallestEnclosingCircle.html#naiveSmallestEnclosingCircle"><span class="hs-identifier hs-var">naiveSmallestEnclosingCircle</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679164660"><span class="annot"><span class="annottext">p :: Point a
+</span><a href="#local-6989586621679164660"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164660"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="hs-number">0.0</span></span><span>
+</span><span id="line-34"></span><span class="annot"><a href="Geometry.SmallestEnclosingCircle.html#naiveSmallestEnclosingCircle"><span class="hs-identifier hs-var">naiveSmallestEnclosingCircle</span></a></span><span> </span><span class="hs-special">[</span><span id="local-6989586621679164659"><span class="annot"><span class="annottext">p0 :: Point a
+</span><a href="#local-6989586621679164659"><span class="hs-identifier hs-var">p0</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164658"><span class="annot"><span class="annottext">p1 :: Point a
+</span><a href="#local-6989586621679164658"><span class="hs-identifier hs-var">p1</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; Point a -&gt; Point a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">0.5</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164659"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164658"><span class="hs-identifier hs-var">p1</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a -&gt; a
+forall a. Floating a =&gt; Point a -&gt; a
+</span><a href="Geometry.html#norm"><span class="hs-identifier hs-var">norm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164658"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164659"><span class="hs-identifier hs-var">p0</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="hs-number">0.5</span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Geometry.SmallestEnclosingCircle.html#naiveSmallestEnclosingCircle"><span class="hs-identifier hs-var">naiveSmallestEnclosingCircle</span></a></span><span> </span><span id="local-6989586621679164657"><span class="annot"><span class="annottext">ps :: [Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><span class="annottext">(a, Circle a) -&gt; Circle a
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((a, Circle a) -&gt; Circle a) -&gt; (a, Circle a) -&gt; Circle a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><span class="annottext">((a, Circle a) -&gt; (a, Circle a) -&gt; Ordering)
+-&gt; [(a, Circle a)] -&gt; (a, Circle a)
+forall (t :: * -&gt; *) a.
+Foldable t =&gt;
+(a -&gt; a -&gt; Ordering) -&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">L.minimumBy</span></span><span>
+</span><span id="line-39"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Ordering)
+-&gt; ((a, Circle a) -&gt; a)
+-&gt; (a, Circle a)
+-&gt; (a, Circle a)
+-&gt; Ordering
+forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">(a, Circle a) -&gt; a
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164653"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a -&gt; Circle a
+forall a. Point a -&gt; a -&gt; Circle a
+</span><a href="Geometry.Circle.html#Circle"><span class="hs-identifier hs-var">Circle</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164652"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679164653"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679164652"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164652"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164651"><span class="hs-identifier hs-var">centers</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679164653"><span class="annot"><span class="annottext">r :: a
+</span><a href="#local-6989586621679164653"><span class="hs-identifier hs-var hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; a
+</span><a href="#local-6989586621679164650"><span class="hs-identifier hs-var">radius</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164652"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>    </span><span id="local-6989586621679164651"><span class="annot"><span class="annottext">centers :: [Point a]
+</span><a href="#local-6989586621679164651"><span class="hs-identifier hs-var hs-var">centers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-43"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; Point a -&gt; Point a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">0.5</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164649"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164648"><span class="hs-identifier hs-var">p1</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679164649"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164649"><span class="hs-identifier hs-var">p0</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164648"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164648"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-44"></span><span>      </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a -&gt; Point a
+forall a. Fractional a =&gt; Point a -&gt; Point a -&gt; Point a -&gt; Point a
+</span><a href="Geometry.Circle.html#circumcenter"><span class="hs-identifier hs-var">circumcenter</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164647"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164646"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164645"><span class="hs-identifier hs-var">p2</span></a></span><span>
+</span><span id="line-45"></span><span>         </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679164647"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164647"><span class="hs-identifier hs-var">p0</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-46"></span><span>         </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164646"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164646"><span class="hs-identifier hs-var">p1</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-47"></span><span>         </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679164645"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164645"><span class="hs-identifier hs-var">p2</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-48"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a -&gt; a
+forall a. Num a =&gt; Point a -&gt; Point a -&gt; Point a -&gt; a
+</span><a href="Geometry.html#area"><span class="hs-identifier hs-var">area</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164647"><span class="hs-identifier hs-var">p0</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164646"><span class="hs-identifier hs-var">p1</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164645"><span class="hs-identifier hs-var">p2</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-49"></span><span>         </span><span class="hs-special">]</span><span>
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679164650"><span class="annot"><span class="annottext">radius :: Point a -&gt; a
+</span><a href="#local-6989586621679164650"><span class="hs-identifier hs-var hs-var">radius</span></a></span></span><span> </span><span id="local-6989586621679164641"><span class="annot"><span class="annottext">c :: Point a
+</span><a href="#local-6989586621679164641"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; a
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Point a -&gt; a
+forall a. Floating a =&gt; Point a -&gt; a
+</span><a href="Geometry.html#norm"><span class="hs-identifier hs-var">norm</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164639"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164641"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679164639"><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679164639"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679164657"><span class="hs-identifier hs-var">ps</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-51"></span></pre></body></html>

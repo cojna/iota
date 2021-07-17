@@ -1,0 +1,563 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.IntMultiSet</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.IntMap.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">IM</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">newtype</span><span> </span><span id="IntMultiSet"><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-var">IntMultiSet</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IntMultiSet"><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-var">IntMultiSet</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getIntMultiSet"><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+</span><a href="Data.IntMultiSet.html#getIntMultiSet"><span class="hs-identifier hs-var hs-var">getIntMultiSet</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">}</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679157147"><span id="local-6989586621679157149"><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMultiSet -&gt; Bool
+(IntMultiSet -&gt; IntMultiSet -&gt; Bool)
+-&gt; (IntMultiSet -&gt; IntMultiSet -&gt; Bool) -&gt; Eq IntMultiSet
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: IntMultiSet -&gt; IntMultiSet -&gt; Bool
+$c/= :: IntMultiSet -&gt; IntMultiSet -&gt; Bool
+== :: IntMultiSet -&gt; IntMultiSet -&gt; Bool
+$c== :: IntMultiSet -&gt; IntMultiSet -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157141"><span id="local-6989586621679157144"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-14"></span><span>  </span><span id="local-6989586621679157139"><span class="annot"><span class="annottext">show :: IntMultiSet -&gt; String
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; String)
+-&gt; (IntMultiSet -&gt; [Int]) -&gt; IntMultiSet -&gt; String
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMultiSet -&gt; [Int]
+forall l. IsList l =&gt; l -&gt; [Item l]
+</span><span class="hs-identifier hs-var">toList</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157134"><span class="annot"><span class="hs-identifier hs-type">IsList</span></span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Item"><span class="annot"><span class="hs-identifier hs-var">Item</span></span></span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-18"></span><span>  </span><span id="local-6989586621679157131"><span class="annot"><span class="annottext">fromList :: [Item IntMultiSet] -&gt; IntMultiSet
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromList</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(IntMultiSet -&gt; Int -&gt; IntMultiSet)
+-&gt; IntMultiSet -&gt; [Int] -&gt; IntMultiSet
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">L.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; IntMultiSet -&gt; IntMultiSet)
+-&gt; IntMultiSet -&gt; Int -&gt; IntMultiSet
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMultiSet -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#insertIMS"><span class="hs-identifier hs-var">insertIMS</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IntMultiSet
+</span><a href="Data.IntMultiSet.html#emptyIMS"><span class="hs-identifier hs-var">emptyIMS</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679157126"><span class="annot"><span class="annottext">toList :: IntMultiSet -&gt; [Item IntMultiSet]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toList</span></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><span class="annottext">((Int, Int) -&gt; [Int]) -&gt; [(Int, Int)] -&gt; [Int]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679157124"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679157124"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157123"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157123"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; [Int]
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157123"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157124"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>      </span><span class="annot"><span class="annottext">([(Int, Int)] -&gt; [Int])
+-&gt; (IntMultiSet -&gt; [(Int, Int)]) -&gt; IntMultiSet -&gt; [Int]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; [(Int, Int)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toList</span></span><span>
+</span><span id="line-22"></span><span>      </span><span class="annot"><span class="annottext">(IntMap Int -&gt; [(Int, Int)])
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; [(Int, Int)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="annot"><a href="Data.IntMultiSet.html#emptyIMS"><span class="hs-identifier hs-type">emptyIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-25"></span><span id="emptyIMS"><span class="annot"><span class="annottext">emptyIMS :: IntMultiSet
+</span><a href="Data.IntMultiSet.html#emptyIMS"><span class="hs-identifier hs-var hs-var">emptyIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap Int
+forall a. IntMap a
+</span><span class="hs-identifier hs-var">IM.empty</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Data.IntMultiSet.html#singletonIMS"><span class="hs-identifier hs-type">singletonIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-28"></span><span id="singletonIMS"><span class="annot"><span class="annottext">singletonIMS :: Int -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#singletonIMS"><span class="hs-identifier hs-var hs-var">singletonIMS</span></a></span></span><span> </span><span id="local-6989586621679157118"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157118"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMultiSet) -&gt; IntMap Int -&gt; IntMultiSet
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; IntMap Int
+forall a. Int -&gt; a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.singleton</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157118"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Data.IntMultiSet.html#insertIMS"><span class="hs-identifier hs-type">insertIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-32"></span><span id="insertIMS"><span class="annot"><span class="annottext">insertIMS :: Int -&gt; IntMultiSet -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#insertIMS"><span class="hs-identifier hs-var hs-var">insertIMS</span></a></span></span><span> </span><span id="local-6989586621679157116"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157116"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMultiSet)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMultiSet
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; Int -&gt; Int -&gt; IntMap Int -&gt; IntMap Int
+forall a. (a -&gt; a -&gt; a) -&gt; Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insertWith</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157116"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMap Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMap Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Data.IntMultiSet.html#deleteIMS"><span class="hs-identifier hs-type">deleteIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-36"></span><span id="deleteIMS"><span class="annot"><span class="annottext">deleteIMS :: Int -&gt; IntMultiSet -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#deleteIMS"><span class="hs-identifier hs-var hs-var">deleteIMS</span></a></span></span><span> </span><span id="local-6989586621679157112"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157112"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMultiSet)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMultiSet
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; IntMap Int -&gt; IntMap Int
+forall a. (a -&gt; Maybe a) -&gt; Int -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.update</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679157110"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679157110"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157110"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; Maybe Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157110"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157112"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMap Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMap Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-42"></span><span class="annot"><a href="Data.IntMultiSet.html#deleteAllIMS"><span class="hs-identifier hs-type">deleteAllIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-43"></span><span id="deleteAllIMS"><span class="annot"><span class="annottext">deleteAllIMS :: Int -&gt; IntMultiSet -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#deleteAllIMS"><span class="hs-identifier hs-var hs-var">deleteAllIMS</span></a></span></span><span> </span><span id="local-6989586621679157106"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157106"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMultiSet)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMultiSet
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; IntMap Int
+forall a. Int -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.delete</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157106"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMap Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMap Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Data.IntMultiSet.html#memberIMS"><span class="hs-identifier hs-type">memberIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-50"></span><span id="memberIMS"><span class="annot"><span class="annottext">memberIMS :: Int -&gt; IntMultiSet -&gt; Bool
+</span><a href="Data.IntMultiSet.html#memberIMS"><span class="hs-identifier hs-var hs-var">memberIMS</span></a></span></span><span> </span><span id="local-6989586621679157103"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157103"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; Bool
+forall a. Int -&gt; IntMap a -&gt; Bool
+</span><span class="hs-identifier hs-var">IM.member</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157103"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Bool)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Data.IntMultiSet.html#notMemberIMS"><span class="hs-identifier hs-type">notMemberIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-54"></span><span id="notMemberIMS"><span class="annot"><span class="annottext">notMemberIMS :: Int -&gt; IntMultiSet -&gt; Bool
+</span><a href="Data.IntMultiSet.html#notMemberIMS"><span class="hs-identifier hs-var hs-var">notMemberIMS</span></a></span></span><span> </span><span id="local-6989586621679157100"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157100"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; (IntMultiSet -&gt; Bool) -&gt; IntMultiSet -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMultiSet -&gt; Bool
+</span><a href="Data.IntMultiSet.html#memberIMS"><span class="hs-identifier hs-var">memberIMS</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157100"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | /P(min(n, W))/</span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Data.IntMultiSet.html#countIMS"><span class="hs-identifier hs-type">countIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-58"></span><span id="countIMS"><span class="annot"><span class="annottext">countIMS :: Int -&gt; IntMultiSet -&gt; Int
+</span><a href="Data.IntMultiSet.html#countIMS"><span class="hs-identifier hs-var hs-var">countIMS</span></a></span></span><span> </span><span id="local-6989586621679157097"><span class="annot"><span class="annottext">key :: Int
+</span><a href="#local-6989586621679157097"><span class="hs-identifier hs-var">key</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; IntMap Int -&gt; Int
+forall a. a -&gt; Int -&gt; IntMap a -&gt; a
+</span><span class="hs-identifier hs-var">IM.findWithDefault</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157097"><span class="hs-identifier hs-var">key</span></a></span><span> </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Data.IntMultiSet.html#lookupLTIMS"><span class="hs-identifier hs-type">lookupLTIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-62"></span><span id="lookupLTIMS"><span class="annot"><span class="annottext">lookupLTIMS :: Int -&gt; IntMultiSet -&gt; Maybe Int
+</span><a href="Data.IntMultiSet.html#lookupLTIMS"><span class="hs-identifier hs-var hs-var">lookupLTIMS</span></a></span></span><span> </span><span id="local-6989586621679157094"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157094"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int) -&gt; Maybe (Int, Int) -&gt; Maybe Int
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (Int, Int) -&gt; Maybe Int)
+-&gt; (IntMultiSet -&gt; Maybe (Int, Int)) -&gt; IntMultiSet -&gt; Maybe Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; Maybe (Int, Int)
+forall a. Int -&gt; IntMap a -&gt; Maybe (Int, a)
+</span><span class="hs-identifier hs-var">IM.lookupLT</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157094"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Maybe (Int, Int))
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Maybe (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Data.IntMultiSet.html#lookupGTIMS"><span class="hs-identifier hs-type">lookupGTIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-68"></span><span id="lookupGTIMS"><span class="annot"><span class="annottext">lookupGTIMS :: Int -&gt; IntMultiSet -&gt; Maybe Int
+</span><a href="Data.IntMultiSet.html#lookupGTIMS"><span class="hs-identifier hs-var hs-var">lookupGTIMS</span></a></span></span><span> </span><span id="local-6989586621679157091"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157091"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-69"></span><span>  </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int) -&gt; Maybe (Int, Int) -&gt; Maybe Int
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (Int, Int) -&gt; Maybe Int)
+-&gt; (IntMultiSet -&gt; Maybe (Int, Int)) -&gt; IntMultiSet -&gt; Maybe Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; Maybe (Int, Int)
+forall a. Int -&gt; IntMap a -&gt; Maybe (Int, a)
+</span><span class="hs-identifier hs-var">IM.lookupGT</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157091"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-70"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Maybe (Int, Int))
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Maybe (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Data.IntMultiSet.html#lookupLEIMS"><span class="hs-identifier hs-type">lookupLEIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-74"></span><span id="lookupLEIMS"><span class="annot"><span class="annottext">lookupLEIMS :: Int -&gt; IntMultiSet -&gt; Maybe Int
+</span><a href="Data.IntMultiSet.html#lookupLEIMS"><span class="hs-identifier hs-var hs-var">lookupLEIMS</span></a></span></span><span> </span><span id="local-6989586621679157088"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157088"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int) -&gt; Maybe (Int, Int) -&gt; Maybe Int
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (Int, Int) -&gt; Maybe Int)
+-&gt; (IntMultiSet -&gt; Maybe (Int, Int)) -&gt; IntMultiSet -&gt; Maybe Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; Maybe (Int, Int)
+forall a. Int -&gt; IntMap a -&gt; Maybe (Int, a)
+</span><span class="hs-identifier hs-var">IM.lookupLE</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157088"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Maybe (Int, Int))
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Maybe (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-79"></span><span class="annot"><a href="Data.IntMultiSet.html#lookupGEIMS"><span class="hs-identifier hs-type">lookupGEIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-80"></span><span id="lookupGEIMS"><span class="annot"><span class="annottext">lookupGEIMS :: Int -&gt; IntMultiSet -&gt; Maybe Int
+</span><a href="Data.IntMultiSet.html#lookupGEIMS"><span class="hs-identifier hs-var hs-var">lookupGEIMS</span></a></span></span><span> </span><span id="local-6989586621679157085"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157085"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int) -&gt; Maybe (Int, Int) -&gt; Maybe Int
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">(Maybe (Int, Int) -&gt; Maybe Int)
+-&gt; (IntMultiSet -&gt; Maybe (Int, Int)) -&gt; IntMultiSet -&gt; Maybe Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap Int -&gt; Maybe (Int, Int)
+forall a. Int -&gt; IntMap a -&gt; Maybe (Int, a)
+</span><span class="hs-identifier hs-var">IM.lookupGE</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157085"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Maybe (Int, Int))
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Maybe (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- | /O(1)/</span><span>
+</span><span id="line-85"></span><span class="annot"><a href="Data.IntMultiSet.html#nullIMS"><span class="hs-identifier hs-type">nullIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-86"></span><span id="nullIMS"><span class="annot"><span class="annottext">nullIMS :: IntMultiSet -&gt; Bool
+</span><a href="Data.IntMultiSet.html#nullIMS"><span class="hs-identifier hs-var hs-var">nullIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-87"></span><span>  </span><span class="annot"><span class="annottext">IntMap Int -&gt; Bool
+forall a. IntMap a -&gt; Bool
+</span><span class="hs-identifier hs-var">IM.null</span></span><span>
+</span><span id="line-88"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Bool)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- | /O(n)/</span><span>
+</span><span id="line-91"></span><span class="annot"><a href="Data.IntMultiSet.html#sizeIMS"><span class="hs-identifier hs-type">sizeIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-92"></span><span id="sizeIMS"><span class="annot"><span class="annottext">sizeIMS :: IntMultiSet -&gt; Int
+</span><a href="Data.IntMultiSet.html#sizeIMS"><span class="hs-identifier hs-var hs-var">sizeIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-93"></span><span>  </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; Int -&gt; IntMap Int -&gt; Int
+forall a b. (a -&gt; b -&gt; a) -&gt; a -&gt; IntMap b -&gt; a
+</span><span class="hs-identifier hs-var">IM.foldl'</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-94"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-97"></span><span class="annot"><a href="Data.IntMultiSet.html#findMinIMS"><span class="hs-identifier hs-type">findMinIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-98"></span><span id="findMinIMS"><span class="annot"><span class="annottext">findMinIMS :: IntMultiSet -&gt; Int
+</span><a href="Data.IntMultiSet.html#findMinIMS"><span class="hs-identifier hs-var hs-var">findMinIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-99"></span><span>  </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int)
+-&gt; (IntMultiSet -&gt; (Int, Int)) -&gt; IntMultiSet -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; (Int, Int)
+forall a. IntMap a -&gt; (Int, a)
+</span><span class="hs-identifier hs-var">IM.findMin</span></span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; (Int, Int))
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-104"></span><span class="annot"><a href="Data.IntMultiSet.html#findMaxIMS"><span class="hs-identifier hs-type">findMaxIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-105"></span><span id="findMaxIMS"><span class="annot"><span class="annottext">findMaxIMS :: IntMultiSet -&gt; Int
+</span><a href="Data.IntMultiSet.html#findMaxIMS"><span class="hs-identifier hs-var hs-var">findMaxIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-106"></span><span>  </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-107"></span><span>    </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int)
+-&gt; (IntMultiSet -&gt; (Int, Int)) -&gt; IntMultiSet -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; (Int, Int)
+forall a. IntMap a -&gt; (Int, a)
+</span><span class="hs-identifier hs-var">IM.findMax</span></span><span>
+</span><span id="line-108"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; (Int, Int))
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-111"></span><span class="annot"><a href="Data.IntMultiSet.html#deleteMinIMS"><span class="hs-identifier hs-type">deleteMinIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-112"></span><span id="deleteMinIMS"><span class="annot"><span class="annottext">deleteMinIMS :: IntMultiSet -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#deleteMinIMS"><span class="hs-identifier hs-var hs-var">deleteMinIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-113"></span><span>  </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-114"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMultiSet)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMultiSet
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; IntMap Int -&gt; IntMap Int
+forall a. (a -&gt; Maybe a) -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.updateMin</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679157073"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157073"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157073"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; Maybe Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157073"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMap Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMap Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-116"></span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-118"></span><span class="annot"><a href="Data.IntMultiSet.html#deleteMaxIMS"><span class="hs-identifier hs-type">deleteMaxIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span>
+</span><span id="line-119"></span><span id="deleteMaxIMS"><span class="annot"><span class="annottext">deleteMaxIMS :: IntMultiSet -&gt; IntMultiSet
+</span><a href="Data.IntMultiSet.html#deleteMaxIMS"><span class="hs-identifier hs-var hs-var">deleteMaxIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-120"></span><span>  </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-121"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMultiSet)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMultiSet
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; IntMap Int -&gt; IntMap Int
+forall a. (a -&gt; Maybe a) -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.updateMax</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679157070"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157070"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157070"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; Maybe Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157070"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; IntMap Int)
+-&gt; (IntMultiSet -&gt; IntMap Int) -&gt; IntMultiSet -&gt; IntMap Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-125"></span><span class="annot"><a href="Data.IntMultiSet.html#maxViewIMS"><span class="hs-identifier hs-type">maxViewIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span id="maxViewIMS"><span class="annot"><span class="annottext">maxViewIMS :: IntMultiSet -&gt; Maybe (Int, IntMultiSet)
+</span><a href="Data.IntMultiSet.html#maxViewIMS"><span class="hs-identifier hs-var hs-var">maxViewIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><span class="annottext">Maybe (Int, IntMultiSet)
+-&gt; (((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet))
+-&gt; Maybe ((Int, Int), IntMap Int)
+-&gt; Maybe (Int, IntMultiSet)
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Maybe (Int, IntMultiSet)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet)
+</span><a href="#local-6989586621679157067"><span class="hs-identifier hs-var">just</span></a></span><span>
+</span><span id="line-128"></span><span>    </span><span class="annot"><span class="annottext">(Maybe ((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet))
+-&gt; (IntMultiSet -&gt; Maybe ((Int, Int), IntMap Int))
+-&gt; IntMultiSet
+-&gt; Maybe (Int, IntMultiSet)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; Maybe ((Int, Int), IntMap Int)
+forall a. IntMap a -&gt; Maybe ((Int, a), IntMap a)
+</span><span class="hs-identifier hs-var">IM.maxViewWithKey</span></span><span>
+</span><span id="line-129"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Maybe ((Int, Int), IntMap Int))
+-&gt; (IntMultiSet -&gt; IntMap Int)
+-&gt; IntMultiSet
+-&gt; Maybe ((Int, Int), IntMap Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-130"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-131"></span><span>    </span><span class="annot"><a href="#local-6989586621679157067"><span class="hs-identifier hs-type">just</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>    </span><span id="local-6989586621679157067"><span class="annot"><span class="annottext">just :: ((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet)
+</span><a href="#local-6989586621679157067"><span class="hs-identifier hs-var hs-var">just</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679157065"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679157065"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157064"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157064"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157063"><span class="annot"><span class="annottext">m :: IntMap Int
+</span><a href="#local-6989586621679157063"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157064"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; IntMap Int -&gt; IntMap Int
+forall a. Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157065"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157064"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679157063"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-134"></span><span>        </span><span id="local-6989586621679157061"><span class="annot"><span class="annottext">m' :: IntMap Int
+</span><a href="#local-6989586621679157061"><span class="hs-identifier hs-var">m'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int, IntMultiSet) -&gt; Maybe (Int, IntMultiSet)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157065"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679157061"><span class="hs-identifier hs-var">m'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-135"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, IntMultiSet) -&gt; Maybe (Int, IntMultiSet)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157065"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679157063"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- | /O(min(n,W))/</span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Data.IntMultiSet.html#minViewIMS"><span class="hs-identifier hs-type">minViewIMS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span id="minViewIMS"><span class="annot"><span class="annottext">minViewIMS :: IntMultiSet -&gt; Maybe (Int, IntMultiSet)
+</span><a href="Data.IntMultiSet.html#minViewIMS"><span class="hs-identifier hs-var hs-var">minViewIMS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-140"></span><span>  </span><span class="annot"><span class="annottext">Maybe (Int, IntMultiSet)
+-&gt; (((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet))
+-&gt; Maybe ((Int, Int), IntMap Int)
+-&gt; Maybe (Int, IntMultiSet)
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Maybe (Int, IntMultiSet)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet)
+</span><a href="#local-6989586621679157059"><span class="hs-identifier hs-var">just</span></a></span><span>
+</span><span id="line-141"></span><span>    </span><span class="annot"><span class="annottext">(Maybe ((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet))
+-&gt; (IntMultiSet -&gt; Maybe ((Int, Int), IntMap Int))
+-&gt; IntMultiSet
+-&gt; Maybe (Int, IntMultiSet)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; Maybe ((Int, Int), IntMap Int)
+forall a. IntMap a -&gt; Maybe ((Int, a), IntMap a)
+</span><span class="hs-identifier hs-var">IM.minViewWithKey</span></span><span>
+</span><span id="line-142"></span><span>    </span><span class="annot"><span class="annottext">(IntMap Int -&gt; Maybe ((Int, Int), IntMap Int))
+-&gt; (IntMultiSet -&gt; IntMap Int)
+-&gt; IntMultiSet
+-&gt; Maybe ((Int, Int), IntMap Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMultiSet -&gt; IntMap Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-143"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-144"></span><span>    </span><span class="annot"><a href="#local-6989586621679157059"><span class="hs-identifier hs-type">just</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IM.IntMap</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IntMultiSet.html#IntMultiSet"><span class="hs-identifier hs-type">IntMultiSet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-145"></span><span>    </span><span id="local-6989586621679157059"><span class="annot"><span class="annottext">just :: ((Int, Int), IntMap Int) -&gt; Maybe (Int, IntMultiSet)
+</span><a href="#local-6989586621679157059"><span class="hs-identifier hs-var hs-var">just</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679157057"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679157057"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157056"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157056"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157055"><span class="annot"><span class="annottext">m :: IntMap Int
+</span><a href="#local-6989586621679157055"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-146"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157056"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; IntMap Int -&gt; IntMap Int
+forall a. Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157057"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157056"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679157055"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-147"></span><span>        </span><span id="local-6989586621679157054"><span class="annot"><span class="annottext">m' :: IntMap Int
+</span><a href="#local-6989586621679157054"><span class="hs-identifier hs-var">m'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int, IntMultiSet) -&gt; Maybe (Int, IntMultiSet)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157057"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679157054"><span class="hs-identifier hs-var">m'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-148"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, IntMultiSet) -&gt; Maybe (Int, IntMultiSet)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157057"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IntMap Int -&gt; IntMultiSet
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMap Int
+</span><a href="#local-6989586621679157055"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-149"></span></pre></body></html>

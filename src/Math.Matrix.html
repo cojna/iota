@@ -1,0 +1,535 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE KindSignatures #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE MagicHash #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Math.Matrix</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.ST</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Primitive</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Proxy</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Fusion.Bundle.Monadic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MB</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Fusion.Stream.Monadic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MS</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Fusion.Util</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">G</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Primitive</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">P</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.TypeLits</span></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">--</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="My.Prelude.html"><span class="hs-identifier">My.Prelude</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="My.Prelude.html#rep"><span class="hs-identifier">rep</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | n x n square matrix</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">data</span><span> </span><span id="SqMat"><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-var">SqMat</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679161659"><span class="annot"><a href="#local-6989586621679161659"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Nat</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679161658"><span class="annot"><a href="#local-6989586621679161658"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SqMat"><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-var">SqMat</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">ByteArray</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span id="local-6989586621679161586"><span id="local-6989586621679161587"><span id="local-6989586621679161588"><span class="annot"><a href="Math.Matrix.html#viewRowSqMat"><span class="hs-identifier hs-type">viewRowSqMat</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161588"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161587"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">G.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679161586"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161587"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161588"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161587"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-32"></span><span>  </span><span class="annot"><a href="#local-6989586621679161586"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161587"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-33"></span><span id="viewRowSqMat"><span class="annot"><span class="annottext">viewRowSqMat :: SqMat n a -&gt; Int -&gt; v a
+</span><a href="Math.Matrix.html#viewRowSqMat"><span class="hs-identifier hs-var hs-var">viewRowSqMat</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span id="local-6989586621679161569"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161569"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679161568"><span class="annot"><span class="annottext">ba :: ByteArray
+</span><a href="#local-6989586621679161568"><span class="hs-identifier hs-var">ba</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679161567"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161567"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">Bundle v a -&gt; v a
+forall (v :: * -&gt; *) a. Vector v a =&gt; Bundle v a -&gt; v a
+</span><span class="hs-identifier hs-var">G.unstream</span></span><span>
+</span><span id="line-35"></span><span>    </span><span class="annot"><span class="annottext">(Bundle v a -&gt; v a)
+-&gt; (Bundle Id Vector a -&gt; Bundle v a) -&gt; Bundle Id Vector a -&gt; v a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Bundle Id Vector a -&gt; Bundle v a
+forall (m :: * -&gt; *) (u :: * -&gt; *) a (v :: * -&gt; *).
+Monad m =&gt;
+Bundle m u a -&gt; Bundle m v a
+</span><span class="hs-identifier hs-var">MB.reVector</span></span><span>
+</span><span id="line-36"></span><span>    </span><span class="annot"><span class="annottext">(Bundle Id Vector a -&gt; v a) -&gt; Bundle Id Vector a -&gt; v a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; Bundle Id Vector a
+forall (m :: * -&gt; *) (v :: * -&gt; *) a.
+(Monad m, Vector v a) =&gt;
+v a -&gt; Bundle m v a
+</span><span class="hs-identifier hs-var">MB.fromVector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; ByteArray -&gt; Vector a
+forall a. Int -&gt; Int -&gt; ByteArray -&gt; Vector a
+</span><span class="hs-identifier hs-var">P.Vector</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161567"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161569"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161569"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">ByteArray
+</span><a href="#local-6989586621679161568"><span class="hs-identifier hs-var">ba</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#viewRowSqMat"><span class="hs-pragma hs-type">viewRowSqMat</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span id="local-6989586621679161558"><span id="local-6989586621679161559"><span id="local-6989586621679161560"><span class="annot"><a href="Math.Matrix.html#viewColSqMat"><span class="hs-identifier hs-type">viewColSqMat</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161560"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161559"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">G.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679161558"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161559"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161560"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161559"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-42"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-43"></span><span>  </span><span class="annot"><a href="#local-6989586621679161558"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161559"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-44"></span><span id="viewColSqMat"><span class="annot"><span class="annottext">viewColSqMat :: SqMat n a -&gt; Int -&gt; v a
+</span><a href="Math.Matrix.html#viewColSqMat"><span class="hs-identifier hs-var hs-var">viewColSqMat</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span id="local-6989586621679161556"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161556"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679161555"><span class="annot"><span class="annottext">ba :: ByteArray
+</span><a href="#local-6989586621679161555"><span class="hs-identifier hs-var">ba</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679161554"><span class="annot"><span class="annottext">j :: Int
+</span><a href="#local-6989586621679161554"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">Bundle v a -&gt; v a
+forall (v :: * -&gt; *) a. Vector v a =&gt; Bundle v a -&gt; v a
+</span><span class="hs-identifier hs-var">G.unstream</span></span><span>
+</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">(Bundle v a -&gt; v a)
+-&gt; (Bundle Id v Int -&gt; Bundle v a) -&gt; Bundle Id v Int -&gt; v a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; a) -&gt; Bundle Id v Int -&gt; Bundle v a
+forall (m :: * -&gt; *) a b (v :: * -&gt; *).
+Monad m =&gt;
+(a -&gt; b) -&gt; Bundle m v a -&gt; Bundle m v b
+</span><span class="hs-identifier hs-var">MB.map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteArray -&gt; Int -&gt; a
+forall a. Prim a =&gt; ByteArray -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">indexByteArray</span></span><span> </span><span class="annot"><span class="annottext">ByteArray
+</span><a href="#local-6989586621679161555"><span class="hs-identifier hs-var">ba</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">(Bundle Id v Int -&gt; v a) -&gt; Bundle Id v Int -&gt; v a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; Bundle Id v Int
+forall (m :: * -&gt; *) a (u :: * -&gt; *).
+Monad m =&gt;
+Int -&gt; (a -&gt; a) -&gt; a -&gt; Bundle m u a
+</span><span class="hs-identifier hs-var">MB.iterateN</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161556"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161556"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161554"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-48"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#viewColSqMat"><span class="hs-pragma hs-type">viewColSqMat</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="annot"><a href="Math.Matrix.html#createSqMat"><span class="hs-identifier hs-type">createSqMat</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161633"><span class="annot"><a href="#local-6989586621679161633"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679161632"><span class="annot"><a href="#local-6989586621679161632"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161633"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161632"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679161633"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161677"><span class="annot"><a href="#local-6989586621679161677"><span class="hs-identifier hs-type">s</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MutableByteArray</span></span><span> </span><span class="annot"><a href="#local-6989586621679161677"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679161677"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161633"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161632"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-56"></span><span id="createSqMat"><span class="annot"><span class="annottext">createSqMat :: Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+</span><a href="Math.Matrix.html#createSqMat"><span class="hs-identifier hs-var hs-var">createSqMat</span></a></span></span><span> </span><span id="local-6989586621679161548"><span class="annot"><span class="annottext">proxy :: Proxy n
+</span><a href="#local-6989586621679161548"><span class="hs-identifier hs-var">proxy</span></a></span></span><span> </span><span id="local-6989586621679161547"><span class="annot"><span class="annottext">fill :: forall s. Int -&gt; MutableByteArray s -&gt; ST s ()
+</span><a href="#local-6989586621679161547"><span class="hs-identifier hs-var">fill</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall s. ST s (SqMat n a)) -&gt; SqMat n a
+forall a. (forall s. ST s a) -&gt; a
+</span><span class="hs-identifier hs-var">runST</span></span><span> </span><span class="annot"><span class="annottext">((forall s. ST s (SqMat n a)) -&gt; SqMat n a)
+-&gt; (forall s. ST s (SqMat n a)) -&gt; SqMat n a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679161545"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161545"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Int) -&gt; Integer -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Proxy n -&gt; Integer
+forall (n :: Nat) (proxy :: Nat -&gt; *).
+KnownNat n =&gt;
+proxy n -&gt; Integer
+</span><span class="hs-identifier hs-var">natVal</span></span><span> </span><span class="annot"><span class="annottext">Proxy n
+</span><a href="#local-6989586621679161548"><span class="hs-identifier hs-var">proxy</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679161543"><span class="annot"><span class="annottext">MutableByteArray s
+</span><a href="#local-6989586621679161543"><span class="hs-identifier hs-var">mba</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ST s (MutableByteArray (PrimState (ST s)))
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+Int -&gt; m (MutableByteArray (PrimState m))
+</span><span class="hs-identifier hs-var">newByteArray</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int#
+forall a. Prim a =&gt; a -&gt; Int#
+</span><span class="hs-identifier hs-var">sizeOf#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679161632"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161545"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161545"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; MutableByteArray s -&gt; ST s ()
+forall s. Int -&gt; MutableByteArray s -&gt; ST s ()
+</span><a href="#local-6989586621679161547"><span class="hs-identifier hs-var">fill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161545"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">MutableByteArray s
+</span><a href="#local-6989586621679161543"><span class="hs-identifier hs-var">mba</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; ByteArray -&gt; SqMat n a
+forall (n :: Nat) a. Int -&gt; ByteArray -&gt; SqMat n a
+</span><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-var">SqMat</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161545"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">(ByteArray -&gt; SqMat n a) -&gt; ST s ByteArray -&gt; ST s (SqMat n a)
+forall (m :: * -&gt; *) a b. Monad m =&gt; (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">&lt;$!&gt;</span></span><span> </span><span class="annot"><span class="annottext">MutableByteArray (PrimState (ST s)) -&gt; ST s ByteArray
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+MutableByteArray (PrimState m) -&gt; m ByteArray
+</span><span class="hs-identifier hs-var">unsafeFreezeByteArray</span></span><span> </span><span class="annot"><span class="annottext">MutableByteArray s
+MutableByteArray (PrimState (ST s))
+</span><a href="#local-6989586621679161543"><span class="hs-identifier hs-var">mba</span></a></span><span>
+</span><span id="line-61"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#createSqMat"><span class="hs-pragma hs-type">createSqMat</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span id="local-6989586621679161536"><span id="local-6989586621679161537"><span class="annot"><a href="Math.Matrix.html#reifyMatDim"><span class="hs-identifier hs-type">reifyMatDim</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679161537"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161537"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161652"><span class="annot"><a href="#local-6989586621679161652"><span class="hs-identifier hs-type">n</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161652"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Proxy</span></span><span> </span><span class="annot"><a href="#local-6989586621679161652"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161536"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161536"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-64"></span><span id="reifyMatDim"><span class="annot"><span class="annottext">reifyMatDim :: i -&gt; (forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; a) -&gt; a
+</span><a href="Math.Matrix.html#reifyMatDim"><span class="hs-identifier hs-var hs-var">reifyMatDim</span></a></span></span><span> </span><span id="local-6989586621679161534"><span class="annot"><span class="annottext">n :: i
+</span><a href="#local-6989586621679161534"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679161533"><span class="annot"><span class="annottext">f :: forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; a
+</span><a href="#local-6989586621679161533"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Maybe SomeNat
+</span><span class="hs-identifier hs-var">someNatVal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">i -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679161534"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SomeNat</span></span><span> </span><span id="local-6989586621679161530"><span class="annot"><span class="annottext">proxy :: Proxy n
+</span><a href="#local-6989586621679161530"><span class="hs-identifier hs-var">proxy</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Proxy n -&gt; a
+forall (n :: Nat). KnownNat n =&gt; Proxy n -&gt; a
+</span><a href="#local-6989586621679161533"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy n
+</span><a href="#local-6989586621679161530"><span class="hs-identifier hs-var">proxy</span></a></span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; a
+forall a. HasCallStack =&gt; [Char] -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">([Char] -&gt; a) -&gt; [Char] -&gt; a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="hs-string">&quot;reifyMatDim: &quot;</span></span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; [Char] -&gt; [Char]
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; [Char]
+forall a. Show a =&gt; a -&gt; [Char]
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">i -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679161534"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#reifyMatDim"><span class="hs-pragma hs-type">reifyMatDim</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span id="local-6989586621679161599"><span id="local-6989586621679161600"><span id="local-6989586621679161601"><span class="annot"><a href="Math.Matrix.html#streamSqMat"><span class="hs-identifier hs-type">streamSqMat</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161601"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679161600"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161599"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161601"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MS.Stream</span></span><span> </span><span class="annot"><a href="#local-6989586621679161600"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161601"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-70"></span><span id="streamSqMat"><span class="annot"><span class="annottext">streamSqMat :: SqMat n a -&gt; Stream m a
+</span><a href="Math.Matrix.html#streamSqMat"><span class="hs-identifier hs-var hs-var">streamSqMat</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span id="local-6989586621679161526"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161526"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679161525"><span class="annot"><span class="annottext">ba :: ByteArray
+</span><a href="#local-6989586621679161525"><span class="hs-identifier hs-var">ba</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; m a) -&gt; Stream m a
+forall (m :: * -&gt; *) a.
+Monad m =&gt;
+Int -&gt; (Int -&gt; m a) -&gt; Stream m a
+</span><span class="hs-identifier hs-var">MS.generateM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161526"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161526"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m a) -&gt; Stream m a) -&gt; (Int -&gt; m a) -&gt; Stream m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; m a) -&gt; (Int -&gt; a) -&gt; Int -&gt; m a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteArray -&gt; Int -&gt; a
+forall a. Prim a =&gt; ByteArray -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">indexByteArray</span></span><span> </span><span class="annot"><span class="annottext">ByteArray
+</span><a href="#local-6989586621679161525"><span class="hs-identifier hs-var">ba</span></a></span><span>
+</span><span id="line-71"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">[</span><span class="hs-pragma">1</span><span class="hs-pragma">]</span><span> </span><span class="annot"><a href="Math.Matrix.html#streamSqMat"><span class="hs-pragma hs-type">streamSqMat</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-identifier hs-type">unstreamSqMat</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161606"><span class="annot"><a href="#local-6989586621679161606"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679161605"><span class="annot"><a href="#local-6989586621679161605"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161606"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161605"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MS.Stream</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Id</span></span><span> </span><span class="annot"><a href="#local-6989586621679161605"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161606"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161605"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-74"></span><span id="unstreamSqMat"><span class="annot"><span class="annottext">unstreamSqMat :: Stream Id a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-identifier hs-var hs-var">unstreamSqMat</span></a></span></span><span> </span><span id="local-6989586621679161522"><span class="annot"><span class="annottext">s :: Stream Id a
+</span><a href="#local-6989586621679161522"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+</span><a href="Math.Matrix.html#createSqMat"><span class="hs-identifier hs-var">createSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="annot"><span class="annottext">((forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a)
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-identifier">_</span><span> </span><span id="local-6989586621679161520"><span class="annot"><span class="annottext">mba :: MutableByteArray s
+</span><a href="#local-6989586621679161520"><span class="hs-identifier hs-var">mba</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="annottext">((Int, a) -&gt; ST s ()) -&gt; Stream (ST s) (Int, a) -&gt; ST s ()
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream m a -&gt; m ()
+</span><span class="hs-identifier hs-var">MS.mapM_</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679161518"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161518"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679161517"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679161517"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MutableByteArray (PrimState (ST s)) -&gt; Int -&gt; a -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Prim a, PrimMonad m) =&gt;
+MutableByteArray (PrimState m) -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">writeByteArray</span></span><span> </span><span class="annot"><span class="annottext">MutableByteArray s
+MutableByteArray (PrimState (ST s))
+</span><a href="#local-6989586621679161520"><span class="hs-identifier hs-var">mba</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161518"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679161517"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Stream (ST s) (Int, a) -&gt; ST s ())
+-&gt; Stream (ST s) (Int, a) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="annottext">(forall z. Id z -&gt; ST s z)
+-&gt; Stream Id (Int, a) -&gt; Stream (ST s) (Int, a)
+forall (m :: * -&gt; *) (m' :: * -&gt; *) a.
+(Monad m, Monad m') =&gt;
+(forall z. m z -&gt; m' z) -&gt; Stream m a -&gt; Stream m' a
+</span><span class="hs-identifier hs-var">MS.trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">z -&gt; ST s z
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(z -&gt; ST s z) -&gt; (Id z -&gt; z) -&gt; Id z -&gt; ST s z
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Id z -&gt; z
+forall a. Id a -&gt; a
+</span><span class="hs-identifier hs-var hs-var">unId</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Stream Id (Int, a) -&gt; Stream (ST s) (Int, a))
+-&gt; Stream Id (Int, a) -&gt; Stream (ST s) (Int, a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Stream Id a -&gt; Stream Id (Int, a)
+forall (m :: * -&gt; *) a. Monad m =&gt; Stream m a -&gt; Stream m (Int, a)
+</span><span class="hs-identifier hs-var">MS.indexed</span></span><span> </span><span class="annot"><span class="annottext">Stream Id a
+</span><a href="#local-6989586621679161522"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-77"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">[</span><span class="hs-pragma">1</span><span class="hs-pragma">]</span><span> </span><span class="annot"><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-pragma hs-type">unstreamSqMat</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="hs-pragma">{-# RULES</span><span>
+</span><span id="line-80"></span><span class="annot"><span class="hs-pragma">&quot;streamSqMat/unstreamSqMat&quot;</span></span><span> </span><span class="hs-pragma">forall</span><span> </span><span id="local-6989586621679161512"><span class="annot"><a href="#local-6989586621679161512"><span class="hs-pragma hs-var">s</span></a></span></span><span class="hs-pragma">.</span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#streamSqMat"><span class="hs-pragma hs-type">streamSqMat</span></a></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-pragma hs-type">unstreamSqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161512"><span class="hs-pragma hs-type">s</span></a></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">=</span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="hs-pragma hs-type">MS.trans</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><span class="hs-pragma hs-type">return</span></span><span> </span><span class="annot"><span class="hs-pragma hs-type">.</span></span><span> </span><span class="annot"><span class="hs-pragma hs-var">unId</span></span><span class="hs-pragma">)</span><span> </span><span class="annot"><a href="#local-6989586621679161512"><span class="hs-pragma hs-type">s</span></a></span><span>
+</span><span id="line-83"></span><span class="annot"><span class="hs-pragma">&quot;unstreamSqMat/streamSqMat&quot;</span></span><span> </span><span class="hs-pragma">forall</span><span> </span><span id="local-6989586621679161511"><span class="annot"><a href="#local-6989586621679161511"><span class="hs-pragma hs-var">mat</span></a></span></span><span class="hs-pragma">.</span><span>
+</span><span id="line-84"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-pragma hs-type">unstreamSqMat</span></a></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Math.Matrix.html#streamSqMat"><span class="hs-pragma hs-type">streamSqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161511"><span class="hs-pragma hs-type">mat</span></a></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">=</span><span>
+</span><span id="line-85"></span><span>    </span><span class="annot"><a href="#local-6989586621679161511"><span class="hs-pragma hs-type">mat</span></a></span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="annot"><a href="Math.Matrix.html#liftSqMat0"><span class="hs-identifier hs-type">liftSqMat0</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161574"><span class="annot"><a href="#local-6989586621679161574"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679161573"><span class="annot"><a href="#local-6989586621679161573"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161574"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679161573"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161573"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161573"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161574"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161573"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-89"></span><span id="liftSqMat0"><span class="annot"><span class="annottext">liftSqMat0 :: a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat0"><span class="hs-identifier hs-var hs-var">liftSqMat0</span></a></span></span><span> </span><span id="local-6989586621679161509"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679161509"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+</span><a href="Math.Matrix.html#createSqMat"><span class="hs-identifier hs-var">createSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="annot"><span class="annottext">((forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a)
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161508"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161508"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679161507"><span class="annot"><span class="annottext">mba :: MutableByteArray s
+</span><a href="#local-6989586621679161507"><span class="hs-identifier hs-var">mba</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-90"></span><span>  </span><span class="annot"><span class="annottext">MutableByteArray (PrimState (ST s)) -&gt; Int -&gt; Int -&gt; a -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Prim a, PrimMonad m) =&gt;
+MutableByteArray (PrimState m) -&gt; Int -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">setByteArray</span></span><span> </span><span class="annot"><span class="annottext">MutableByteArray s
+MutableByteArray (PrimState (ST s))
+</span><a href="#local-6989586621679161507"><span class="hs-identifier hs-var">mba</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161508"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161508"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679161573"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>  </span><span class="annot"><span class="annottext">(Int -&gt; ST s ()) -&gt; Stream (ST s) Int -&gt; ST s ()
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Stream m a -&gt; m ()
+</span><span class="hs-identifier hs-var">MS.mapM_</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679161505"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161505"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MutableByteArray (PrimState (ST s)) -&gt; Int -&gt; a -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Prim a, PrimMonad m) =&gt;
+MutableByteArray (PrimState m) -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">writeByteArray</span></span><span> </span><span class="annot"><span class="annottext">MutableByteArray s
+MutableByteArray (PrimState (ST s))
+</span><a href="#local-6989586621679161507"><span class="hs-identifier hs-var">mba</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161505"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679161509"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Stream (ST s) Int -&gt; ST s ()) -&gt; Stream (ST s) Int -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; Stream (ST s) Int
+forall (m :: * -&gt; *) a.
+Monad m =&gt;
+Int -&gt; (a -&gt; a) -&gt; a -&gt; Stream m a
+</span><span class="hs-identifier hs-var">MS.iterateN</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161508"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161508"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-92"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#liftSqMat0"><span class="hs-pragma hs-type">liftSqMat0</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span id="local-6989586621679161576"><span id="local-6989586621679161577"><span class="annot"><a href="Math.Matrix.html#liftSqMat1"><span class="hs-identifier hs-type">liftSqMat1</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161577"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161576"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679161576"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161576"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161577"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161576"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161577"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161576"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-95"></span><span id="liftSqMat1"><span class="annot"><span class="annottext">liftSqMat1 :: (a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat1"><span class="hs-identifier hs-var hs-var">liftSqMat1</span></a></span></span><span> </span><span id="local-6989586621679161502"><span class="annot"><span class="annottext">f :: a -&gt; a
+</span><a href="#local-6989586621679161502"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Stream Id a -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+Stream Id a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-identifier hs-var">unstreamSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream Id a -&gt; SqMat n a)
+-&gt; (SqMat n a -&gt; Stream Id a) -&gt; SqMat n a -&gt; SqMat n a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; Stream Id a -&gt; Stream Id a
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; b) -&gt; Stream m a -&gt; Stream m b
+</span><span class="hs-identifier hs-var">MS.map</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+</span><a href="#local-6989586621679161502"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream Id a -&gt; Stream Id a)
+-&gt; (SqMat n a -&gt; Stream Id a) -&gt; SqMat n a -&gt; Stream Id a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SqMat n a -&gt; Stream Id a
+forall a (m :: * -&gt; *) (n :: Nat).
+(Prim a, Monad m) =&gt;
+SqMat n a -&gt; Stream m a
+</span><a href="Math.Matrix.html#streamSqMat"><span class="hs-identifier hs-var">streamSqMat</span></a></span><span>
+</span><span id="line-96"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#liftSqMat1"><span class="hs-pragma hs-type">liftSqMat1</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span id="local-6989586621679161578"><span id="local-6989586621679161579"><span class="annot"><a href="Math.Matrix.html#liftSqMat2"><span class="hs-identifier hs-type">liftSqMat2</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161579"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161579"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-102"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161579"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-103"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161579"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161578"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-104"></span><span id="liftSqMat2"><span class="annot"><span class="annottext">liftSqMat2 :: (a -&gt; a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat2"><span class="hs-identifier hs-var hs-var">liftSqMat2</span></a></span></span><span> </span><span id="local-6989586621679161499"><span class="annot"><span class="annottext">f :: a -&gt; a -&gt; a
+</span><a href="#local-6989586621679161499"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679161498"><span class="annot"><span class="annottext">x :: SqMat n a
+</span><a href="#local-6989586621679161498"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679161497"><span class="annot"><span class="annottext">y :: SqMat n a
+</span><a href="#local-6989586621679161497"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-105"></span><span>  </span><span class="annot"><span class="annottext">Stream Id a -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+Stream Id a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#unstreamSqMat"><span class="hs-identifier hs-var">unstreamSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">(Stream Id a -&gt; SqMat n a) -&gt; Stream Id a -&gt; SqMat n a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-106"></span><span>    </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; Stream Id a -&gt; Stream Id a -&gt; Stream Id a
+forall (m :: * -&gt; *) a b c.
+Monad m =&gt;
+(a -&gt; b -&gt; c) -&gt; Stream m a -&gt; Stream m b -&gt; Stream m c
+</span><span class="hs-identifier hs-var">MS.zipWith</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+</span><a href="#local-6989586621679161499"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqMat n a -&gt; Stream Id a
+forall a (m :: * -&gt; *) (n :: Nat).
+(Prim a, Monad m) =&gt;
+SqMat n a -&gt; Stream m a
+</span><a href="Math.Matrix.html#streamSqMat"><span class="hs-identifier hs-var">streamSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">SqMat n a
+</span><a href="#local-6989586621679161498"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqMat n a -&gt; Stream Id a
+forall a (m :: * -&gt; *) (n :: Nat).
+(Prim a, Monad m) =&gt;
+SqMat n a -&gt; Stream m a
+</span><a href="Math.Matrix.html#streamSqMat"><span class="hs-identifier hs-var">streamSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">SqMat n a
+</span><a href="#local-6989586621679161497"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#liftSqMat2"><span class="hs-pragma hs-type">liftSqMat2</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="annot"><a href="Math.Matrix.html#mulSqMat"><span class="hs-identifier hs-type">mulSqMat</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-110"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679161494"><span class="annot"><a href="#local-6989586621679161494"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679161493"><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161494"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-112"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161494"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-113"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161494"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-114"></span><span>  </span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161494"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-115"></span><span id="mulSqMat"><span class="annot"><span class="annottext">mulSqMat :: SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#mulSqMat"><span class="hs-identifier hs-var hs-var">mulSqMat</span></a></span></span><span> </span><span id="local-6989586621679161492"><span class="annot"><span class="annottext">x :: SqMat n a
+</span><a href="#local-6989586621679161492"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679161491"><span class="annot"><span class="annottext">y :: SqMat n a
+</span><a href="#local-6989586621679161491"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+Proxy n
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+</span><a href="Math.Matrix.html#createSqMat"><span class="hs-identifier hs-var">createSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">Proxy n
+forall k (t :: k). Proxy t
+</span><span class="hs-identifier hs-var">Proxy</span></span><span> </span><span class="annot"><span class="annottext">((forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a)
+-&gt; (forall s. Int -&gt; MutableByteArray s -&gt; ST s ()) -&gt; SqMat n a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161490"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679161490"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679161489"><span class="annot"><span class="annottext">mba :: MutableByteArray s
+</span><a href="#local-6989586621679161489"><span class="hs-identifier hs-var">mba</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-116"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161490"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ()) -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161488"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679161488"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679161487"><span class="annot"><span class="annottext">r :: Vector a
+</span><a href="#local-6989586621679161487"><span class="hs-identifier hs-var hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqMat n a -&gt; Int -&gt; Vector a
+forall (n :: Nat) a (v :: * -&gt; *).
+(KnownNat n, Prim a, Vector v a) =&gt;
+SqMat n a -&gt; Int -&gt; v a
+</span><a href="Math.Matrix.html#viewRowSqMat"><span class="hs-identifier hs-var">viewRowSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">SqMat n a
+</span><a href="#local-6989586621679161492"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161488"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall (m :: * -&gt; *). Monad m =&gt; Int -&gt; (Int -&gt; m ()) -&gt; m ()
+</span><a href="My.Prelude.html#rep"><span class="hs-identifier hs-var">rep</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161490"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; ST s ()) -&gt; ST s ()) -&gt; (Int -&gt; ST s ()) -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679161486"><span class="annot"><span class="annottext">j :: Int
+</span><a href="#local-6989586621679161486"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-119"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679161485"><span class="annot"><span class="annottext">c :: Vector a
+</span><a href="#local-6989586621679161485"><span class="hs-identifier hs-var hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqMat n a -&gt; Int -&gt; Vector a
+forall (n :: Nat) a (v :: * -&gt; *).
+(KnownNat n, Prim a, Vector v a) =&gt;
+SqMat n a -&gt; Int -&gt; v a
+</span><a href="Math.Matrix.html#viewColSqMat"><span class="hs-identifier hs-var">viewColSqMat</span></a></span><span> </span><span class="annot"><span class="annottext">SqMat n a
+</span><a href="#local-6989586621679161491"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161486"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-120"></span><span>      </span><span class="annot"><span class="annottext">MutableByteArray (PrimState (ST s)) -&gt; Int -&gt; a -&gt; ST s ()
+forall a (m :: * -&gt; *).
+(Prim a, PrimMonad m) =&gt;
+MutableByteArray (PrimState m) -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">writeByteArray</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679161493"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">MutableByteArray s
+MutableByteArray (PrimState (ST s))
+</span><a href="#local-6989586621679161489"><span class="hs-identifier hs-var">mba</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161488"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161490"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679161486"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; ST s ()) -&gt; (Vector a -&gt; a) -&gt; Vector a -&gt; ST s ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Vector a -&gt; a
+forall a. (Prim a, Num a) =&gt; Vector a -&gt; a
+</span><span class="hs-identifier hs-var">P.sum</span></span><span> </span><span class="annot"><span class="annottext">(Vector a -&gt; ST s ()) -&gt; Vector a -&gt; ST s ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; Vector a -&gt; Vector a -&gt; Vector a
+forall a b c.
+(Prim a, Prim b, Prim c) =&gt;
+(a -&gt; b -&gt; c) -&gt; Vector a -&gt; Vector b -&gt; Vector c
+</span><span class="hs-identifier hs-var">P.zipWith</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(*)</span></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161487"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Vector a
+</span><a href="#local-6989586621679161485"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-121"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Math.Matrix.html#mulSqMat"><span class="hs-pragma hs-type">mulSqMat</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span id="local-6989586621679161481"><span id="local-6989586621679161482"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161482"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679161481"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prim</span></span><span> </span><span class="annot"><a href="#local-6989586621679161481"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-identifier hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161482"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161481"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-124"></span><span>  </span><span id="local-6989586621679161472"><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="hs-pragma">(</span><span class="annot"><span class="hs-pragma hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161472"><span class="hs-pragma hs-type">n</span></a></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">=&gt;</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Num</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-pragma hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161472"><span class="hs-pragma hs-type">n</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Int</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679161471"><span class="hs-pragma">{-# SPECIALIZE</span><span> </span><span class="hs-pragma">instance</span><span> </span><span class="hs-pragma">(</span><span class="annot"><span class="hs-pragma hs-type">KnownNat</span></span><span> </span><span class="annot"><a href="#local-6989586621679161471"><span class="hs-pragma hs-type">n</span></a></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">=&gt;</span><span> </span><span class="annot"><span class="hs-pragma hs-type">Num</span></span><span> </span><span class="hs-pragma">(</span><span class="annot"><a href="Math.Matrix.html#SqMat"><span class="hs-pragma hs-type">SqMat</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679161471"><span class="hs-pragma hs-type">n</span></a></span><span> </span><span class="annot"><span class="hs-pragma hs-type">Double</span></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-126"></span><span>  </span><span id="local-6989586621679161470"><span class="annot"><span class="annottext">+ :: SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="#local-6989586621679161470"><span class="hs-operator hs-var hs-var hs-var hs-var">(+)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+(a -&gt; a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat2"><span class="hs-identifier hs-var">liftSqMat2</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">+</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621679161469"><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+(a -&gt; a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat2"><span class="hs-identifier hs-var">liftSqMat2</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">-</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-130"></span><span>  </span><span id="local-6989586621679161468"><span class="annot"><span class="annottext">* :: SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="#local-6989586621679161468"><span class="hs-operator hs-var hs-var hs-var hs-var">(*)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Num a, Prim a) =&gt;
+SqMat n a -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#mulSqMat"><span class="hs-identifier hs-var">mulSqMat</span></a></span><span>
+</span><span id="line-131"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">*</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-132"></span><span>  </span><span id="local-6989586621679161467"><span class="annot"><span class="annottext">negate :: SqMat n a -&gt; SqMat n a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">negate</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a
+forall (n :: Nat) a.
+(KnownNat n, Prim a) =&gt;
+(a -&gt; a) -&gt; SqMat n a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat1"><span class="hs-identifier hs-var">liftSqMat1</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">negate</span></span><span>
+</span><span id="line-133"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">negate</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-134"></span><span>  </span><span id="local-6989586621679161466"><span class="annot"><span class="annottext">abs :: SqMat n a -&gt; SqMat n a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">abs</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqMat n a -&gt; SqMat n a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">abs</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-136"></span><span>  </span><span id="local-6989586621679161463"><span class="annot"><span class="annottext">signum :: SqMat n a -&gt; SqMat n a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">signum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqMat n a -&gt; SqMat n a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">signum</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-138"></span><span>  </span><span id="local-6989586621679161461"><span class="annot"><span class="annottext">fromInteger :: Integer -&gt; SqMat n a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromInteger</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; SqMat n a
+forall (n :: Nat) a. (KnownNat n, Num a, Prim a) =&gt; a -&gt; SqMat n a
+</span><a href="Math.Matrix.html#liftSqMat0"><span class="hs-identifier hs-var">liftSqMat0</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; SqMat n a) -&gt; (Integer -&gt; a) -&gt; Integer -&gt; SqMat n a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; a
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">fromInteger</span></span><span> </span><span class="hs-pragma">#-}</span></span></span><span>
+</span><span id="line-140"></span></pre></body></html>

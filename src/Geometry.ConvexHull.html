@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Geometry.ConvexHull</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Geometry.html"><span class="hs-identifier">Geometry</span></a></span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span id="local-6989586621679159646"><span class="annot"><a href="Geometry.ConvexHull.html#convexHull"><span class="hs-identifier hs-type">convexHull</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679159646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679159646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Geometry.html#Point"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679159646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Geometry.html#Point"><span class="hs-identifier hs-type">Point</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679159646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-8"></span><span id="convexHull"><span class="annot"><span class="annottext">convexHull :: [Point a] -&gt; [Point a]
+</span><a href="Geometry.ConvexHull.html#convexHull"><span class="hs-identifier hs-var hs-var">convexHull</span></a></span></span><span> </span><span id="local-6989586621679159644"><span class="annot"><span class="annottext">points :: [Point a]
+</span><a href="#local-6989586621679159644"><span class="hs-identifier hs-var">points</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a]
+forall a. Ord a =&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">L.sort</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159644"><span class="hs-identifier hs-var">points</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679159642"><span class="annot"><span class="annottext">leftest :: Point a
+</span><a href="#local-6989586621679159642"><span class="hs-identifier hs-var">leftest</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679159641"><span class="annot"><span class="annottext">sorted :: [Point a]
+</span><a href="#local-6989586621679159641"><span class="hs-identifier hs-var">sorted</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a]
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">([Point a] -&gt; [Point a])
+-&gt; ([Point a] -&gt; [Point a]) -&gt; [Point a] -&gt; [Point a]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+forall a. (Num a, Ord a) =&gt; [Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159642"><span class="hs-identifier hs-var">leftest</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">([Point a] -&gt; [Point a]) -&gt; [Point a] -&gt; [Point a]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Point a -&gt; Point a -&gt; Ordering) -&gt; [Point a] -&gt; [Point a]
+forall a. (a -&gt; a -&gt; Ordering) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">L.sortBy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a -&gt; Ordering
+forall a.
+(Num a, Ord a) =&gt;
+Point a -&gt; Point a -&gt; Point a -&gt; Ordering
+</span><a href="Geometry.html#compareCCW"><span class="hs-identifier hs-var">compareCCW</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159642"><span class="hs-identifier hs-var">leftest</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159641"><span class="hs-identifier hs-var">sorted</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>    </span><span id="local-6989586621679159638"><span class="annot"><span class="annottext">go :: [Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679159635"><span class="annot"><span class="annottext">p :: Point a
+</span><a href="#local-6989586621679159635"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679159634"><span class="annot"><span class="annottext">q :: Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679159633"><span class="annot"><span class="annottext">conv :: [Point a]
+</span><a href="#local-6989586621679159633"><span class="hs-identifier hs-var">conv</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679159632"><span class="annot"><span class="annottext">r :: Point a
+</span><a href="#local-6989586621679159632"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679159631"><span class="annot"><span class="annottext">rs :: [Point a]
+</span><a href="#local-6989586621679159631"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a -&gt; Ordering
+forall a.
+(Num a, Ord a) =&gt;
+Point a -&gt; Point a -&gt; Point a -&gt; Ordering
+</span><a href="Geometry.html#compareCCW"><span class="hs-identifier hs-var">compareCCW</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159635"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159632"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-14"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159632"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159635"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159633"><span class="hs-identifier hs-var">conv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159631"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-15"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159633"><span class="hs-identifier hs-var">conv</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159632"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159631"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">EQ</span></span><span>
+</span><span id="line-17"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; a
+forall a. Num a =&gt; Point a -&gt; Point a -&gt; a
+</span><a href="Geometry.html#dot"><span class="hs-identifier hs-var">dot</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159635"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159632"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; Point a -&gt; Point a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159635"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159632"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159633"><span class="hs-identifier hs-var">conv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159631"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-comment">-- q--p--r</span><span>
+</span><span id="line-18"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159635"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159634"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159633"><span class="hs-identifier hs-var">conv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159631"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-comment">-- q--r--p</span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679159628"><span class="annot"><span class="annottext">conv :: [Point a]
+</span><a href="#local-6989586621679159628"><span class="hs-identifier hs-var">conv</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679159627"><span class="annot"><span class="annottext">r :: Point a
+</span><a href="#local-6989586621679159627"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679159626"><span class="annot"><span class="annottext">rs :: [Point a]
+</span><a href="#local-6989586621679159626"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Point a] -&gt; [Point a] -&gt; [Point a]
+</span><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point a
+</span><a href="#local-6989586621679159627"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Point a -&gt; [Point a] -&gt; [Point a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159628"><span class="hs-identifier hs-var">conv</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159626"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="#local-6989586621679159638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679159625"><span class="annot"><span class="annottext">conv :: [Point a]
+</span><a href="#local-6989586621679159625"><span class="hs-identifier hs-var">conv</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Point a]
+</span><a href="#local-6989586621679159625"><span class="hs-identifier hs-var">conv</span></a></span><span>
+</span><span id="line-21"></span></pre></body></html>

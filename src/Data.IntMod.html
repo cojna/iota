@@ -1,0 +1,786 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE MagicHash #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE TypeInType #-}</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE UnboxedTuples #-}</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.IntMod</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Primitive</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Ratio</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">G</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GM</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span class="hs-cpp">
+
+#define MOD 1000000007
+</span><span>
+</span><span id="line-27"></span><span id="local-6989586621679156816"><span class="annot"><a href="Data.IntMod.html#modulus"><span class="hs-identifier hs-type">modulus</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679156816"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679156816"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-28"></span><span id="modulus"><span class="annot"><span class="annottext">modulus :: a
+</span><a href="Data.IntMod.html#modulus"><span class="hs-identifier hs-var hs-var">modulus</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">MOD</span><span>
+</span><span id="line-29"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.IntMod.html#modulus"><span class="hs-pragma hs-type">modulus</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">infixr</span><span> </span><span class="hs-number">8</span><span> </span><span class="annot"><a href="Data.IntMod.html#%5E%25"><span class="hs-operator hs-type">^%</span></a></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">infixl</span><span> </span><span class="hs-number">7</span><span> </span><span class="annot"><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-type">*%</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IntMod.html#%2F%25"><span class="hs-operator hs-type">/%</span></a></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">infixl</span><span> </span><span class="hs-number">6</span><span> </span><span class="annot"><a href="Data.IntMod.html#%2B%25"><span class="hs-operator hs-type">+%</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IntMod.html#-%25"><span class="hs-operator hs-type">-%</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Data.IntMod.html#%2B%25"><span class="hs-operator hs-type">(+%)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-36"></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156746"><span class="annot"><span class="annottext">x# :: Int#
+</span><a href="#local-6989586621679156746"><span class="hs-identifier hs-var">x#</span></a></span></span><span class="hs-special">)</span><span> </span><span id="%2B%25"><span class="annot"><span class="annottext">+% :: Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2B%25"><span class="hs-operator hs-var hs-var">+%</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156745"><span class="annot"><span class="annottext">y# :: Int#
+</span><a href="#local-6989586621679156745"><span class="hs-identifier hs-var">y#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156746"><span class="hs-identifier hs-var">x#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">+#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156745"><span class="hs-identifier hs-var">y#</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679156744"><span class="annot"><span class="annottext">r# :: Int#
+</span><a href="#local-6989586621679156744"><span class="hs-identifier hs-var">r#</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156744"><span class="hs-identifier hs-var">r#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">-#</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156744"><span class="hs-identifier hs-var">r#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">&gt;=#</span></span><span> </span><span class="hs-identifier">MOD#</span><span class="hs-special">)</span><span> </span><span class="hs-operator">*#</span><span> </span><span class="hs-identifier">MOD#</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">+%</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Data.IntMod.html#-%25"><span class="hs-operator hs-type">(-%)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-41"></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156743"><span class="annot"><span class="annottext">x# :: Int#
+</span><a href="#local-6989586621679156743"><span class="hs-identifier hs-var">x#</span></a></span></span><span class="hs-special">)</span><span> </span><span id="-%25"><span class="annot"><span class="annottext">-% :: Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#-%25"><span class="hs-operator hs-var hs-var">-%</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156742"><span class="annot"><span class="annottext">y# :: Int#
+</span><a href="#local-6989586621679156742"><span class="hs-identifier hs-var">y#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156743"><span class="hs-identifier hs-var">x#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">-#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156742"><span class="hs-identifier hs-var">y#</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679156741"><span class="annot"><span class="annottext">r# :: Int#
+</span><a href="#local-6989586621679156741"><span class="hs-identifier hs-var">r#</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156741"><span class="hs-identifier hs-var">r#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">+#</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156741"><span class="hs-identifier hs-var">r#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">&lt;#</span></span><span> </span><span class="annot"><span class="hs-number">0#</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">*#</span></span><span> </span><span class="hs-identifier">MOD#</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">-%</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-type">(*%)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-46"></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156740"><span class="annot"><span class="annottext">x# :: Int#
+</span><a href="#local-6989586621679156740"><span class="hs-identifier hs-var">x#</span></a></span></span><span class="hs-special">)</span><span> </span><span id="%2A%25"><span class="annot"><span class="annottext">*% :: Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-var hs-var">*%</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156739"><span class="annot"><span class="annottext">y# :: Int#
+</span><a href="#local-6989586621679156739"><span class="hs-identifier hs-var">y#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Word#
+</span><span class="hs-identifier hs-var">timesWord#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int# -&gt; Word#
+</span><span class="hs-identifier hs-var">int2Word#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156740"><span class="hs-identifier hs-var">x#</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int# -&gt; Word#
+</span><span class="hs-identifier hs-var">int2Word#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156739"><span class="hs-identifier hs-var">y#</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679156738"><span class="annot"><span class="annottext">z# :: Word#
+</span><a href="#local-6989586621679156738"><span class="hs-identifier hs-var">z#</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; (# Word#, Word# #)
+</span><span class="hs-identifier hs-var">timesWord2#</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156738"><span class="hs-identifier hs-var">z#</span></a></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156737"><span class="hs-identifier hs-var">im#</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">(#</span><span> </span><span id="local-6989586621679156736"><span class="annot"><span class="annottext">q# :: Word#
+</span><a href="#local-6989586621679156736"><span class="hs-identifier hs-var">q#</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-special">#)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Word#
+</span><span class="hs-identifier hs-var">minusWord#</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156738"><span class="hs-identifier hs-var">z#</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Word#
+</span><span class="hs-identifier hs-var">timesWord#</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156736"><span class="hs-identifier hs-var">q#</span></a></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156735"><span class="hs-identifier hs-var">m#</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-49"></span><span>      </span><span id="local-6989586621679156734"><span class="annot"><span class="annottext">v# :: Word#
+</span><a href="#local-6989586621679156734"><span class="hs-identifier hs-var">v#</span></a></span></span><span>
+</span><span id="line-50"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Bool
+</span><span class="hs-identifier hs-var">isTrue#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Int#
+</span><span class="hs-identifier hs-var">geWord#</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156734"><span class="hs-identifier hs-var">v#</span></a></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156735"><span class="hs-identifier hs-var">m#</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word# -&gt; Int#
+</span><span class="hs-identifier hs-var">word2Int#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Word#
+</span><span class="hs-identifier hs-var">plusWord#</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156734"><span class="hs-identifier hs-var">v#</span></a></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156735"><span class="hs-identifier hs-var">m#</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word# -&gt; Int#
+</span><span class="hs-identifier hs-var">word2Int#</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156734"><span class="hs-identifier hs-var">v#</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>    </span><span id="local-6989586621679156735"><span class="annot"><span class="annottext">m# :: Word#
+</span><a href="#local-6989586621679156735"><span class="hs-identifier hs-var hs-var">m#</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Word#
+</span><span class="hs-identifier hs-var">int2Word#</span></span><span> </span><span class="hs-identifier">MOD#</span><span>
+</span><span id="line-54"></span><span>    </span><span id="local-6989586621679156737"><span class="annot"><span class="annottext">im# :: Word#
+</span><a href="#local-6989586621679156737"><span class="hs-identifier hs-var hs-var">im#</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Word#
+</span><span class="hs-identifier hs-var">plusWord#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word# -&gt; Word# -&gt; Word#
+</span><span class="hs-identifier hs-var">quotWord#</span></span><span> </span><span class="annot"><span class="hs-number">0xffffffffffffffff##</span></span><span> </span><span class="annot"><span class="annottext">Word#
+</span><a href="#local-6989586621679156735"><span class="hs-identifier hs-var">m#</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1##</span></span><span>
+</span><span id="line-55"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">*%</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">{- |
+&gt;&gt;&gt; 1 /% 0
+0
+-}</span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Data.IntMod.html#%2F%25"><span class="hs-operator hs-type">(/%)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-62"></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156732"><span class="annot"><span class="annottext">x# :: Int#
+</span><a href="#local-6989586621679156732"><span class="hs-identifier hs-var">x#</span></a></span></span><span class="hs-special">)</span><span> </span><span id="%2F%25"><span class="annot"><span class="annottext">/% :: Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2F%25"><span class="hs-operator hs-var hs-var">/%</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679156731"><span class="annot"><span class="annottext">y# :: Int#
+</span><a href="#local-6989586621679156731"><span class="hs-identifier hs-var">y#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int# -&gt; Int# -&gt; Int
+</span><a href="#local-6989586621679156730"><span class="hs-identifier hs-var">go#</span></a></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156731"><span class="hs-identifier hs-var">y#</span></a></span><span> </span><span class="hs-identifier">MOD#</span><span> </span><span class="hs-number">1#</span><span> </span><span class="hs-number">0#</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>    </span><span id="local-6989586621679156730"><span class="annot"><span class="annottext">go# :: Int# -&gt; Int# -&gt; Int# -&gt; Int# -&gt; Int
+</span><a href="#local-6989586621679156730"><span class="hs-identifier hs-var hs-var">go#</span></a></span></span><span> </span><span id="local-6989586621679156729"><span class="annot"><span class="annottext">a# :: Int#
+</span><a href="#local-6989586621679156729"><span class="hs-identifier hs-var">a#</span></a></span></span><span> </span><span id="local-6989586621679156728"><span class="annot"><span class="annottext">b# :: Int#
+</span><a href="#local-6989586621679156728"><span class="hs-identifier hs-var">b#</span></a></span></span><span> </span><span id="local-6989586621679156727"><span class="annot"><span class="annottext">u# :: Int#
+</span><a href="#local-6989586621679156727"><span class="hs-identifier hs-var">u#</span></a></span></span><span> </span><span id="local-6989586621679156726"><span class="annot"><span class="annottext">v# :: Int#
+</span><a href="#local-6989586621679156726"><span class="hs-identifier hs-var">v#</span></a></span></span><span>
+</span><span id="line-65"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Bool
+</span><span class="hs-identifier hs-var">isTrue#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156728"><span class="hs-identifier hs-var">b#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">&gt;#</span></span><span> </span><span class="annot"><span class="hs-number">0#</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156729"><span class="hs-identifier hs-var">a#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">`quotInt#`</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156728"><span class="hs-identifier hs-var">b#</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-66"></span><span>        </span><span id="local-6989586621679156725"><span class="annot"><span class="annottext">q# :: Int#
+</span><a href="#local-6989586621679156725"><span class="hs-identifier hs-var">q#</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int# -&gt; Int# -&gt; Int
+</span><a href="#local-6989586621679156730"><span class="hs-identifier hs-var">go#</span></a></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156728"><span class="hs-identifier hs-var">b#</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156729"><span class="hs-identifier hs-var">a#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">-#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156725"><span class="hs-identifier hs-var">q#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">*#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156728"><span class="hs-identifier hs-var">b#</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156726"><span class="hs-identifier hs-var">v#</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156727"><span class="hs-identifier hs-var">u#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">-#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156725"><span class="hs-identifier hs-var">q#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">*#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156726"><span class="hs-identifier hs-var">v#</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156732"><span class="hs-identifier hs-var">x#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">*#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679156727"><span class="hs-identifier hs-var">u#</span></a></span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-operator hs-var">+#</span></span><span> </span><span class="hs-identifier">MOD#</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">`</span><span class="hs-identifier">remInt#</span><span class="hs-special">`</span><span> </span><span class="hs-identifier">MOD#</span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">/%</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Data.IntMod.html#%5E%25"><span class="hs-operator hs-type">(^%)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-71"></span><span id="local-6989586621679156724"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679156724"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="%5E%25"><span class="annot"><span class="annottext">^% :: Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%5E%25"><span class="hs-operator hs-var hs-var">^%</span></a></span></span><span> </span><span id="local-6989586621679156723"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679156723"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156723"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int
+forall a. (Bits a, Num a) =&gt; Int -&gt; Int -&gt; a -&gt; Int
+</span><a href="#local-6989586621679156721"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156724"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156723"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156723"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int
+forall a. (Bits a, Num a) =&gt; Int -&gt; Int -&gt; a -&gt; Int
+</span><a href="#local-6989586621679156721"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2F%25"><span class="hs-operator hs-var">/%</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156724"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156723"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-76"></span><span>    </span><span id="local-6989586621679156721"><span class="annot"><span class="annottext">go :: Int -&gt; Int -&gt; a -&gt; Int
+</span><a href="#local-6989586621679156721"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679156720"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156720"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679156719"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679156718"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679156718"><span class="hs-identifier hs-var">m</span></a></span></span><span>
+</span><span id="line-77"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679156718"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; a -&gt; Int
+</span><a href="#local-6989586621679156721"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156720"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-var">*%</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int -&gt; a
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679156718"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679156718"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156720"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-var">*%</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-79"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; a -&gt; Int
+</span><a href="#local-6989586621679156721"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156720"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-var">*%</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-var">*%</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156719"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int -&gt; a
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679156718"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-keyword">newtype</span><span> </span><span id="IntMod"><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-var">IntMod</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IntMod"><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-var">IntMod</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getIntMod"><span class="annot"><span class="annottext">IntMod -&gt; Int
+</span><a href="Data.IntMod.html#getIntMod"><span class="hs-identifier hs-var hs-var">getIntMod</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">}</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679156710"><span id="local-6989586621679156712"><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; Bool
+(IntMod -&gt; IntMod -&gt; Bool)
+-&gt; (IntMod -&gt; IntMod -&gt; Bool) -&gt; Eq IntMod
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: IntMod -&gt; IntMod -&gt; Bool
+$c/= :: IntMod -&gt; IntMod -&gt; Bool
+== :: IntMod -&gt; IntMod -&gt; Bool
+$c== :: IntMod -&gt; IntMod -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679156694"><span id="local-6989586621679156696"><span id="local-6989586621679156698"><span id="local-6989586621679156700"><span id="local-6989586621679156702"><span id="local-6989586621679156704"><span id="local-6989586621679156706"><span class="annot"><span class="annottext">Eq IntMod
+Eq IntMod =&gt;
+(IntMod -&gt; IntMod -&gt; Ordering)
+-&gt; (IntMod -&gt; IntMod -&gt; Bool)
+-&gt; (IntMod -&gt; IntMod -&gt; Bool)
+-&gt; (IntMod -&gt; IntMod -&gt; Bool)
+-&gt; (IntMod -&gt; IntMod -&gt; Bool)
+-&gt; (IntMod -&gt; IntMod -&gt; IntMod)
+-&gt; (IntMod -&gt; IntMod -&gt; IntMod)
+-&gt; Ord IntMod
+IntMod -&gt; IntMod -&gt; Bool
+IntMod -&gt; IntMod -&gt; Ordering
+IntMod -&gt; IntMod -&gt; IntMod
+forall a.
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: IntMod -&gt; IntMod -&gt; IntMod
+$cmin :: IntMod -&gt; IntMod -&gt; IntMod
+max :: IntMod -&gt; IntMod -&gt; IntMod
+$cmax :: IntMod -&gt; IntMod -&gt; IntMod
+&gt;= :: IntMod -&gt; IntMod -&gt; Bool
+$c&gt;= :: IntMod -&gt; IntMod -&gt; Bool
+&gt; :: IntMod -&gt; IntMod -&gt; Bool
+$c&gt; :: IntMod -&gt; IntMod -&gt; Bool
+&lt;= :: IntMod -&gt; IntMod -&gt; Bool
+$c&lt;= :: IntMod -&gt; IntMod -&gt; Bool
+&lt; :: IntMod -&gt; IntMod -&gt; Bool
+$c&lt; :: IntMod -&gt; IntMod -&gt; Bool
+compare :: IntMod -&gt; IntMod -&gt; Ordering
+$ccompare :: IntMod -&gt; IntMod -&gt; Ordering
+$cp1Ord :: Eq IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679156685"><span id="local-6989586621679156687"><span id="local-6989586621679156689"><span id="local-6989586621679156691"><span class="annot"><span class="annottext">ReadPrec [IntMod]
+ReadPrec IntMod
+Int -&gt; ReadS IntMod
+ReadS [IntMod]
+(Int -&gt; ReadS IntMod)
+-&gt; ReadS [IntMod]
+-&gt; ReadPrec IntMod
+-&gt; ReadPrec [IntMod]
+-&gt; Read IntMod
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [IntMod]
+$creadListPrec :: ReadPrec [IntMod]
+readPrec :: ReadPrec IntMod
+$creadPrec :: ReadPrec IntMod
+readList :: ReadS [IntMod]
+$creadList :: ReadS [IntMod]
+readsPrec :: Int -&gt; ReadS IntMod
+$creadsPrec :: Int -&gt; ReadS IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679156678"><span id="local-6989586621679156680"><span id="local-6989586621679156682"><span class="annot"><span class="annottext">Int -&gt; IntMod -&gt; ShowS
+[IntMod] -&gt; ShowS
+IntMod -&gt; String
+(Int -&gt; IntMod -&gt; ShowS)
+-&gt; (IntMod -&gt; String) -&gt; ([IntMod] -&gt; ShowS) -&gt; Show IntMod
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [IntMod] -&gt; ShowS
+$cshowList :: [IntMod] -&gt; ShowS
+show :: IntMod -&gt; String
+$cshow :: IntMod -&gt; String
+showsPrec :: Int -&gt; IntMod -&gt; ShowS
+$cshowsPrec :: Int -&gt; IntMod -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679156673"><span class="annot"><span class="annottext">Num IntMod
+Ord IntMod
+(Num IntMod, Ord IntMod) =&gt; (IntMod -&gt; Rational) -&gt; Real IntMod
+IntMod -&gt; Rational
+forall a. (Num a, Ord a) =&gt; (a -&gt; Rational) -&gt; Real a
+toRational :: IntMod -&gt; Rational
+$ctoRational :: IntMod -&gt; Rational
+$cp2Real :: Ord IntMod
+$cp1Real :: Num IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Real</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679156652"><span id="local-6989586621679156654"><span id="local-6989586621679156656"><span id="local-6989586621679156658"><span id="local-6989586621679156660"><span id="local-6989586621679156662"><span id="local-6989586621679156664"><span id="local-6989586621679156666"><span id="local-6989586621679156668"><span id="local-6989586621679156670"><span class="annot"><span class="annottext">Addr# -&gt; Int# -&gt; IntMod
+Addr# -&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+Addr# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+ByteArray# -&gt; Int# -&gt; IntMod
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+MutableByteArray# s -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+IntMod -&gt; Int#
+(IntMod -&gt; Int#)
+-&gt; (IntMod -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; IntMod)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s
+    -&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; IntMod)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    Addr# -&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s)
+-&gt; Prim IntMod
+forall s. Addr# -&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+forall s. Addr# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+forall s.
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+forall s.
+MutableByteArray# s -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+forall a.
+(a -&gt; Int#)
+-&gt; (a -&gt; Int#)
+-&gt; (ByteArray# -&gt; Int# -&gt; a)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s.
+    MutableByteArray# s -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (Addr# -&gt; Int# -&gt; a)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, a #))
+-&gt; (forall s. Addr# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; (forall s. Addr# -&gt; Int# -&gt; Int# -&gt; a -&gt; State# s -&gt; State# s)
+-&gt; Prim a
+setOffAddr# :: Addr# -&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+$csetOffAddr# :: forall s. Addr# -&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+writeOffAddr# :: Addr# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+$cwriteOffAddr# :: forall s. Addr# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+readOffAddr# :: Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+$creadOffAddr# :: forall s. Addr# -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+indexOffAddr# :: Addr# -&gt; Int# -&gt; IntMod
+$cindexOffAddr# :: Addr# -&gt; Int# -&gt; IntMod
+setByteArray# :: MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+$csetByteArray# :: forall s.
+MutableByteArray# s
+-&gt; Int# -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+writeByteArray# :: MutableByteArray# s -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+$cwriteByteArray# :: forall s.
+MutableByteArray# s -&gt; Int# -&gt; IntMod -&gt; State# s -&gt; State# s
+readByteArray# :: MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+$creadByteArray# :: forall s.
+MutableByteArray# s -&gt; Int# -&gt; State# s -&gt; (# State# s, IntMod #)
+indexByteArray# :: ByteArray# -&gt; Int# -&gt; IntMod
+$cindexByteArray# :: ByteArray# -&gt; Int# -&gt; IntMod
+alignment# :: IntMod -&gt; Int#
+$calignment# :: IntMod -&gt; Int#
+sizeOf# :: IntMod -&gt; Int#
+$csizeOf# :: IntMod -&gt; Int#
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Prim</span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span id="local-6989586621679156814"><span class="annot"><a href="Data.IntMod.html#intMod"><span class="hs-identifier hs-type">intMod</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679156814"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679156814"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span></span><span>
+</span><span id="line-85"></span><span id="intMod"><span class="annot"><span class="annottext">intMod :: a -&gt; IntMod
+</span><a href="Data.IntMod.html#intMod"><span class="hs-identifier hs-var hs-var">intMod</span></a></span></span><span> </span><span id="local-6989586621679156649"><span class="annot"><span class="annottext">x :: a
+</span><a href="#local-6989586621679156649"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; IntMod
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; IntMod) -&gt; Integer -&gt; IntMod
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mod</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679156649"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-identifier">MOD</span><span>
+</span><span id="line-86"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.IntMod.html#intMod"><span class="hs-pragma hs-type">intMod</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="annot"><a href="Data.IntMod.html#intModValidate"><span class="hs-identifier hs-type">intModValidate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-89"></span><span id="intModValidate"><span class="annot"><span class="annottext">intModValidate :: IntMod -&gt; Bool
+</span><a href="Data.IntMod.html#intModValidate"><span class="hs-identifier hs-var hs-var">intModValidate</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span id="local-6989586621679156646"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679156646"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156646"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156646"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="hs-identifier">MOD</span><span>
+</span><span id="line-90"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.IntMod.html#intModValidate"><span class="hs-pragma hs-type">intModValidate</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bounded</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-93"></span><span>  </span><span id="local-6989586621679156639"><span class="annot"><span class="annottext">minBound :: IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">minBound</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMod
+</span><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-var">IntMod</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-94"></span><span>  </span><span id="local-6989586621679156637"><span class="annot"><span class="annottext">maxBound :: IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">maxBound</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMod
+</span><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-var">IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; IntMod) -&gt; Int -&gt; IntMod
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+forall a. Num a =&gt; a
+</span><a href="Data.IntMod.html#modulus"><span class="hs-identifier hs-var">modulus</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679156622"><span id="local-6989586621679156624"><span id="local-6989586621679156626"><span id="local-6989586621679156628"><span id="local-6989586621679156632"><span id="local-6989586621679156634"><span class="annot"><span class="hs-identifier hs-type">Enum</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-97"></span><span>  </span><span id="local-6989586621679156620"><span class="annot"><span class="annottext">toEnum :: Int -&gt; IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toEnum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMod
+forall a. Integral a =&gt; a -&gt; IntMod
+</span><a href="Data.IntMod.html#intMod"><span class="hs-identifier hs-var">intMod</span></a></span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679156618"><span class="annot"><span class="annottext">fromEnum :: IntMod -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromEnum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679156604"><span id="local-6989586621679156607"><span id="local-6989586621679156609"><span id="local-6989586621679156611"><span id="local-6989586621679156613"><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-101"></span><span>  </span><span id="local-6989586621679156601"><span class="annot"><span class="annottext">quotRem :: IntMod -&gt; IntMod -&gt; (IntMod, IntMod)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">quotRem</span></span></span><span> </span><span id="local-6989586621679156599"><span class="annot"><span class="annottext">x :: IntMod
+</span><a href="#local-6989586621679156599"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679156598"><span class="annot"><span class="annottext">y :: IntMod
+</span><a href="#local-6989586621679156598"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156599"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; IntMod
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156598"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156599"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; IntMod
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156599"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; IntMod
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156598"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; IntMod
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156598"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>  </span><span id="local-6989586621679156595"><span class="annot"><span class="annottext">toInteger :: IntMod -&gt; Integer
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toInteger</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Integer) -&gt; IntMod -&gt; Integer
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integral Int =&gt; Int -&gt; Integer
+forall a. Integral a =&gt; a -&gt; Integer
+</span><span class="hs-identifier hs-var">toInteger</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679156590"><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-105"></span><span>  </span><span id="local-6989586621679156585"><span class="annot"><span class="annottext">+ :: IntMod -&gt; IntMod -&gt; IntMod
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(+)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; IntMod -&gt; IntMod -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2B%25"><span class="hs-operator hs-var">(+%)</span></a></span><span>
+</span><span id="line-106"></span><span>  </span><span id="local-6989586621679156583"><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; IntMod -&gt; IntMod -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#-%25"><span class="hs-operator hs-var">(-%)</span></a></span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621679156582"><span class="annot"><span class="annottext">* :: IntMod -&gt; IntMod -&gt; IntMod
+</span><a href="#local-6989586621679156582"><span class="hs-operator hs-var hs-var hs-var hs-var">(*)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; IntMod -&gt; IntMod -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2A%25"><span class="hs-operator hs-var">(*%)</span></a></span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679156581"><span class="annot"><span class="annottext">abs :: IntMod -&gt; IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">abs</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-109"></span><span>  </span><span id="local-6989586621679156578"><span class="annot"><span class="annottext">signum :: IntMod -&gt; IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">signum</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; IntMod
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; IntMod
+</span><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-var">IntMod</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>  </span><span id="local-6989586621679156575"><span class="annot"><span class="annottext">fromInteger :: Integer -&gt; IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromInteger</span></span></span><span> </span><span id="local-6989586621679156574"><span class="annot"><span class="annottext">x :: Integer
+</span><a href="#local-6989586621679156574"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Coercible Int IntMod =&gt; Int -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; IntMod) -&gt; (Integer -&gt; Int) -&gt; Integer -&gt; IntMod
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Int
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; IntMod) -&gt; Integer -&gt; IntMod
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mod</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679156574"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+forall a. Num a =&gt; a
+</span><a href="Data.IntMod.html#modulus"><span class="hs-identifier hs-var">modulus</span></a></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679156569"><span class="annot"><span class="hs-identifier hs-type">Fractional</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-113"></span><span>  </span><span id="local-6989586621679156566"><span class="annot"><span class="annottext">/ :: IntMod -&gt; IntMod -&gt; IntMod
+</span><a href="#local-6989586621679156566"><span class="hs-operator hs-var hs-var hs-var hs-var">(/)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; IntMod -&gt; IntMod -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="Data.IntMod.html#%2F%25"><span class="hs-operator hs-var">(/%)</span></a></span><span>
+</span><span id="line-114"></span><span>  </span><span id="local-6989586621679156565"><span class="annot"><span class="annottext">fromRational :: Rational -&gt; IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromRational</span></span></span><span> </span><span id="local-6989586621679156564"><span class="annot"><span class="annottext">q :: Rational
+</span><a href="#local-6989586621679156564"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; IntMod
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Integer
+forall a. Ratio a -&gt; a
+</span><span class="hs-identifier hs-var">numerator</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679156564"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; IntMod -&gt; IntMod
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; IntMod
+forall a. Num a =&gt; Integer -&gt; a
+</span><span class="hs-identifier hs-var">fromInteger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rational -&gt; Integer
+forall a. Ratio a -&gt; a
+</span><span class="hs-identifier hs-var">denominator</span></span><span> </span><span class="annot"><span class="annottext">Rational
+</span><a href="#local-6989586621679156564"><span class="hs-identifier hs-var">q</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-keyword">newtype</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="MVector"><span class="annot"><span class="hs-identifier hs-var">UM.MVector</span></span></span><span> </span><span id="local-6989586621679156780"><span class="annot"><a href="#local-6989586621679156780"><span class="hs-identifier hs-type hs-type">s</span></a></span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MV_IntMod"><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-var">MV_IntMod</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679156780"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span><span class="hs-keyword">newtype</span><span> </span><span class="hs-keyword">instance</span><span> </span><span id="Vector"><span class="annot"><span class="hs-identifier hs-var">U.Vector</span></span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="V_IntMod"><span class="annot"><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-var">V_IntMod</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Unbox</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span>
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-122"></span><span>  </span><span id="local-6989586621679156542"><span class="annot"><span class="annottext">basicLength :: MVector s IntMod -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicLength</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156540"><span class="annot"><a href="#local-6989586621679156540"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector s Int -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.basicLength</span></span><span> </span><span class="annot"><span class="annottext">MVector s Int
+</span><a href="#local-6989586621679156540"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicLength</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-124"></span><span>  </span><span id="local-6989586621679156539"><span class="annot"><span class="annottext">basicUnsafeSlice :: Int -&gt; Int -&gt; MVector s IntMod -&gt; MVector s IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeSlice</span></span></span><span> </span><span id="local-6989586621679156537"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679156537"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679156536"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679156536"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156535"><span class="annot"><a href="#local-6989586621679156535"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector s Int -&gt; MVector s IntMod
+forall s. MVector s Int -&gt; MVector s IntMod
+</span><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-var">MV_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector s Int -&gt; MVector s IntMod)
+-&gt; MVector s Int -&gt; MVector s IntMod
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; MVector s Int -&gt; MVector s Int
+forall (v :: * -&gt; * -&gt; *) a s.
+MVector v a =&gt;
+Int -&gt; Int -&gt; v s a -&gt; v s a
+</span><span class="hs-identifier hs-var">GM.basicUnsafeSlice</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156537"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156536"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s Int
+</span><a href="#local-6989586621679156535"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeSlice</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-126"></span><span>  </span><span id="local-6989586621679156534"><span class="annot"><span class="annottext">basicOverlaps :: MVector s IntMod -&gt; MVector s IntMod -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicOverlaps</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156532"><span class="annot"><a href="#local-6989586621679156532"><span class="hs-identifier hs-var">v1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156531"><span class="annot"><a href="#local-6989586621679156531"><span class="hs-identifier hs-var">v2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector s Int -&gt; MVector s Int -&gt; Bool
+forall (v :: * -&gt; * -&gt; *) a s.
+MVector v a =&gt;
+v s a -&gt; v s a -&gt; Bool
+</span><span class="hs-identifier hs-var">GM.basicOverlaps</span></span><span> </span><span class="annot"><span class="annottext">MVector s Int
+</span><a href="#local-6989586621679156532"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">MVector s Int
+</span><a href="#local-6989586621679156531"><span class="hs-identifier hs-var">v2</span></a></span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicOverlaps</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621679156530"><span class="annot"><span class="annottext">basicUnsafeNew :: Int -&gt; m (MVector (PrimState m) IntMod)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeNew</span></span></span><span> </span><span id="local-6989586621679156528"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679156528"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod
+forall s. MVector s Int -&gt; MVector s IntMod
+</span><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-var">MV_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod)
+-&gt; m (MVector (PrimState m) Int)
+-&gt; m (MVector (PrimState m) IntMod)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m (MVector (PrimState m) Int)
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+Int -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.basicUnsafeNew</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156528"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeNew</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-130"></span><span>  </span><span id="local-6989586621679156526"><span class="annot"><span class="annottext">basicInitialize :: MVector (PrimState m) IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicInitialize</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156524"><span class="annot"><a href="#local-6989586621679156524"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicInitialize</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156524"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-131"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicInitialize</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-132"></span><span>  </span><span id="local-6989586621679156523"><span class="annot"><span class="annottext">basicUnsafeReplicate :: Int -&gt; IntMod -&gt; m (MVector (PrimState m) IntMod)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeReplicate</span></span></span><span> </span><span id="local-6989586621679156521"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679156521"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679156520"><span class="annot"><span class="annottext">x :: IntMod
+</span><a href="#local-6989586621679156520"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod
+forall s. MVector s Int -&gt; MVector s IntMod
+</span><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-var">MV_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod)
+-&gt; m (MVector (PrimState m) Int)
+-&gt; m (MVector (PrimState m) IntMod)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+Int -&gt; a -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.basicUnsafeReplicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156521"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMod -&gt; Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156520"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeReplicate</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-134"></span><span>  </span><span id="local-6989586621679156519"><span class="annot"><span class="annottext">basicUnsafeRead :: MVector (PrimState m) IntMod -&gt; Int -&gt; m IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeRead</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156517"><span class="annot"><a href="#local-6989586621679156517"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679156516"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679156516"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; IntMod) -&gt; m Int -&gt; m IntMod
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.basicUnsafeRead</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156517"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156516"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeRead</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-136"></span><span>  </span><span id="local-6989586621679156515"><span class="annot"><span class="annottext">basicUnsafeWrite :: MVector (PrimState m) IntMod -&gt; Int -&gt; IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeWrite</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156513"><span class="annot"><a href="#local-6989586621679156513"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679156512"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679156512"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679156511"><span class="annot"><span class="annottext">x :: IntMod
+</span><a href="#local-6989586621679156511"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicUnsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156513"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156512"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMod -&gt; Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156511"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeWrite</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-138"></span><span>  </span><span id="local-6989586621679156510"><span class="annot"><span class="annottext">basicClear :: MVector (PrimState m) IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicClear</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156508"><span class="annot"><a href="#local-6989586621679156508"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicClear</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156508"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicClear</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-140"></span><span>  </span><span id="local-6989586621679156507"><span class="annot"><span class="annottext">basicSet :: MVector (PrimState m) IntMod -&gt; IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicSet</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156505"><span class="annot"><a href="#local-6989586621679156505"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679156504"><span class="annot"><span class="annottext">x :: IntMod
+</span><a href="#local-6989586621679156504"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicSet</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156505"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMod -&gt; Int
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">IntMod
+</span><a href="#local-6989586621679156504"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicSet</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-142"></span><span>  </span><span id="local-6989586621679156503"><span class="annot"><span class="annottext">basicUnsafeCopy :: MVector (PrimState m) IntMod
+-&gt; MVector (PrimState m) IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeCopy</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156501"><span class="annot"><a href="#local-6989586621679156501"><span class="hs-identifier hs-var">v1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156500"><span class="annot"><a href="#local-6989586621679156500"><span class="hs-identifier hs-var">v2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; MVector (PrimState m) Int -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicUnsafeCopy</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156501"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156500"><span class="hs-identifier hs-var">v2</span></a></span><span>
+</span><span id="line-143"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeCopy</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-144"></span><span>  </span><span id="local-6989586621679156499"><span class="annot"><span class="annottext">basicUnsafeMove :: MVector (PrimState m) IntMod
+-&gt; MVector (PrimState m) IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeMove</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156497"><span class="annot"><a href="#local-6989586621679156497"><span class="hs-identifier hs-var">v1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156496"><span class="annot"><a href="#local-6989586621679156496"><span class="hs-identifier hs-var">v2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; MVector (PrimState m) Int -&gt; m ()
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; v (PrimState m) a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.basicUnsafeMove</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156497"><span class="hs-identifier hs-var">v1</span></a></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156496"><span class="hs-identifier hs-var">v2</span></a></span><span>
+</span><span id="line-145"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeMove</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-146"></span><span>  </span><span id="local-6989586621679156495"><span class="annot"><span class="annottext">basicUnsafeGrow :: MVector (PrimState m) IntMod
+-&gt; Int -&gt; m (MVector (PrimState m) IntMod)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeGrow</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156493"><span class="annot"><a href="#local-6989586621679156493"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679156492"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679156492"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod
+forall s. MVector s Int -&gt; MVector s IntMod
+</span><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-var">MV_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod)
+-&gt; m (MVector (PrimState m) Int)
+-&gt; m (MVector (PrimState m) IntMod)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (v :: * -&gt; * -&gt; *) a (m :: * -&gt; *).
+(MVector v a, PrimMonad m) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.basicUnsafeGrow</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+</span><a href="#local-6989586621679156493"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156492"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeGrow</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">G.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><a href="Data.IntMod.html#IntMod"><span class="hs-identifier hs-type">IntMod</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-150"></span><span>  </span><span id="local-6989586621679156482"><span class="annot"><span class="annottext">basicUnsafeFreeze :: Mutable Vector (PrimState m) IntMod -&gt; m (Vector IntMod)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeFreeze</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156480"><span class="annot"><a href="#local-6989586621679156480"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Vector IntMod
+</span><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-var">V_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; Vector IntMod)
+-&gt; m (Vector Int) -&gt; m (Vector IntMod)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Mutable Vector (PrimState m) Int -&gt; m (Vector Int)
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, PrimMonad m) =&gt;
+Mutable v (PrimState m) a -&gt; m (v a)
+</span><span class="hs-identifier hs-var">G.basicUnsafeFreeze</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+Mutable Vector (PrimState m) Int
+</span><a href="#local-6989586621679156480"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-151"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeFreeze</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-152"></span><span>  </span><span id="local-6989586621679156479"><span class="annot"><span class="annottext">basicUnsafeThaw :: Vector IntMod -&gt; m (Mutable Vector (PrimState m) IntMod)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeThaw</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-type">V_IntMod</span></a></span><span> </span><span id="local-6989586621679156477"><span class="annot"><a href="#local-6989586621679156477"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod
+forall s. MVector s Int -&gt; MVector s IntMod
+</span><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-var">MV_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int -&gt; MVector (PrimState m) IntMod)
+-&gt; m (MVector (PrimState m) Int)
+-&gt; m (MVector (PrimState m) IntMod)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; m (Mutable Vector (PrimState m) Int)
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, PrimMonad m) =&gt;
+v a -&gt; m (Mutable v (PrimState m) a)
+</span><span class="hs-identifier hs-var">G.basicUnsafeThaw</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679156477"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-153"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeThaw</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-154"></span><span>  </span><span id="local-6989586621679156476"><span class="annot"><span class="annottext">basicLength :: Vector IntMod -&gt; Int
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicLength</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-type">V_IntMod</span></a></span><span> </span><span id="local-6989586621679156474"><span class="annot"><a href="#local-6989586621679156474"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int
+forall (v :: * -&gt; *) a. Vector v a =&gt; v a -&gt; Int
+</span><span class="hs-identifier hs-var">G.basicLength</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679156474"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-155"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicLength</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-156"></span><span>  </span><span id="local-6989586621679156473"><span class="annot"><span class="annottext">basicUnsafeSlice :: Int -&gt; Int -&gt; Vector IntMod -&gt; Vector IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeSlice</span></span></span><span> </span><span id="local-6989586621679156471"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679156471"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679156470"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679156470"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-type">V_IntMod</span></a></span><span> </span><span id="local-6989586621679156469"><span class="annot"><a href="#local-6989586621679156469"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Vector IntMod
+</span><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-var">V_IntMod</span></a></span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; Vector IntMod) -&gt; Vector Int -&gt; Vector IntMod
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Vector Int -&gt; Vector Int
+forall (v :: * -&gt; *) a. Vector v a =&gt; Int -&gt; Int -&gt; v a -&gt; v a
+</span><span class="hs-identifier hs-var">G.basicUnsafeSlice</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156471"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156470"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679156469"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-157"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeSlice</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-158"></span><span>  </span><span id="local-6989586621679156468"><span class="annot"><span class="annottext">basicUnsafeIndexM :: Vector IntMod -&gt; Int -&gt; m IntMod
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeIndexM</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-type">V_IntMod</span></a></span><span> </span><span id="local-6989586621679156466"><span class="annot"><a href="#local-6989586621679156466"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679156465"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679156465"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMod
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; IntMod) -&gt; m Int -&gt; m IntMod
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int -&gt; m Int
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, Monad m) =&gt;
+v a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">G.basicUnsafeIndexM</span></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679156466"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679156465"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-159"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">basicUnsafeIndexM</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-160"></span><span>  </span><span id="local-6989586621679156464"><span class="annot"><span class="annottext">basicUnsafeCopy :: Mutable Vector (PrimState m) IntMod -&gt; Vector IntMod -&gt; m ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">basicUnsafeCopy</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#MV_IntMod"><span class="hs-identifier hs-type">MV_IntMod</span></a></span><span> </span><span id="local-6989586621679156462"><span class="annot"><a href="#local-6989586621679156462"><span class="hs-identifier hs-var">mv</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IntMod.html#V_IntMod"><span class="hs-identifier hs-type">V_IntMod</span></a></span><span> </span><span id="local-6989586621679156461"><span class="annot"><a href="#local-6989586621679156461"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Mutable Vector (PrimState m) Int -&gt; Vector Int -&gt; m ()
+forall (v :: * -&gt; *) a (m :: * -&gt; *).
+(Vector v a, PrimMonad m) =&gt;
+Mutable v (PrimState m) a -&gt; v a -&gt; m ()
+</span><span class="hs-identifier hs-var">G.basicUnsafeCopy</span></span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int
+Mutable Vector (PrimState m) Int
+</span><a href="#local-6989586621679156462"><span class="hs-identifier hs-var">mv</span></a></span><span> </span><span class="annot"><span class="annottext">Vector Int
+</span><a href="#local-6989586621679156461"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-161"></span><span>  </span><span id="local-6989586621679156460"><span class="annot"><span class="annottext">elemseq :: Vector IntMod -&gt; IntMod -&gt; b -&gt; b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">elemseq</span></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMod -&gt; b -&gt; b
+forall a b. a -&gt; b -&gt; b
+</span><span class="hs-identifier hs-var">seq</span></span><span>
+</span><span id="line-162"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">elemseq</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-163"></span></pre></body></html>

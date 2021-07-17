@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE MagicHash #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Bits.Utils</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Exts</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Unsafe.Coerce</span></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">infixl</span><span> </span><span class="hs-number">8</span><span> </span><span class="annot"><a href="Data.Bits.Utils.html#.%3C%3C."><span class="hs-operator hs-type">.&lt;&lt;.</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Bits.Utils.html#.%3E%3E."><span class="hs-operator hs-type">.&gt;&gt;.</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Bits.Utils.html#.%3E%3E%3E."><span class="hs-operator hs-type">.&gt;&gt;&gt;.</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">infixl</span><span> </span><span class="hs-number">6</span><span> </span><span class="annot"><a href="Data.Bits.Utils.html#.%5E."><span class="hs-operator hs-type">.^.</span></a></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span id="local-6989586621679153645"><span class="annot"><a href="Data.Bits.Utils.html#.%3C%3C."><span class="hs-operator hs-type">(.&lt;&lt;.)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679153645"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153645"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153645"><span class="hs-identifier hs-type">i</span></a></span></span><span>
+</span><span id="line-15"></span><span id=".%3C%3C."><span class="annot"><span class="annottext">.&lt;&lt;. :: i -&gt; Int -&gt; i
+</span><a href="Data.Bits.Utils.html#.%3C%3C."><span class="hs-operator hs-var hs-var">(.&lt;&lt;.)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">i -&gt; Int -&gt; i
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span>
+</span><span id="line-16"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">.&lt;&lt;.</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679153643"><span class="annot"><a href="Data.Bits.Utils.html#.%3E%3E."><span class="hs-operator hs-type">(.&gt;&gt;.)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679153643"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153643"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153643"><span class="hs-identifier hs-type">i</span></a></span></span><span>
+</span><span id="line-19"></span><span id=".%3E%3E."><span class="annot"><span class="annottext">.&gt;&gt;. :: i -&gt; Int -&gt; i
+</span><a href="Data.Bits.Utils.html#.%3E%3E."><span class="hs-operator hs-var hs-var">(.&gt;&gt;.)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">i -&gt; Int -&gt; i
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span>
+</span><span id="line-20"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">.&gt;&gt;.</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Data.Bits.Utils.html#.%3E%3E%3E."><span class="hs-operator hs-type">(.&gt;&gt;&gt;.)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-23"></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679153641"><span class="annot"><span class="annottext">x# :: Int#
+</span><a href="#local-6989586621679153641"><span class="hs-identifier hs-var">x#</span></a></span></span><span class="hs-special">)</span><span> </span><span id=".%3E%3E%3E."><span class="annot"><span class="annottext">.&gt;&gt;&gt;. :: Int -&gt; Int -&gt; Int
+</span><a href="Data.Bits.Utils.html#.%3E%3E%3E."><span class="hs-operator hs-var hs-var">.&gt;&gt;&gt;.</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">I#</span></span><span> </span><span id="local-6989586621679153640"><span class="annot"><span class="annottext">i# :: Int#
+</span><a href="#local-6989586621679153640"><span class="hs-identifier hs-var">i#</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int# -&gt; Int
+</span><span class="hs-identifier hs-var">I#</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int# -&gt; Int# -&gt; Int#
+</span><span class="hs-identifier hs-var">uncheckedIShiftRL#</span></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679153641"><span class="hs-identifier hs-var">x#</span></a></span><span> </span><span class="annot"><span class="annottext">Int#
+</span><a href="#local-6989586621679153640"><span class="hs-identifier hs-var">i#</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">.&gt;&gt;&gt;.</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span id="local-6989586621679153639"><span class="annot"><a href="Data.Bits.Utils.html#.%5E."><span class="hs-operator hs-type">(.^.)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679153639"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153639"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153639"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679153639"><span class="hs-identifier hs-type">i</span></a></span></span><span>
+</span><span id="line-27"></span><span id=".%5E."><span class="annot"><span class="annottext">.^. :: i -&gt; i -&gt; i
+</span><a href="Data.Bits.Utils.html#.%5E."><span class="hs-operator hs-var hs-var">(.^.)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; i
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">xor</span></span><span>
+</span><span id="line-28"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">.^.</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; bitReverse 0x000f00f60000f6f6
+ 8029636662487216128
+ &gt;&gt;&gt; 0x6f6f00006f00f000
+ 8029636662487216128
+-}</span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Data.Bits.Utils.html#bitReverse"><span class="hs-identifier hs-type">bitReverse</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-37"></span><span id="bitReverse"><span class="annot"><span class="annottext">bitReverse :: Int -&gt; Int
+</span><a href="Data.Bits.Utils.html#bitReverse"><span class="hs-identifier hs-var hs-var">bitReverse</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">Word64 -&gt; Int
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Int) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="hs-number">32</span></span><span> </span><span class="annot"><span class="hs-number">0xffffffff00000000</span></span><span> </span><span class="annot"><span class="hs-number">0x00000000ffffffff</span></span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="hs-number">16</span></span><span> </span><span class="annot"><span class="hs-number">0xffff0000ffff0000</span></span><span> </span><span class="annot"><span class="hs-number">0x0000ffff0000ffff</span></span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="hs-number">08</span></span><span> </span><span class="annot"><span class="hs-number">0xff00ff00ff00ff00</span></span><span> </span><span class="annot"><span class="hs-number">0x00ff00ff00ff00ff</span></span><span>
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="hs-number">04</span></span><span> </span><span class="annot"><span class="hs-number">0xf0f0f0f0f0f0f0f0</span></span><span> </span><span class="annot"><span class="hs-number">0x0f0f0f0f0f0f0f0f</span></span><span>
+</span><span id="line-43"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="hs-number">02</span></span><span> </span><span class="annot"><span class="hs-number">0xcccccccccccccccc</span></span><span> </span><span class="annot"><span class="hs-number">0x3333333333333333</span></span><span>
+</span><span id="line-44"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var">step</span></a></span><span> </span><span class="annot"><span class="hs-number">01</span></span><span> </span><span class="annot"><span class="hs-number">0xaaaaaaaaaaaaaaaa</span></span><span> </span><span class="annot"><span class="hs-number">0x5555555555555555</span></span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="annottext">(Word64 -&gt; Word64) -&gt; (Int -&gt; Word64) -&gt; Int -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word64
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><a href="#local-6989586621679153634"><span class="hs-identifier hs-type">step</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word64</span></span><span>
+</span><span id="line-48"></span><span>    </span><span id="local-6989586621679153634"><span class="annot"><span class="annottext">step :: Int -&gt; Word64 -&gt; Word64 -&gt; Word64 -&gt; Word64
+</span><a href="#local-6989586621679153634"><span class="hs-identifier hs-var hs-var">step</span></a></span></span><span> </span><span id="local-6989586621679153633"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679153633"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679153632"><span class="annot"><span class="annottext">ml :: Word64
+</span><a href="#local-6989586621679153632"><span class="hs-identifier hs-var">ml</span></a></span></span><span> </span><span id="local-6989586621679153631"><span class="annot"><span class="annottext">mr :: Word64
+</span><a href="#local-6989586621679153631"><span class="hs-identifier hs-var">mr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679153630"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679153630"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679153630"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679153632"><span class="hs-identifier hs-var">ml</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679153633"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Int -&gt; Word64
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679153630"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679153631"><span class="hs-identifier hs-var">mr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679153633"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="#local-6989586621679153634"><span class="hs-pragma hs-type">step</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-50"></span></pre></body></html>

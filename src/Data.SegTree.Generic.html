@@ -1,0 +1,934 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-comment">{- |
+ = Segment Tree
+ == Reference
+   * &lt;https://codeforces.com/blog/entry/18051&gt;
+-}</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.SegTree.Generic</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">G</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Generic.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">GM</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Unsafe.Coerce</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">newtype</span><span> </span><span id="SegTree"><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-var">SegTree</span></a></span></span><span> </span><span id="local-6989586621679158197"><span class="annot"><a href="#local-6989586621679158197"><span class="hs-identifier hs-type">mv</span></a></span></span><span> </span><span id="local-6989586621679158196"><span class="annot"><a href="#local-6989586621679158196"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679158195"><span class="annot"><a href="#local-6989586621679158195"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SegTree"><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-var">SegTree</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getSegTree"><span class="annot"><span class="annottext">SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679158197"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158196"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158195"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span id="local-6989586621679158098"><span id="local-6989586621679158099"><span id="local-6989586621679158100"><span class="annot"><a href="Data.SegTree.Generic.html#newSegTree"><span class="hs-identifier hs-type">newSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158100"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158099"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158100"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158098"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-24"></span><span>  </span><span class="annot"><a href="#local-6989586621679158098"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158099"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158098"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158100"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-25"></span><span id="newSegTree"><span class="annot"><span class="annottext">newSegTree :: Int -&gt; m (SegTree mv (PrimState m) a)
+</span><a href="Data.SegTree.Generic.html#newSegTree"><span class="hs-identifier hs-var hs-var">newSegTree</span></a></span></span><span> </span><span id="local-6989586621679158096"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158096"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; SegTree mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. mv s a -&gt; SegTree mv s a
+</span><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-var">SegTree</span></a></span><span> </span><span class="annot"><span class="annottext">(mv (PrimState m) a -&gt; SegTree mv (PrimState m) a)
+-&gt; m (mv (PrimState m) a) -&gt; m (SegTree mv (PrimState m) a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; m (mv (PrimState m) a)
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+Int -&gt; a -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="Data.SegTree.Generic.html#extendToPowerOfTwo"><span class="hs-identifier hs-var">extendToPowerOfTwo</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158096"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- | /O(n)/</span><span>
+</span><span id="line-28"></span><span id="local-6989586621679158089"><span id="local-6989586621679158090"><span id="local-6989586621679158091"><span class="annot"><a href="Data.SegTree.Generic.html#buildSegTree"><span class="hs-identifier hs-type">buildSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158091"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158090"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">G.Vector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158089"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158091"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><a href="#local-6989586621679158089"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158091"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><a href="#local-6989586621679158090"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">G.Mutable</span></span><span> </span><span class="annot"><a href="#local-6989586621679158089"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158090"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158091"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-32"></span><span id="buildSegTree"><span class="annot"><span class="annottext">buildSegTree :: v a -&gt; m (SegTree (Mutable v) (PrimState m) a)
+</span><a href="Data.SegTree.Generic.html#buildSegTree"><span class="hs-identifier hs-var hs-var">buildSegTree</span></a></span></span><span> </span><span id="local-6989586621679158087"><span class="annot"><span class="annottext">vec :: v a
+</span><a href="#local-6989586621679158087"><span class="hs-identifier hs-var">vec</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158086"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158086"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="Data.SegTree.Generic.html#extendToPowerOfTwo"><span class="hs-identifier hs-var">extendToPowerOfTwo</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">v a -&gt; Int
+forall (v :: * -&gt; *) a. Vector v a =&gt; v a -&gt; Int
+</span><span class="hs-identifier hs-var">G.length</span></span><span> </span><span class="annot"><span class="annottext">v a
+</span><a href="#local-6989586621679158087"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621679158084"><span class="annot"><span class="annottext">Mutable v (PrimState m) a
+</span><a href="#local-6989586621679158084"><span class="hs-identifier hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; m (Mutable v (PrimState m) a)
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+Int -&gt; a -&gt; m (v (PrimState m) a)
+</span><span class="hs-identifier hs-var">GM.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158086"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a -&gt; v a -&gt; m ()
+forall (m :: * -&gt; *) (v :: * -&gt; *) a.
+(PrimMonad m, Vector v a) =&gt;
+Mutable v (PrimState m) a -&gt; v a -&gt; m ()
+</span><span class="hs-identifier hs-var">G.unsafeCopy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+-&gt; Int -&gt; Mutable v (PrimState m) a -&gt; Mutable v (PrimState m) a
+forall (v :: * -&gt; * -&gt; *) a s.
+MVector v a =&gt;
+Int -&gt; Int -&gt; v s a -&gt; v s a
+</span><span class="hs-identifier hs-var">GM.unsafeSlice</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158086"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">v a -&gt; Int
+forall (v :: * -&gt; *) a. Vector v a =&gt; v a -&gt; Int
+</span><span class="hs-identifier hs-var">G.length</span></span><span> </span><span class="annot"><span class="annottext">v a
+</span><a href="#local-6989586621679158087"><span class="hs-identifier hs-var">vec</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a
+</span><a href="#local-6989586621679158084"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">v a
+</span><a href="#local-6989586621679158087"><span class="hs-identifier hs-var">vec</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158086"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158079"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679158079"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158078"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158078"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158078"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span>
+</span><span id="line-38"></span><span>      </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; m a -&gt; m (a -&gt; a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a
+</span><a href="#local-6989586621679158084"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158078"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>      </span><span class="annot"><span class="annottext">m (a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a
+</span><a href="#local-6989586621679158084"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158078"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>      </span><span class="annot"><span class="annottext">m a -&gt; (a -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a
+</span><a href="#local-6989586621679158084"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158078"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679158079"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158078"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>  </span><span class="annot"><span class="annottext">SegTree (Mutable v) (PrimState m) a
+-&gt; m (SegTree (Mutable v) (PrimState m) a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(SegTree (Mutable v) (PrimState m) a
+ -&gt; m (SegTree (Mutable v) (PrimState m) a))
+-&gt; SegTree (Mutable v) (PrimState m) a
+-&gt; m (SegTree (Mutable v) (PrimState m) a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a -&gt; SegTree (Mutable v) (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. mv s a -&gt; SegTree mv s a
+</span><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-var">SegTree</span></a></span><span> </span><span class="annot"><span class="annottext">Mutable v (PrimState m) a
+</span><a href="#local-6989586621679158084"><span class="hs-identifier hs-var">tree</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- | /O(1)/</span><span>
+</span><span id="line-45"></span><span id="local-6989586621679158070"><span id="local-6989586621679158071"><span id="local-6989586621679158072"><span class="annot"><a href="Data.SegTree.Generic.html#readSegTree"><span class="hs-identifier hs-type">readSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158072"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158071"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158070"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158072"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-47"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158070"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158071"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158072"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-48"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><a href="#local-6989586621679158071"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158072"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-50"></span><span id="readSegTree"><span class="annot"><span class="annottext">readSegTree :: SegTree mv (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.SegTree.Generic.html#readSegTree"><span class="hs-identifier hs-var hs-var">readSegTree</span></a></span></span><span> </span><span id="local-6989586621679158068"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158068"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span id="local-6989586621679158067"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158067"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158066"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679158066"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158068"><span class="hs-identifier hs-var">segtree</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158065"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158065"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.length</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158066"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158066"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158067"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158065"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#readSegTree"><span class="hs-pragma hs-type">readSegTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span id="local-6989586621679158133"><span id="local-6989586621679158134"><span id="local-6989586621679158135"><span class="annot"><a href="Data.SegTree.Generic.html#pullSegTree"><span class="hs-identifier hs-type">pullSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158135"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158134"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158133"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158135"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158133"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158134"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158135"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-59"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><a href="#local-6989586621679158134"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-61"></span><span id="pullSegTree"><span class="annot"><span class="annottext">pullSegTree :: SegTree mv (PrimState m) a -&gt; Int -&gt; m ()
+</span><a href="Data.SegTree.Generic.html#pullSegTree"><span class="hs-identifier hs-var hs-var">pullSegTree</span></a></span></span><span> </span><span id="local-6989586621679158060"><span class="annot"><span class="annottext">seg :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158060"><span class="hs-identifier hs-var">seg</span></a></span></span><span> </span><span id="local-6989586621679158059"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158059"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158058"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679158058"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158060"><span class="hs-identifier hs-var">seg</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; m a -&gt; m (a -&gt; a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158058"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158059"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>    </span><span class="annot"><span class="annottext">m (a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158058"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftL</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158059"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>    </span><span class="annot"><span class="annottext">m a -&gt; (a -&gt; m ()) -&gt; m ()
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158058"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158059"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-67"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#pullSegTree"><span class="hs-pragma hs-type">pullSegTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-70"></span><span id="local-6989586621679158055"><span id="local-6989586621679158056"><span id="local-6989586621679158057"><span class="annot"><a href="Data.SegTree.Generic.html#writeSegTree"><span class="hs-identifier hs-type">writeSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158057"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158056"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158055"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158057"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158055"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158056"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158057"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-74"></span><span>  </span><span class="annot"><a href="#local-6989586621679158057"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><a href="#local-6989586621679158056"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-76"></span><span id="writeSegTree"><span class="annot"><span class="annottext">writeSegTree :: SegTree mv (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><a href="Data.SegTree.Generic.html#writeSegTree"><span class="hs-identifier hs-var hs-var">writeSegTree</span></a></span></span><span> </span><span id="local-6989586621679158053"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158053"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span id="local-6989586621679158052"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158052"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679158051"><span class="annot"><span class="annottext">v :: a
+</span><a href="#local-6989586621679158051"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158050"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679158050"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158053"><span class="hs-identifier hs-var">segtree</span></a></span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158049"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158049"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.length</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158050"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.unsafeWrite</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158050"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158052"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158049"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158051"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158052"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158049"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158048"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679158048"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158047"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158047"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-81"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158047"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; Int -&gt; m ()
+forall a (m :: * -&gt; *) (mv :: * -&gt; * -&gt; *).
+(Monoid a, PrimMonad m, MVector mv a) =&gt;
+SegTree mv (PrimState m) a -&gt; Int -&gt; m ()
+</span><a href="Data.SegTree.Generic.html#pullSegTree"><span class="hs-identifier hs-var">pullSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158053"><span class="hs-identifier hs-var">segtree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158047"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-83"></span><span>      </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679158048"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158047"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-84"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#writeSegTree"><span class="hs-pragma hs-type">writeSegTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- | /O(log n)/</span><span>
+</span><span id="line-87"></span><span id="local-6989586621679158043"><span id="local-6989586621679158044"><span id="local-6989586621679158045"><span class="annot"><a href="Data.SegTree.Generic.html#modifySegTree"><span class="hs-identifier hs-type">modifySegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158045"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158044"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158043"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158045"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-89"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158043"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158044"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158045"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679158045"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158045"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-91"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-92"></span><span>  </span><span class="annot"><a href="#local-6989586621679158044"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-93"></span><span id="modifySegTree"><span class="annot"><span class="annottext">modifySegTree :: SegTree mv (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><a href="Data.SegTree.Generic.html#modifySegTree"><span class="hs-identifier hs-var hs-var">modifySegTree</span></a></span></span><span> </span><span id="local-6989586621679158041"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158041"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span id="local-6989586621679158040"><span class="annot"><span class="annottext">f :: a -&gt; a
+</span><a href="#local-6989586621679158040"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679158039"><span class="annot"><span class="annottext">k :: Int
+</span><a href="#local-6989586621679158039"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158038"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679158038"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158041"><span class="hs-identifier hs-var">segtree</span></a></span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158037"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158037"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.length</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158038"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">GM.unsafeModify</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158038"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+</span><a href="#local-6989586621679158040"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158039"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158037"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>  </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ())
+-&gt; Int -&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158039"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158037"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ())
+-&gt; ((Int -&gt; m ()) -&gt; Int -&gt; m ()) -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158035"><span class="annot"><span class="annottext">loop :: Int -&gt; m ()
+</span><a href="#local-6989586621679158035"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158034"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158034"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-98"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; m () -&gt; m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158034"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(m () -&gt; m ()) -&gt; m () -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-99"></span><span>      </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; Int -&gt; m ()
+forall a (m :: * -&gt; *) (mv :: * -&gt; * -&gt; *).
+(Monoid a, PrimMonad m, MVector mv a) =&gt;
+SegTree mv (PrimState m) a -&gt; Int -&gt; m ()
+</span><a href="Data.SegTree.Generic.html#pullSegTree"><span class="hs-identifier hs-var">pullSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158041"><span class="hs-identifier hs-var">segtree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158034"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-100"></span><span>      </span><span class="annot"><span class="annottext">Int -&gt; m ()
+</span><a href="#local-6989586621679158035"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m ()) -&gt; Int -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158034"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-101"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#modifySegTree"><span class="hs-pragma hs-type">modifySegTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-comment">{- | mappend [l..r)
+
+ /O(log n)/
+-}</span><span>
+</span><span id="line-107"></span><span id="local-6989586621679158116"><span id="local-6989586621679158117"><span id="local-6989586621679158118"><span class="annot"><a href="Data.SegTree.Generic.html#mappendFromTo"><span class="hs-identifier hs-type">mappendFromTo</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-108"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158118"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158117"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158116"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158118"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-109"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158116"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158117"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158118"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-110"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-111"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-112"></span><span>  </span><span class="annot"><a href="#local-6989586621679158117"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158118"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-113"></span><span id="mappendFromTo"><span class="annot"><span class="annottext">mappendFromTo :: SegTree mv (PrimState m) a -&gt; Int -&gt; Int -&gt; m a
+</span><a href="Data.SegTree.Generic.html#mappendFromTo"><span class="hs-identifier hs-var hs-var">mappendFromTo</span></a></span></span><span> </span><span id="local-6989586621679158032"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158032"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span id="local-6989586621679158031"><span class="annot"><span class="annottext">l0 :: Int
+</span><a href="#local-6989586621679158031"><span class="hs-identifier hs-var">l0</span></a></span></span><span> </span><span id="local-6989586621679158030"><span class="annot"><span class="annottext">r0 :: Int
+</span><a href="#local-6989586621679158030"><span class="hs-identifier hs-var">r0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158029"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679158029"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158032"><span class="hs-identifier hs-var">segtree</span></a></span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158028"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158028"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.length</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158029"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-116"></span><span>  </span><span class="annot"><span class="annottext">((a -&gt; a -&gt; Int -&gt; Int -&gt; m a) -&gt; a -&gt; a -&gt; Int -&gt; Int -&gt; m a)
+-&gt; a -&gt; a -&gt; Int -&gt; Int -&gt; m a
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158027"><span class="annot"><span class="annottext">loop :: a -&gt; a -&gt; Int -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679158027"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158026"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158026"><span class="hs-identifier hs-var">accL</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158025"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158025"><span class="hs-identifier hs-var">accR</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158024"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158024"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158023"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158023"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-118"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158024"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158023"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-119"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-120"></span><span>            </span><span id="local-6989586621679158021"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158021"><span class="hs-identifier hs-var">accL'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-121"></span><span>              </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158024"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-122"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158026"><span class="hs-identifier hs-var">accL</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158029"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158024"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-123"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158026"><span class="hs-identifier hs-var">accL</span></a></span><span>
+</span><span id="line-124"></span><span>            </span><span id="local-6989586621679158019"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158019"><span class="hs-identifier hs-var">accR'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-125"></span><span>              </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158023"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-126"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; a -&gt; a -&gt; a
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158025"><span class="hs-identifier hs-var">accR</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158029"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158023"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158025"><span class="hs-identifier hs-var">accR</span></a></span><span>
+</span><span id="line-128"></span><span>            </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Int -&gt; Int -&gt; m a
+</span><a href="#local-6989586621679158027"><span class="hs-identifier hs-var">loop</span></a></span><span>
+</span><span id="line-129"></span><span>              </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158021"><span class="hs-identifier hs-var">accL'</span></a></span><span>
+</span><span id="line-130"></span><span>              </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158019"><span class="hs-identifier hs-var">accR'</span></a></span><span>
+</span><span id="line-131"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158024"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158024"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158023"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158023"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; m a) -&gt; a -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158026"><span class="hs-identifier hs-var">accL</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679158025"><span class="hs-identifier hs-var">accR</span></a></span><span>
+</span><span id="line-134"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-135"></span><span>    </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-136"></span><span>    </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-137"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158031"><span class="hs-identifier hs-var">l0</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158028"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158030"><span class="hs-identifier hs-var">r0</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158028"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#mappendFromTo"><span class="hs-pragma hs-type">mappendFromTo</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-140"></span><span>
+</span><span id="line-141"></span><span class="hs-comment">{- | mappend [0..k)
+
+ /O(log n)/
+-}</span><span>
+</span><span id="line-145"></span><span id="local-6989586621679158015"><span id="local-6989586621679158016"><span id="local-6989586621679158017"><span class="annot"><a href="Data.SegTree.Generic.html#mappendTo"><span class="hs-identifier hs-type">mappendTo</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-146"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158017"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158016"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158015"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158017"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-147"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158015"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158016"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158017"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-148"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><a href="#local-6989586621679158016"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158017"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-150"></span><span id="mappendTo"><span class="annot"><span class="annottext">mappendTo :: SegTree mv (PrimState m) a -&gt; Int -&gt; m a
+</span><a href="Data.SegTree.Generic.html#mappendTo"><span class="hs-identifier hs-var hs-var">mappendTo</span></a></span></span><span> </span><span id="local-6989586621679158013"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158013"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; Int -&gt; Int -&gt; m a
+forall a (m :: * -&gt; *) (mv :: * -&gt; * -&gt; *).
+(Monoid a, PrimMonad m, MVector mv a) =&gt;
+SegTree mv (PrimState m) a -&gt; Int -&gt; Int -&gt; m a
+</span><a href="Data.SegTree.Generic.html#mappendFromTo"><span class="hs-identifier hs-var">mappendFromTo</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158013"><span class="hs-identifier hs-var">segtree</span></a></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-151"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#mappendTo"><span class="hs-pragma hs-type">mappendTo</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-152"></span><span>
+</span><span id="line-153"></span><span class="hs-comment">{- | mappend [0..n)
+
+ /O(1)/
+-}</span><span>
+</span><span id="line-157"></span><span id="local-6989586621679158010"><span id="local-6989586621679158011"><span id="local-6989586621679158012"><span class="annot"><a href="Data.SegTree.Generic.html#mappendAll"><span class="hs-identifier hs-type">mappendAll</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-158"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158012"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158011"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158010"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-159"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158011"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158012"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158010"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-160"></span><span>  </span><span class="annot"><a href="#local-6989586621679158012"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158010"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-161"></span><span id="mappendAll"><span class="annot"><span class="annottext">mappendAll :: SegTree mv (PrimState m) a -&gt; m a
+</span><a href="Data.SegTree.Generic.html#mappendAll"><span class="hs-identifier hs-var hs-var">mappendAll</span></a></span></span><span> </span><span id="local-6989586621679158008"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158008"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158008"><span class="hs-identifier hs-var">segtree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-162"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#mappendAll"><span class="hs-pragma hs-type">mappendAll</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-163"></span><span>
+</span><span id="line-164"></span><span id="local-6989586621679158005"><span id="local-6989586621679158006"><span id="local-6989586621679158007"><span class="annot"><a href="Data.SegTree.Generic.html#maxRightSegTree"><span class="hs-identifier hs-type">maxRightSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-165"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679158007"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158006"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158005"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158007"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-166"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679158005"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158006"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679158007"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-167"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-168"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679158007"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-169"></span><span>  </span><span class="annot"><a href="#local-6989586621679158006"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span></span></span><span>
+</span><span id="line-170"></span><span id="maxRightSegTree"><span class="annot"><span class="annottext">maxRightSegTree :: SegTree mv (PrimState m) a -&gt; Int -&gt; (a -&gt; Bool) -&gt; m Int
+</span><a href="Data.SegTree.Generic.html#maxRightSegTree"><span class="hs-identifier hs-var hs-var">maxRightSegTree</span></a></span></span><span> </span><span id="local-6989586621679158003"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158003"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span id="local-6989586621679158002"><span class="annot"><span class="annottext">l :: Int
+</span><a href="#local-6989586621679158002"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679158001"><span class="annot"><span class="annottext">p :: a -&gt; Bool
+</span><a href="#local-6989586621679158001"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-171"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679158000"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679158000"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679158003"><span class="hs-identifier hs-var">segtree</span></a></span><span>
+</span><span id="line-172"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157999"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679157999"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.length</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158000"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-173"></span><span>  </span><span class="annot"><span class="annottext">((a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span>
+</span><span id="line-174"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679157998"><span class="annot"><span class="annottext">oloop :: a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157998"><span class="hs-identifier hs-var">oloop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157997"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157997"><span class="hs-identifier hs-var">oacc</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157996"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157996"><span class="hs-identifier hs-var">ol</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-175"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679157995"><span class="annot"><span class="annottext">ol' :: Int
+</span><a href="#local-6989586621679157995"><span class="hs-identifier hs-var hs-var">ol'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157996"><span class="hs-identifier hs-var">ol</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countTrailingZeros</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157996"><span class="hs-identifier hs-var">ol</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-176"></span><span>        </span><span id="local-6989586621679157993"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157993"><span class="hs-identifier hs-var">oacc'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157997"><span class="hs-identifier hs-var">oacc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158000"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157995"><span class="hs-identifier hs-var">ol'</span></a></span><span>
+</span><span id="line-177"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679158001"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157993"><span class="hs-identifier hs-var">oacc'</span></a></span><span>
+</span><span id="line-178"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-179"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157992"><span class="annot"><span class="annottext">ol'' :: Int
+</span><a href="#local-6989586621679157992"><span class="hs-identifier hs-var hs-var">ol''</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157995"><span class="hs-identifier hs-var">ol'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-180"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157992"><span class="hs-identifier hs-var">ol''</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157992"><span class="hs-identifier hs-var">ol''</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157992"><span class="hs-identifier hs-var">ol''</span></a></span><span>
+</span><span id="line-181"></span><span>              </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157998"><span class="hs-identifier hs-var">oloop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157993"><span class="hs-identifier hs-var">oacc'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157992"><span class="hs-identifier hs-var">ol''</span></a></span><span>
+</span><span id="line-182"></span><span>              </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m Int) -&gt; Int -&gt; m Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157999"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-183"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-184"></span><span>            </span><span class="annot"><span class="annottext">((a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span>
+</span><span id="line-185"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679157990"><span class="annot"><span class="annottext">iloop :: a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157990"><span class="hs-identifier hs-var">iloop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157989"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157989"><span class="hs-identifier hs-var">iacc</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157988"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157988"><span class="hs-identifier hs-var">il</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-186"></span><span>                  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157988"><span class="hs-identifier hs-var">il</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157999"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-187"></span><span>                    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-188"></span><span>                      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679157987"><span class="annot"><span class="annottext">il' :: Int
+</span><a href="#local-6989586621679157987"><span class="hs-identifier hs-var hs-var">il'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157988"><span class="hs-identifier hs-var">il</span></a></span><span>
+</span><span id="line-189"></span><span>                      </span><span id="local-6989586621679157986"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157986"><span class="hs-identifier hs-var">iacc'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157989"><span class="hs-identifier hs-var">iacc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679158000"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157987"><span class="hs-identifier hs-var">il'</span></a></span><span>
+</span><span id="line-190"></span><span>                      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679158001"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157986"><span class="hs-identifier hs-var">iacc'</span></a></span><span>
+</span><span id="line-191"></span><span>                        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157990"><span class="hs-identifier hs-var">iloop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157986"><span class="hs-identifier hs-var">iacc'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157987"><span class="hs-identifier hs-var">il'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-192"></span><span>                        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157990"><span class="hs-identifier hs-var">iloop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157989"><span class="hs-identifier hs-var">iacc</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157987"><span class="hs-identifier hs-var">il'</span></a></span><span>
+</span><span id="line-193"></span><span>                    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m Int) -&gt; Int -&gt; m Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157988"><span class="hs-identifier hs-var">il</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157999"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-194"></span><span>              </span><span class="hs-special">)</span><span>
+</span><span id="line-195"></span><span>              </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157997"><span class="hs-identifier hs-var">oacc</span></a></span><span>
+</span><span id="line-196"></span><span>              </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157995"><span class="hs-identifier hs-var">ol'</span></a></span><span>
+</span><span id="line-197"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-198"></span><span>    </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-199"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158002"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157999"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-200"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#maxRightSegTree"><span class="hs-pragma hs-type">maxRightSegTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-201"></span><span>
+</span><span id="line-202"></span><span id="local-6989586621679157983"><span id="local-6989586621679157984"><span id="local-6989586621679157985"><span class="annot"><a href="Data.SegTree.Generic.html#minLeftSegTree"><span class="hs-identifier hs-type">minLeftSegTree</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-203"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679157985"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679157984"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">GM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679157983"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157985"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-204"></span><span>  </span><span class="annot"><a href="Data.SegTree.Generic.html#SegTree"><span class="hs-identifier hs-type">SegTree</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157983"><span class="hs-identifier hs-type">mv</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679157984"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679157985"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-205"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-206"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679157985"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-207"></span><span>  </span><span class="annot"><a href="#local-6989586621679157984"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span></span></span><span>
+</span><span id="line-208"></span><span id="minLeftSegTree"><span class="annot"><span class="annottext">minLeftSegTree :: SegTree mv (PrimState m) a -&gt; Int -&gt; (a -&gt; Bool) -&gt; m Int
+</span><a href="Data.SegTree.Generic.html#minLeftSegTree"><span class="hs-identifier hs-var hs-var">minLeftSegTree</span></a></span></span><span> </span><span id="local-6989586621679157981"><span class="annot"><span class="annottext">segtree :: SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679157981"><span class="hs-identifier hs-var">segtree</span></a></span></span><span> </span><span id="local-6989586621679157980"><span class="annot"><span class="annottext">r0 :: Int
+</span><a href="#local-6989586621679157980"><span class="hs-identifier hs-var">r0</span></a></span></span><span> </span><span id="local-6989586621679157979"><span class="annot"><span class="annottext">p :: a -&gt; Bool
+</span><a href="#local-6989586621679157979"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-209"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679157978"><span class="annot"><span class="annottext">tree :: mv (PrimState m) a
+</span><a href="#local-6989586621679157978"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a -&gt; mv (PrimState m) a
+forall (mv :: * -&gt; * -&gt; *) s a. SegTree mv s a -&gt; mv s a
+</span><a href="Data.SegTree.Generic.html#getSegTree"><span class="hs-identifier hs-var hs-var">getSegTree</span></a></span><span> </span><span class="annot"><span class="annottext">SegTree mv (PrimState m) a
+</span><a href="#local-6989586621679157981"><span class="hs-identifier hs-var">segtree</span></a></span><span>
+</span><span id="line-210"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157977"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679157977"><span class="hs-identifier hs-var hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int
+forall (v :: * -&gt; * -&gt; *) a s. MVector v a =&gt; v s a -&gt; Int
+</span><span class="hs-identifier hs-var">GM.length</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679157978"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-211"></span><span>  </span><span class="annot"><span class="annottext">((a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span>
+</span><span id="line-212"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679157976"><span class="annot"><span class="annottext">loop :: a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157976"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157975"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157975"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157974"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157974"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-213"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679157973"><span class="annot"><span class="annottext">r' :: Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var hs-var">r'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-214"></span><span>              </span><span class="annot"><span class="annottext">((Int -&gt; Int) -&gt; Int -&gt; Int) -&gt; Int -&gt; Int
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span>
+</span><span id="line-215"></span><span>                </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679157972"><span class="annot"><span class="annottext">iloop :: Int -&gt; Int
+</span><a href="#local-6989586621679157972"><span class="hs-identifier hs-var">iloop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157971"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157971"><span class="hs-identifier hs-var">ir</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-216"></span><span>                    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157971"><span class="hs-identifier hs-var">ir</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157971"><span class="hs-identifier hs-var">ir</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-217"></span><span>                      </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679157972"><span class="hs-identifier hs-var">iloop</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157971"><span class="hs-identifier hs-var">ir</span></a></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-218"></span><span>                      </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157971"><span class="hs-identifier hs-var">ir</span></a></span><span>
+</span><span id="line-219"></span><span>                </span><span class="hs-special">)</span><span>
+</span><span id="line-220"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157974"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-221"></span><span>        </span><span id="local-6989586621679157969"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157969"><span class="hs-identifier hs-var">acc'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157975"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679157978"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var">r'</span></a></span><span>
+</span><span id="line-222"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679157979"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157969"><span class="hs-identifier hs-var">acc'</span></a></span><span>
+</span><span id="line-223"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-224"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var">r'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var">r'</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var">r'</span></a></span><span>
+</span><span id="line-225"></span><span>              </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157976"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157969"><span class="hs-identifier hs-var">acc'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var">r'</span></a></span><span>
+</span><span id="line-226"></span><span>              </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-227"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-228"></span><span>            </span><span class="annot"><span class="annottext">((a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int) -&gt; a -&gt; Int -&gt; m Int
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span>
+</span><span id="line-229"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679157968"><span class="annot"><span class="annottext">iloop :: a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157968"><span class="hs-identifier hs-var">iloop</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157967"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157967"><span class="hs-identifier hs-var">iacc</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679157966"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157966"><span class="hs-identifier hs-var">ir</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-230"></span><span>                  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157966"><span class="hs-identifier hs-var">ir</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157977"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-231"></span><span>                    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-232"></span><span>                      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679157965"><span class="annot"><span class="annottext">ir' :: Int
+</span><a href="#local-6989586621679157965"><span class="hs-identifier hs-var hs-var">ir'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157966"><span class="hs-identifier hs-var">ir</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-233"></span><span>                      </span><span id="local-6989586621679157964"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157964"><span class="hs-identifier hs-var">iacc'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157967"><span class="hs-identifier hs-var">iacc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; m a -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a -&gt; Int -&gt; m a
+forall (m :: * -&gt; *) (v :: * -&gt; * -&gt; *) a.
+(PrimMonad m, MVector v a) =&gt;
+v (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">GM.unsafeRead</span></span><span> </span><span class="annot"><span class="annottext">mv (PrimState m) a
+</span><a href="#local-6989586621679157978"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157965"><span class="hs-identifier hs-var">ir'</span></a></span><span>
+</span><span id="line-234"></span><span>                      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679157979"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157964"><span class="hs-identifier hs-var">iacc'</span></a></span><span>
+</span><span id="line-235"></span><span>                        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157968"><span class="hs-identifier hs-var">iloop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157964"><span class="hs-identifier hs-var">iacc'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157965"><span class="hs-identifier hs-var">ir'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-236"></span><span>                        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; m Int
+</span><a href="#local-6989586621679157968"><span class="hs-identifier hs-var">iloop</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157967"><span class="hs-identifier hs-var">iacc</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157965"><span class="hs-identifier hs-var">ir'</span></a></span><span>
+</span><span id="line-237"></span><span>                    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m Int) -&gt; Int -&gt; m Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157966"><span class="hs-identifier hs-var">ir</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157977"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-238"></span><span>              </span><span class="hs-special">)</span><span>
+</span><span id="line-239"></span><span>              </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679157975"><span class="hs-identifier hs-var">acc</span></a></span><span>
+</span><span id="line-240"></span><span>              </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157973"><span class="hs-identifier hs-var">r'</span></a></span><span>
+</span><span id="line-241"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-242"></span><span>    </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-243"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157980"><span class="hs-identifier hs-var">r0</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157977"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-244"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.SegTree.Generic.html#minLeftSegTree"><span class="hs-pragma hs-type">minLeftSegTree</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-245"></span><span>
+</span><span id="line-246"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; extendToPowerOfTwo 0
+ 1
+-}</span><span>
+</span><span id="line-250"></span><span class="annot"><a href="Data.SegTree.Generic.html#extendToPowerOfTwo"><span class="hs-identifier hs-type">extendToPowerOfTwo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-251"></span><span id="extendToPowerOfTwo"><span class="annot"><span class="annottext">extendToPowerOfTwo :: Int -&gt; Int
+</span><a href="Data.SegTree.Generic.html#extendToPowerOfTwo"><span class="hs-identifier hs-var hs-var">extendToPowerOfTwo</span></a></span></span><span> </span><span id="local-6989586621679157963"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679157963"><span class="hs-identifier hs-var">x</span></a></span></span><span>
+</span><span id="line-252"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157963"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-253"></span><span>    </span><span class="annot"><span class="annottext">Word -&gt; Int
+forall a b. a -&gt; b
+</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Word</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="annottext">(Word -&gt; Int) -&gt; Word -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-254"></span><span>      </span><span class="annot"><span class="annottext">Word -&gt; Int -&gt; Word
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">unsafeShiftR</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word -&gt; Word
+forall a. Bits a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">complement</span></span><span> </span><span class="annot"><span class="annottext">Word
+forall a. Bits a =&gt; a
+</span><span class="hs-identifier hs-var">zeroBits</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall b. FiniteBits b =&gt; b -&gt; Int
+</span><span class="hs-identifier hs-var">countLeadingZeros</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679157963"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word -&gt; Word -&gt; Word
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-255"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-256"></span></pre></body></html>

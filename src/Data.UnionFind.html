@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.UnionFind</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Primitive</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Function</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">U</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector.Unboxed.Mutable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UM</span></span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">newtype</span><span> </span><span id="UnionFind"><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-var">UnionFind</span></a></span></span><span> </span><span id="local-6989586621679158612"><span class="annot"><a href="#local-6989586621679158612"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UF"><span class="annot"><a href="Data.UnionFind.html#UF"><span class="hs-identifier hs-var">UF</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getUnionFind"><span class="annot"><span class="annottext">UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UM.MVector</span></span><span> </span><span class="annot"><a href="#local-6989586621679158612"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span id="local-6989586621679158560"><span class="annot"><a href="Data.UnionFind.html#newUnionFind"><span class="hs-identifier hs-type">newUnionFind</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158560"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158560"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158560"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-15"></span><span id="newUnionFind"><span class="annot"><span class="annottext">newUnionFind :: Int -&gt; m (UnionFind (PrimState m))
+</span><a href="Data.UnionFind.html#newUnionFind"><span class="hs-identifier hs-var hs-var">newUnionFind</span></a></span></span><span> </span><span id="local-6989586621679158558"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679158558"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; UnionFind (PrimState m)
+forall s. MVector s Int -&gt; UnionFind s
+</span><a href="Data.UnionFind.html#UF"><span class="hs-identifier hs-var">UF</span></a></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int -&gt; UnionFind (PrimState m))
+-&gt; m (MVector (PrimState m) Int) -&gt; m (UnionFind (PrimState m))
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; m (MVector (PrimState m) Int)
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+Int -&gt; a -&gt; m (MVector (PrimState m) a)
+</span><span class="hs-identifier hs-var">UM.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158558"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#newUnionFind"><span class="hs-pragma hs-type">newUnionFind</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679158563"><span class="annot"><a href="Data.UnionFind.html#freezeUnionFind"><span class="hs-identifier hs-type">freezeUnionFind</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158563"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158563"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158563"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">U.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-19"></span><span id="freezeUnionFind"><span class="annot"><span class="annottext">freezeUnionFind :: UnionFind (PrimState m) -&gt; m (Vector Int)
+</span><a href="Data.UnionFind.html#freezeUnionFind"><span class="hs-identifier hs-var hs-var">freezeUnionFind</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; m (Vector Int)
+forall a (m :: * -&gt; *).
+(Unbox a, PrimMonad m) =&gt;
+MVector (PrimState m) a -&gt; m (Vector a)
+</span><span class="hs-identifier hs-var">U.freeze</span></span><span> </span><span class="annot"><span class="annottext">(MVector (PrimState m) Int -&gt; m (Vector Int))
+-&gt; (UnionFind (PrimState m) -&gt; MVector (PrimState m) Int)
+-&gt; UnionFind (PrimState m)
+-&gt; m (Vector Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span id="local-6989586621679158581"><span class="annot"><a href="Data.UnionFind.html#findUF"><span class="hs-identifier hs-type">findUF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158581"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158581"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158581"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-22"></span><span id="findUF"><span class="annot"><span class="annottext">findUF :: UnionFind (PrimState m) -&gt; Int -&gt; m Int
+</span><a href="Data.UnionFind.html#findUF"><span class="hs-identifier hs-var hs-var">findUF</span></a></span></span><span> </span><span id="local-6989586621679158551"><span class="annot"><span class="annottext">uf :: UnionFind (PrimState m)
+</span><a href="#local-6989586621679158551"><span class="hs-identifier hs-var">uf</span></a></span></span><span> </span><span id="local-6989586621679158550"><span class="annot"><span class="annottext">x0 :: Int
+</span><a href="#local-6989586621679158550"><span class="hs-identifier hs-var">x0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; m Int) -&gt; m Int
+forall b. Int -&gt; (Int -&gt; m b) -&gt; m b
+</span><a href="#local-6989586621679158549"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158550"><span class="hs-identifier hs-var">x0</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-24"></span><span>    </span><span id="local-6989586621679158549"><span class="annot"><span class="annottext">go :: Int -&gt; (Int -&gt; m b) -&gt; m b
+</span><a href="#local-6989586621679158549"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679158548"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158548"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679158547"><span class="annot"><span class="annottext">k :: Int -&gt; m b
+</span><a href="#local-6989586621679158547"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>      </span><span id="local-6989586621679158546"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158546"><span class="hs-identifier hs-var">px</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158551"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158548"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-26"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158546"><span class="hs-identifier hs-var">px</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-27"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m b
+</span><a href="#local-6989586621679158547"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158548"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-28"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; (Int -&gt; m b) -&gt; m b
+</span><a href="#local-6989586621679158549"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158546"><span class="hs-identifier hs-var">px</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m b) -&gt; m b) -&gt; (Int -&gt; m b) -&gt; m b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158543"><span class="annot"><span class="annottext">ppx :: Int
+</span><a href="#local-6989586621679158543"><span class="hs-identifier hs-var">ppx</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-29"></span><span>          </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158551"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158548"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158543"><span class="hs-identifier hs-var">ppx</span></a></span><span>
+</span><span id="line-30"></span><span>          </span><span class="annot"><span class="annottext">Int -&gt; m b
+</span><a href="#local-6989586621679158547"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158543"><span class="hs-identifier hs-var">ppx</span></a></span><span>
+</span><span id="line-31"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#findUF"><span class="hs-pragma hs-type">findUF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span id="local-6989586621679158541"><span class="annot"><a href="Data.UnionFind.html#sizeUF"><span class="hs-identifier hs-type">sizeUF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158541"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158541"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158541"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-34"></span><span id="sizeUF"><span class="annot"><span class="annottext">sizeUF :: UnionFind (PrimState m) -&gt; Int -&gt; m Int
+</span><a href="Data.UnionFind.html#sizeUF"><span class="hs-identifier hs-var hs-var">sizeUF</span></a></span></span><span> </span><span id="local-6989586621679158539"><span class="annot"><span class="annottext">uf :: UnionFind (PrimState m)
+</span><a href="#local-6989586621679158539"><span class="hs-identifier hs-var">uf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; m Int) -&gt; Int -&gt; m Int) -&gt; Int -&gt; m Int
+forall a. (a -&gt; a) -&gt; a
+</span><span class="hs-identifier hs-var">fix</span></span><span> </span><span class="annot"><span class="annottext">(((Int -&gt; m Int) -&gt; Int -&gt; m Int) -&gt; Int -&gt; m Int)
+-&gt; ((Int -&gt; m Int) -&gt; Int -&gt; m Int) -&gt; Int -&gt; m Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679158537"><span class="annot"><span class="annottext">loop :: Int -&gt; m Int
+</span><a href="#local-6989586621679158537"><span class="hs-identifier hs-var">loop</span></a></span></span><span> </span><span id="local-6989586621679158536"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158536"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679158535"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158535"><span class="hs-identifier hs-var">px</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158539"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158536"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158535"><span class="hs-identifier hs-var">px</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-37"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; m Int) -&gt; Int -&gt; m Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">negate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158535"><span class="hs-identifier hs-var">px</span></a></span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m Int
+</span><a href="#local-6989586621679158537"><span class="hs-identifier hs-var">loop</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158535"><span class="hs-identifier hs-var">px</span></a></span><span>
+</span><span id="line-39"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#sizeUF"><span class="hs-pragma hs-type">sizeUF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span id="local-6989586621679158574"><span class="annot"><a href="Data.UnionFind.html#uniteUF"><span class="hs-identifier hs-type">uniteUF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158574"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158574"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158574"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-42"></span><span id="uniteUF"><span class="annot"><span class="annottext">uniteUF :: UnionFind (PrimState m) -&gt; Int -&gt; Int -&gt; m Bool
+</span><a href="Data.UnionFind.html#uniteUF"><span class="hs-identifier hs-var hs-var">uniteUF</span></a></span></span><span> </span><span id="local-6989586621679158532"><span class="annot"><span class="annottext">uf :: UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span></span><span> </span><span id="local-6989586621679158531"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158531"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679158530"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679158530"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679158529"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158529"><span class="hs-identifier hs-var">px</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+UnionFind (PrimState m) -&gt; Int -&gt; m Int
+</span><a href="Data.UnionFind.html#findUF"><span class="hs-identifier hs-var">findUF</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158531"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679158528"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158528"><span class="hs-identifier hs-var">py</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+UnionFind (PrimState m) -&gt; Int -&gt; m Int
+</span><a href="Data.UnionFind.html#findUF"><span class="hs-identifier hs-var">findUF</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158530"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158529"><span class="hs-identifier hs-var">px</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158528"><span class="hs-identifier hs-var">py</span></a></span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-48"></span><span>      </span><span id="local-6989586621679158527"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158527"><span class="hs-identifier hs-var">rx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158529"><span class="hs-identifier hs-var">px</span></a></span><span>
+</span><span id="line-49"></span><span>      </span><span id="local-6989586621679158526"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158526"><span class="hs-identifier hs-var">ry</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; m a
+</span><span class="hs-identifier hs-var">UM.unsafeRead</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158528"><span class="hs-identifier hs-var">py</span></a></span><span>
+</span><span id="line-50"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158527"><span class="hs-identifier hs-var">rx</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158526"><span class="hs-identifier hs-var">ry</span></a></span><span>
+</span><span id="line-51"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-52"></span><span>          </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158526"><span class="hs-identifier hs-var">ry</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158529"><span class="hs-identifier hs-var">px</span></a></span><span>
+</span><span id="line-53"></span><span>          </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158528"><span class="hs-identifier hs-var">py</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158529"><span class="hs-identifier hs-var">px</span></a></span><span>
+</span><span id="line-54"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>          </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; (Int -&gt; Int) -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; (a -&gt; a) -&gt; Int -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeModify</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158527"><span class="hs-identifier hs-var">rx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158528"><span class="hs-identifier hs-var">py</span></a></span><span>
+</span><span id="line-56"></span><span>          </span><span class="annot"><span class="annottext">MVector (PrimState m) Int -&gt; Int -&gt; Int -&gt; m ()
+forall (m :: * -&gt; *) a.
+(PrimMonad m, Unbox a) =&gt;
+MVector (PrimState m) a -&gt; Int -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">UM.unsafeWrite</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; MVector (PrimState m) Int
+forall s. UnionFind s -&gt; MVector s Int
+</span><a href="Data.UnionFind.html#getUnionFind"><span class="hs-identifier hs-var hs-var">getUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158532"><span class="hs-identifier hs-var">uf</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158529"><span class="hs-identifier hs-var">px</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158528"><span class="hs-identifier hs-var">py</span></a></span><span>
+</span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; m Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-58"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#uniteUF"><span class="hs-pragma hs-type">uniteUF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span id="local-6989586621679158523"><span class="annot"><a href="Data.UnionFind.html#uniteUF_"><span class="hs-identifier hs-type">uniteUF_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158523"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158523"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158523"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-61"></span><span id="uniteUF_"><span class="annot"><span class="annottext">uniteUF_ :: UnionFind (PrimState m) -&gt; Int -&gt; Int -&gt; m ()
+</span><a href="Data.UnionFind.html#uniteUF_"><span class="hs-identifier hs-var hs-var">uniteUF_</span></a></span></span><span> </span><span id="local-6989586621679158521"><span class="annot"><span class="annottext">uf :: UnionFind (PrimState m)
+</span><a href="#local-6989586621679158521"><span class="hs-identifier hs-var">uf</span></a></span></span><span> </span><span id="local-6989586621679158520"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158520"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679158519"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679158519"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">m Bool -&gt; m ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(m Bool -&gt; m ()) -&gt; m Bool -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; Int -&gt; Int -&gt; m Bool
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+UnionFind (PrimState m) -&gt; Int -&gt; Int -&gt; m Bool
+</span><a href="Data.UnionFind.html#uniteUF"><span class="hs-identifier hs-var">uniteUF</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158521"><span class="hs-identifier hs-var">uf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158520"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158519"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-62"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#uniteUF_"><span class="hs-pragma hs-type">uniteUF_</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span id="local-6989586621679158517"><span class="annot"><a href="Data.UnionFind.html#equivUF"><span class="hs-identifier hs-type">equivUF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158517"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158517"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158517"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-65"></span><span id="equivUF"><span class="annot"><span class="annottext">equivUF :: UnionFind (PrimState m) -&gt; Int -&gt; Int -&gt; m Bool
+</span><a href="Data.UnionFind.html#equivUF"><span class="hs-identifier hs-var hs-var">equivUF</span></a></span></span><span> </span><span id="local-6989586621679158515"><span class="annot"><span class="annottext">uf :: UnionFind (PrimState m)
+</span><a href="#local-6989586621679158515"><span class="hs-identifier hs-var">uf</span></a></span></span><span> </span><span id="local-6989586621679158514"><span class="annot"><span class="annottext">x :: Int
+</span><a href="#local-6989586621679158514"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679158513"><span class="annot"><span class="annottext">y :: Int
+</span><a href="#local-6989586621679158513"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Bool) -&gt; m Int -&gt; m (Int -&gt; Bool)
+forall (m :: * -&gt; *) a1 r. Monad m =&gt; (a1 -&gt; r) -&gt; m a1 -&gt; m r
+</span><span class="hs-operator hs-var">`liftM`</span></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+UnionFind (PrimState m) -&gt; Int -&gt; m Int
+</span><a href="Data.UnionFind.html#findUF"><span class="hs-identifier hs-var">findUF</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158515"><span class="hs-identifier hs-var">uf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158514"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">m (Int -&gt; Bool) -&gt; m Int -&gt; m Bool
+forall (m :: * -&gt; *) a b. Monad m =&gt; m (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-operator hs-var">`ap`</span></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; Int -&gt; m Int
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+UnionFind (PrimState m) -&gt; Int -&gt; m Int
+</span><a href="Data.UnionFind.html#findUF"><span class="hs-identifier hs-var">findUF</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158515"><span class="hs-identifier hs-var">uf</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679158513"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-66"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#equivUF"><span class="hs-pragma hs-type">equivUF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- | O(n)</span><span>
+</span><span id="line-69"></span><span id="local-6989586621679158510"><span class="annot"><a href="Data.UnionFind.html#countGroupUF"><span class="hs-identifier hs-type">countGroupUF</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PrimMonad</span></span><span> </span><span class="annot"><a href="#local-6989586621679158510"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.UnionFind.html#UnionFind"><span class="hs-identifier hs-type">UnionFind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PrimState</span></span><span> </span><span class="annot"><a href="#local-6989586621679158510"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679158510"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-70"></span><span id="countGroupUF"><span class="annot"><span class="annottext">countGroupUF :: UnionFind (PrimState m) -&gt; m Int
+</span><a href="Data.UnionFind.html#countGroupUF"><span class="hs-identifier hs-var hs-var">countGroupUF</span></a></span></span><span> </span><span id="local-6989586621679158508"><span class="annot"><span class="annottext">uf :: UnionFind (PrimState m)
+</span><a href="#local-6989586621679158508"><span class="hs-identifier hs-var">uf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; Int
+forall a. Unbox a =&gt; Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">U.length</span></span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; Int)
+-&gt; (Vector Int -&gt; Vector Int) -&gt; Vector Int -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; Vector Int -&gt; Vector Int
+forall a. Unbox a =&gt; (a -&gt; Bool) -&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">U.filter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; Int) -&gt; m (Vector Int) -&gt; m Int
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m) -&gt; m (Vector Int)
+forall (m :: * -&gt; *).
+PrimMonad m =&gt;
+UnionFind (PrimState m) -&gt; m (Vector Int)
+</span><a href="Data.UnionFind.html#freezeUnionFind"><span class="hs-identifier hs-var">freezeUnionFind</span></a></span><span> </span><span class="annot"><span class="annottext">UnionFind (PrimState m)
+</span><a href="#local-6989586621679158508"><span class="hs-identifier hs-var">uf</span></a></span><span>
+</span><span id="line-71"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.UnionFind.html#countGroupUF"><span class="hs-pragma hs-type">countGroupUF</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-72"></span></pre></body></html>

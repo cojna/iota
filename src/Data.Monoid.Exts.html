@@ -1,0 +1,396 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Monoid.Exts</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Coerce</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Foldable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">F</span></span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; mempty :: GCD Int
+ GCD {getGCD = 0}
+ &gt;&gt;&gt; GCD (-4) &lt;&gt; GCD 6
+ GCD {getGCD = 2}
+ &gt;&gt;&gt; GCD (-1) &lt;&gt; mempty
+ GCD {getGCD = 1}
+-}</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">newtype</span><span> </span><span id="GCD"><span class="annot"><a href="Data.Monoid.Exts.html#GCD"><span class="hs-identifier hs-var">GCD</span></a></span></span><span> </span><span id="local-6989586621679157764"><span class="annot"><a href="#local-6989586621679157764"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="GCD"><span class="annot"><a href="Data.Monoid.Exts.html#GCD"><span class="hs-identifier hs-var">GCD</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getGCD"><span class="annot"><span class="annottext">GCD a -&gt; a
+</span><a href="Data.Monoid.Exts.html#getGCD"><span class="hs-identifier hs-var hs-var">getGCD</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679157764"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679157758"><span id="local-6989586621679157760"><span class="annot"><span class="annottext">GCD a -&gt; GCD a -&gt; Bool
+(GCD a -&gt; GCD a -&gt; Bool) -&gt; (GCD a -&gt; GCD a -&gt; Bool) -&gt; Eq (GCD a)
+forall a. Eq a =&gt; GCD a -&gt; GCD a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: GCD a -&gt; GCD a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; GCD a -&gt; GCD a -&gt; Bool
+== :: GCD a -&gt; GCD a -&gt; Bool
+$c== :: forall a. Eq a =&gt; GCD a -&gt; GCD a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157751"><span id="local-6989586621679157753"><span id="local-6989586621679157755"><span class="annot"><span class="annottext">Int -&gt; GCD a -&gt; ShowS
+[GCD a] -&gt; ShowS
+GCD a -&gt; String
+(Int -&gt; GCD a -&gt; ShowS)
+-&gt; (GCD a -&gt; String) -&gt; ([GCD a] -&gt; ShowS) -&gt; Show (GCD a)
+forall a. Show a =&gt; Int -&gt; GCD a -&gt; ShowS
+forall a. Show a =&gt; [GCD a] -&gt; ShowS
+forall a. Show a =&gt; GCD a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [GCD a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [GCD a] -&gt; ShowS
+show :: GCD a -&gt; String
+$cshow :: forall a. Show a =&gt; GCD a -&gt; String
+showsPrec :: Int -&gt; GCD a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; GCD a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157736"><span id="local-6989586621679157738"><span id="local-6989586621679157740"><span id="local-6989586621679157742"><span id="local-6989586621679157744"><span id="local-6989586621679157746"><span id="local-6989586621679157748"><span class="annot"><span class="annottext">Integer -&gt; GCD a
+GCD a -&gt; GCD a
+GCD a -&gt; GCD a -&gt; GCD a
+(GCD a -&gt; GCD a -&gt; GCD a)
+-&gt; (GCD a -&gt; GCD a -&gt; GCD a)
+-&gt; (GCD a -&gt; GCD a -&gt; GCD a)
+-&gt; (GCD a -&gt; GCD a)
+-&gt; (GCD a -&gt; GCD a)
+-&gt; (GCD a -&gt; GCD a)
+-&gt; (Integer -&gt; GCD a)
+-&gt; Num (GCD a)
+forall a. Num a =&gt; Integer -&gt; GCD a
+forall a. Num a =&gt; GCD a -&gt; GCD a
+forall a. Num a =&gt; GCD a -&gt; GCD a -&gt; GCD a
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; GCD a
+$cfromInteger :: forall a. Num a =&gt; Integer -&gt; GCD a
+signum :: GCD a -&gt; GCD a
+$csignum :: forall a. Num a =&gt; GCD a -&gt; GCD a
+abs :: GCD a -&gt; GCD a
+$cabs :: forall a. Num a =&gt; GCD a -&gt; GCD a
+negate :: GCD a -&gt; GCD a
+$cnegate :: forall a. Num a =&gt; GCD a -&gt; GCD a
+* :: GCD a -&gt; GCD a -&gt; GCD a
+$c* :: forall a. Num a =&gt; GCD a -&gt; GCD a -&gt; GCD a
+- :: GCD a -&gt; GCD a -&gt; GCD a
+$c- :: forall a. Num a =&gt; GCD a -&gt; GCD a -&gt; GCD a
++ :: GCD a -&gt; GCD a -&gt; GCD a
+$c+ :: forall a. Num a =&gt; GCD a -&gt; GCD a -&gt; GCD a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679157734"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157729"><span id="local-6989586621679157731"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679157734"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#GCD"><span class="hs-identifier hs-type">GCD</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157734"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>  </span><span id="local-6989586621679157727"><span class="annot"><span class="annottext">&lt;&gt; :: GCD a -&gt; GCD a -&gt; GCD a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; GCD a -&gt; GCD a -&gt; GCD a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integral a =&gt; a -&gt; a -&gt; a
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">gcd</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157734"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">&lt;&gt;</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span id="local-6989586621679157725"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157721"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679157725"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679157725"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#GCD"><span class="hs-identifier hs-type">GCD</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157725"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679157718"><span class="annot"><span class="annottext">mempty :: GCD a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">0</span></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mempty</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679157717"><span class="annot"><span class="annottext">mconcat :: [GCD a] -&gt; GCD a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mconcat</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(GCD a -&gt; GCD a -&gt; GCD a) -&gt; GCD a -&gt; [GCD a] -&gt; GCD a
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">F.foldl'</span></span><span> </span><span class="annot"><span class="annottext">GCD a -&gt; GCD a -&gt; GCD a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">GCD a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mconcat</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; mempty :: LCM Int
+ LCM {getLCM = 1}
+ &gt;&gt;&gt; LCM (-2) &lt;&gt; LCM 3
+ LCM {getLCM = 6}
+ &gt;&gt;&gt; LCM (-1) &lt;&gt; mempty
+ LCM {getLCM = 1}
+-}</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">newtype</span><span> </span><span id="LCM"><span class="annot"><a href="Data.Monoid.Exts.html#LCM"><span class="hs-identifier hs-var">LCM</span></a></span></span><span> </span><span id="local-6989586621679157715"><span class="annot"><a href="#local-6989586621679157715"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="LCM"><span class="annot"><a href="Data.Monoid.Exts.html#LCM"><span class="hs-identifier hs-var">LCM</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getLCM"><span class="annot"><span class="annottext">LCM a -&gt; a
+</span><a href="Data.Monoid.Exts.html#getLCM"><span class="hs-identifier hs-var hs-var">getLCM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679157715"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679157709"><span id="local-6989586621679157711"><span class="annot"><span class="annottext">LCM a -&gt; LCM a -&gt; Bool
+(LCM a -&gt; LCM a -&gt; Bool) -&gt; (LCM a -&gt; LCM a -&gt; Bool) -&gt; Eq (LCM a)
+forall a. Eq a =&gt; LCM a -&gt; LCM a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: LCM a -&gt; LCM a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; LCM a -&gt; LCM a -&gt; Bool
+== :: LCM a -&gt; LCM a -&gt; Bool
+$c== :: forall a. Eq a =&gt; LCM a -&gt; LCM a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157703"><span id="local-6989586621679157705"><span id="local-6989586621679157707"><span class="annot"><span class="annottext">Int -&gt; LCM a -&gt; ShowS
+[LCM a] -&gt; ShowS
+LCM a -&gt; String
+(Int -&gt; LCM a -&gt; ShowS)
+-&gt; (LCM a -&gt; String) -&gt; ([LCM a] -&gt; ShowS) -&gt; Show (LCM a)
+forall a. Show a =&gt; Int -&gt; LCM a -&gt; ShowS
+forall a. Show a =&gt; [LCM a] -&gt; ShowS
+forall a. Show a =&gt; LCM a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [LCM a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [LCM a] -&gt; ShowS
+show :: LCM a -&gt; String
+$cshow :: forall a. Show a =&gt; LCM a -&gt; String
+showsPrec :: Int -&gt; LCM a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; LCM a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157689"><span id="local-6989586621679157691"><span id="local-6989586621679157693"><span id="local-6989586621679157695"><span id="local-6989586621679157697"><span id="local-6989586621679157699"><span id="local-6989586621679157701"><span class="annot"><span class="annottext">Integer -&gt; LCM a
+LCM a -&gt; LCM a
+LCM a -&gt; LCM a -&gt; LCM a
+(LCM a -&gt; LCM a -&gt; LCM a)
+-&gt; (LCM a -&gt; LCM a -&gt; LCM a)
+-&gt; (LCM a -&gt; LCM a -&gt; LCM a)
+-&gt; (LCM a -&gt; LCM a)
+-&gt; (LCM a -&gt; LCM a)
+-&gt; (LCM a -&gt; LCM a)
+-&gt; (Integer -&gt; LCM a)
+-&gt; Num (LCM a)
+forall a. Num a =&gt; Integer -&gt; LCM a
+forall a. Num a =&gt; LCM a -&gt; LCM a
+forall a. Num a =&gt; LCM a -&gt; LCM a -&gt; LCM a
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+fromInteger :: Integer -&gt; LCM a
+$cfromInteger :: forall a. Num a =&gt; Integer -&gt; LCM a
+signum :: LCM a -&gt; LCM a
+$csignum :: forall a. Num a =&gt; LCM a -&gt; LCM a
+abs :: LCM a -&gt; LCM a
+$cabs :: forall a. Num a =&gt; LCM a -&gt; LCM a
+negate :: LCM a -&gt; LCM a
+$cnegate :: forall a. Num a =&gt; LCM a -&gt; LCM a
+* :: LCM a -&gt; LCM a -&gt; LCM a
+$c* :: forall a. Num a =&gt; LCM a -&gt; LCM a -&gt; LCM a
+- :: LCM a -&gt; LCM a -&gt; LCM a
+$c- :: forall a. Num a =&gt; LCM a -&gt; LCM a -&gt; LCM a
++ :: LCM a -&gt; LCM a -&gt; LCM a
+$c+ :: forall a. Num a =&gt; LCM a -&gt; LCM a -&gt; LCM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span id="local-6989586621679157688"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157683"><span id="local-6989586621679157685"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679157688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#LCM"><span class="hs-identifier hs-type">LCM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679157682"><span class="annot"><span class="annottext">&lt;&gt; :: LCM a -&gt; LCM a -&gt; LCM a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; LCM a -&gt; LCM a -&gt; LCM a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integral a =&gt; a -&gt; a -&gt; a
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">lcm</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157688"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">&lt;&gt;</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span id="local-6989586621679157680"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157676"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679157680"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679157680"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#LCM"><span class="hs-identifier hs-type">LCM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157680"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679157674"><span class="annot"><span class="annottext">mempty :: LCM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-number">1</span></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mempty</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679157673"><span class="annot"><span class="annottext">mconcat :: [LCM a] -&gt; LCM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mconcat</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(LCM a -&gt; LCM a -&gt; LCM a) -&gt; LCM a -&gt; [LCM a] -&gt; LCM a
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">F.foldl'</span></span><span> </span><span class="annot"><span class="annottext">LCM a -&gt; LCM a -&gt; LCM a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">LCM a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mconcat</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; mempty :: BitAnd Int
+ BitAnd {getBitAnd = -1}
+ &gt;&gt;&gt; mempty :: BitAnd Word
+ BitAnd {getBitAnd = 18446744073709551615}
+-}</span><span>
+</span><span id="line-58"></span><span class="hs-keyword">newtype</span><span> </span><span id="BitAnd"><span class="annot"><a href="Data.Monoid.Exts.html#BitAnd"><span class="hs-identifier hs-var">BitAnd</span></a></span></span><span> </span><span id="local-6989586621679157672"><span class="annot"><a href="#local-6989586621679157672"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BitAnd"><span class="annot"><a href="Data.Monoid.Exts.html#BitAnd"><span class="hs-identifier hs-var">BitAnd</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getBitAnd"><span class="annot"><span class="annottext">BitAnd a -&gt; a
+</span><a href="Data.Monoid.Exts.html#getBitAnd"><span class="hs-identifier hs-var hs-var">getBitAnd</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679157672"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679157666"><span id="local-6989586621679157668"><span class="annot"><span class="annottext">BitAnd a -&gt; BitAnd a -&gt; Bool
+(BitAnd a -&gt; BitAnd a -&gt; Bool)
+-&gt; (BitAnd a -&gt; BitAnd a -&gt; Bool) -&gt; Eq (BitAnd a)
+forall a. Eq a =&gt; BitAnd a -&gt; BitAnd a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: BitAnd a -&gt; BitAnd a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; BitAnd a -&gt; BitAnd a -&gt; Bool
+== :: BitAnd a -&gt; BitAnd a -&gt; Bool
+$c== :: forall a. Eq a =&gt; BitAnd a -&gt; BitAnd a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157660"><span id="local-6989586621679157662"><span id="local-6989586621679157664"><span class="annot"><span class="annottext">Int -&gt; BitAnd a -&gt; ShowS
+[BitAnd a] -&gt; ShowS
+BitAnd a -&gt; String
+(Int -&gt; BitAnd a -&gt; ShowS)
+-&gt; (BitAnd a -&gt; String) -&gt; ([BitAnd a] -&gt; ShowS) -&gt; Show (BitAnd a)
+forall a. Show a =&gt; Int -&gt; BitAnd a -&gt; ShowS
+forall a. Show a =&gt; [BitAnd a] -&gt; ShowS
+forall a. Show a =&gt; BitAnd a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [BitAnd a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [BitAnd a] -&gt; ShowS
+show :: BitAnd a -&gt; String
+$cshow :: forall a. Show a =&gt; BitAnd a -&gt; String
+showsPrec :: Int -&gt; BitAnd a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; BitAnd a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span id="local-6989586621679157659"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157654"><span id="local-6989586621679157656"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679157659"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#BitAnd"><span class="hs-identifier hs-type">BitAnd</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157659"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621679157653"><span class="annot"><span class="annottext">&lt;&gt; :: BitAnd a -&gt; BitAnd a -&gt; BitAnd a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; BitAnd a -&gt; BitAnd a -&gt; BitAnd a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bits a =&gt; a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(.&amp;.)</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157659"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">&lt;&gt;</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span id="local-6989586621679157651"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157647"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679157651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#BitAnd"><span class="hs-identifier hs-type">BitAnd</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621679157645"><span class="annot"><span class="annottext">mempty :: BitAnd a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; BitAnd a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; BitAnd a) -&gt; a -&gt; BitAnd a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. Bits a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">complement</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bits a =&gt; a
+forall a. Bits a =&gt; a
+</span><span class="hs-identifier hs-var">zeroBits</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157651"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mempty</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679157642"><span class="annot"><span class="annottext">mconcat :: [BitAnd a] -&gt; BitAnd a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mconcat</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(BitAnd a -&gt; BitAnd a -&gt; BitAnd a)
+-&gt; BitAnd a -&gt; [BitAnd a] -&gt; BitAnd a
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">F.foldl'</span></span><span> </span><span class="annot"><span class="annottext">BitAnd a -&gt; BitAnd a -&gt; BitAnd a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">BitAnd a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mconcat</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; mempty :: BitOr Int
+ BitOr {getBitOr = 0}
+-}</span><span>
+</span><span id="line-74"></span><span class="hs-keyword">newtype</span><span> </span><span id="BitOr"><span class="annot"><a href="Data.Monoid.Exts.html#BitOr"><span class="hs-identifier hs-var">BitOr</span></a></span></span><span> </span><span id="local-6989586621679157641"><span class="annot"><a href="#local-6989586621679157641"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BitOr"><span class="annot"><a href="Data.Monoid.Exts.html#BitOr"><span class="hs-identifier hs-var">BitOr</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getBitOr"><span class="annot"><span class="annottext">BitOr a -&gt; a
+</span><a href="Data.Monoid.Exts.html#getBitOr"><span class="hs-identifier hs-var hs-var">getBitOr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679157641"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679157635"><span id="local-6989586621679157637"><span class="annot"><span class="annottext">BitOr a -&gt; BitOr a -&gt; Bool
+(BitOr a -&gt; BitOr a -&gt; Bool)
+-&gt; (BitOr a -&gt; BitOr a -&gt; Bool) -&gt; Eq (BitOr a)
+forall a. Eq a =&gt; BitOr a -&gt; BitOr a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: BitOr a -&gt; BitOr a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; BitOr a -&gt; BitOr a -&gt; Bool
+== :: BitOr a -&gt; BitOr a -&gt; Bool
+$c== :: forall a. Eq a =&gt; BitOr a -&gt; BitOr a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157629"><span id="local-6989586621679157631"><span id="local-6989586621679157633"><span class="annot"><span class="annottext">Int -&gt; BitOr a -&gt; ShowS
+[BitOr a] -&gt; ShowS
+BitOr a -&gt; String
+(Int -&gt; BitOr a -&gt; ShowS)
+-&gt; (BitOr a -&gt; String) -&gt; ([BitOr a] -&gt; ShowS) -&gt; Show (BitOr a)
+forall a. Show a =&gt; Int -&gt; BitOr a -&gt; ShowS
+forall a. Show a =&gt; [BitOr a] -&gt; ShowS
+forall a. Show a =&gt; BitOr a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [BitOr a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [BitOr a] -&gt; ShowS
+show :: BitOr a -&gt; String
+$cshow :: forall a. Show a =&gt; BitOr a -&gt; String
+showsPrec :: Int -&gt; BitOr a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; BitOr a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span id="local-6989586621679157628"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157623"><span id="local-6989586621679157625"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679157628"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#BitOr"><span class="hs-identifier hs-type">BitOr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157628"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-77"></span><span>  </span><span id="local-6989586621679157622"><span class="annot"><span class="annottext">&lt;&gt; :: BitOr a -&gt; BitOr a -&gt; BitOr a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; BitOr a -&gt; BitOr a -&gt; BitOr a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bits a =&gt; a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(.|.)</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157628"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">&lt;&gt;</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span id="local-6989586621679157620"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157616"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679157620"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#BitOr"><span class="hs-identifier hs-type">BitOr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157620"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679157614"><span class="annot"><span class="annottext">mempty :: BitOr a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; BitOr a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bits a =&gt; a
+forall a. Bits a =&gt; a
+</span><span class="hs-identifier hs-var">zeroBits</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157620"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mempty</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-83"></span><span>  </span><span id="local-6989586621679157613"><span class="annot"><span class="annottext">mconcat :: [BitOr a] -&gt; BitOr a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mconcat</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(BitOr a -&gt; BitOr a -&gt; BitOr a) -&gt; BitOr a -&gt; [BitOr a] -&gt; BitOr a
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">F.foldl'</span></span><span> </span><span class="annot"><span class="annottext">BitOr a -&gt; BitOr a -&gt; BitOr a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">BitOr a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mconcat</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-comment">{- |
+ &gt;&gt;&gt; mempty :: BitXor Int
+ BitXor {getBitXor = 0}
+-}</span><span>
+</span><span id="line-90"></span><span class="hs-keyword">newtype</span><span> </span><span id="BitXor"><span class="annot"><a href="Data.Monoid.Exts.html#BitXor"><span class="hs-identifier hs-var">BitXor</span></a></span></span><span> </span><span id="local-6989586621679157612"><span class="annot"><a href="#local-6989586621679157612"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BitXor"><span class="annot"><a href="Data.Monoid.Exts.html#BitXor"><span class="hs-identifier hs-var">BitXor</span></a></span></span><span> </span><span class="hs-special">{</span><span id="getBitXor"><span class="annot"><span class="annottext">BitXor a -&gt; a
+</span><a href="Data.Monoid.Exts.html#getBitXor"><span class="hs-identifier hs-var hs-var">getBitXor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679157612"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679157606"><span id="local-6989586621679157608"><span class="annot"><span class="annottext">BitXor a -&gt; BitXor a -&gt; Bool
+(BitXor a -&gt; BitXor a -&gt; Bool)
+-&gt; (BitXor a -&gt; BitXor a -&gt; Bool) -&gt; Eq (BitXor a)
+forall a. Eq a =&gt; BitXor a -&gt; BitXor a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: BitXor a -&gt; BitXor a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; BitXor a -&gt; BitXor a -&gt; Bool
+== :: BitXor a -&gt; BitXor a -&gt; Bool
+$c== :: forall a. Eq a =&gt; BitXor a -&gt; BitXor a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679157600"><span id="local-6989586621679157602"><span id="local-6989586621679157604"><span class="annot"><span class="annottext">Int -&gt; BitXor a -&gt; ShowS
+[BitXor a] -&gt; ShowS
+BitXor a -&gt; String
+(Int -&gt; BitXor a -&gt; ShowS)
+-&gt; (BitXor a -&gt; String) -&gt; ([BitXor a] -&gt; ShowS) -&gt; Show (BitXor a)
+forall a. Show a =&gt; Int -&gt; BitXor a -&gt; ShowS
+forall a. Show a =&gt; [BitXor a] -&gt; ShowS
+forall a. Show a =&gt; BitXor a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [BitXor a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [BitXor a] -&gt; ShowS
+show :: BitXor a -&gt; String
+$cshow :: forall a. Show a =&gt; BitXor a -&gt; String
+showsPrec :: Int -&gt; BitXor a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; BitXor a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span id="local-6989586621679157599"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157594"><span id="local-6989586621679157596"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679157599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#BitXor"><span class="hs-identifier hs-type">BitXor</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-93"></span><span>  </span><span id="local-6989586621679157593"><span class="annot"><span class="annottext">&lt;&gt; :: BitXor a -&gt; BitXor a -&gt; BitXor a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; a) -&gt; BitXor a -&gt; BitXor a -&gt; BitXor a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bits a =&gt; a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">xor</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">(</span><span class="hs-pragma">&lt;&gt;</span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span id="local-6989586621679157591"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679157587"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679157591"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Monoid.Exts.html#BitXor"><span class="hs-identifier hs-type">BitXor</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679157591"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-97"></span><span>  </span><span id="local-6989586621679157585"><span class="annot"><span class="annottext">mempty :: BitXor a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; BitXor a
+forall a b. Coercible a b =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">coerce</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bits a =&gt; a
+forall a. Bits a =&gt; a
+</span><span class="hs-identifier hs-var">zeroBits</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679157591"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mempty</span></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-99"></span><span>  </span><span id="local-6989586621679157584"><span class="annot"><span class="annottext">mconcat :: [BitXor a] -&gt; BitXor a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mconcat</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(BitXor a -&gt; BitXor a -&gt; BitXor a)
+-&gt; BitXor a -&gt; [BitXor a] -&gt; BitXor a
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">F.foldl'</span></span><span> </span><span class="annot"><span class="annottext">BitXor a -&gt; BitXor a -&gt; BitXor a
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">BitXor a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><span class="hs-pragma hs-type">mconcat</span></span><span> </span><span class="hs-pragma">#-}</span></span><span>
+</span><span id="line-101"></span></pre></body></html>
