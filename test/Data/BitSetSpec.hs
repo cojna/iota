@@ -3,6 +3,8 @@
 module Data.BitSetSpec (main, spec) where
 
 import Data.BitSet
+import qualified Data.Vector.Fusion.Stream.Monadic as MS
+import Data.Vector.Fusion.Util
 import Test.Prelude
 
 main :: IO ()
@@ -61,19 +63,19 @@ spec = do
       sizeBS [0] `shouldBe` 1
     it "sizeBS [0..63] == 64" $ do
       sizeBS [0 .. 63] `shouldBe` 64
-  describe "isSubsetOf" $ do
-    it "isSubsetOf [] [] == True" $ do
-      isSubsetOf [] [] `shouldBe` True
-    it "isSubsetOf [] [1, 2, 3] == True" $ do
-      isSubsetOf [] [1, 2, 3] `shouldBe` True
-    it "isSubsetOf [1, 2, 3] [2, 3, 4] == False" $ do
-      isSubsetOf [1, 2, 3] [2, 3, 4] `shouldBe` False
-    it "isSubsetOf [1, 2, 3] [4, 5, 6] == False" $ do
-      isSubsetOf [1, 2, 3] [4, 5, 6] `shouldBe` False
-    it "isSubsetOf [] [0..63] == True" $ do
-      isSubsetOf [] [0 .. 63] `shouldBe` True
-    it "isSubsetOf [0..63] [0..63] == True" $ do
-      isSubsetOf [0 .. 63] [0 .. 63] `shouldBe` True
+  describe "isSubsetOfBS" $ do
+    it "isSubsetOfBS [] [] == True" $ do
+      isSubsetOfBS [] [] `shouldBe` True
+    it "isSubsetOfBS [] [1, 2, 3] == True" $ do
+      isSubsetOfBS [] [1, 2, 3] `shouldBe` True
+    it "isSubsetOfBS [1, 2, 3] [2, 3, 4] == False" $ do
+      isSubsetOfBS [1, 2, 3] [2, 3, 4] `shouldBe` False
+    it "isSubsetOfBS [1, 2, 3] [4, 5, 6] == False" $ do
+      isSubsetOfBS [1, 2, 3] [4, 5, 6] `shouldBe` False
+    it "isSubsetOfBS [] [0..63] == True" $ do
+      isSubsetOfBS [] [0 .. 63] `shouldBe` True
+    it "isSubsetOfBS [0..63] [0..63] == True" $ do
+      isSubsetOfBS [0 .. 63] [0 .. 63] `shouldBe` True
   describe "unionBS" $ do
     it "unionBS [] [] == []" $ do
       unionBS [] [] `shouldBe` []
@@ -161,3 +163,19 @@ spec = do
       deleteMaxBS [0 .. 63] `shouldBe` [0 .. 62]
     it "deleteMaxBS [63] == []" $ do
       deleteMaxBS [63] `shouldBe` []
+  describe "powersetBS" $ do
+    it "powersetBS [0, 1, 2] == reverse $ map BitSet [0..7]" $ do
+      powerset [0, 1, 2] `shouldBe` reverse (map BitSet [0 .. 7])
+    it "powersetBS [] == [emptyBS]" $ do
+      powerset [] `shouldBe` [emptyBS]
+  describe "strictPowersetBS" $ do
+    it "strictPowersetBS [0, 1, 2] == reverse $ map BitSet [0..6]" $ do
+      strictPowerset [0, 1, 2] `shouldBe` reverse (map BitSet [0 .. 6])
+    it "strictPowersetBS [] == [emptyBS]" $ do
+      strictPowerset [] `shouldBe` []
+
+powerset :: BitSet -> [BitSet]
+powerset = unId . MS.toList . powersetBS
+
+strictPowerset :: BitSet -> [BitSet]
+strictPowerset = unId . MS.toList . strictPowersetBS
