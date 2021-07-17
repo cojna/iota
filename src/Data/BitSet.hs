@@ -74,15 +74,15 @@ sizeBS :: BitSet -> Int
 sizeBS = coerce (popCount @Int)
 
 {- |
->>> isSubsetOf [] [1,2,3]
+>>> isSubsetOfBS [] [1,2,3]
 True
->>> isSubsetOf [1] []
+>>> isSubsetOfBS [1] []
 False
->>> isSubsetOf [1,2,3] [1,2,3]
+>>> isSubsetOfBS [1,2,3] [1,2,3]
 True
 -}
-isSubsetOf :: BitSet -> BitSet -> Bool
-isSubsetOf x y = intersectionBS x y == x
+isSubsetOfBS :: BitSet -> BitSet -> Bool
+isSubsetOfBS x y = intersectionBS x y == x
 
 unionBS :: BitSet -> BitSet -> BitSet
 unionBS = coerce ((.|.) @Int)
@@ -138,22 +138,22 @@ fromList []
 deleteMaxBS :: BitSet -> BitSet
 deleteMaxBS x = deleteBS (findMaxBS x) x
 
-deleteFindMin :: BitSet -> (Int, BitSet)
-deleteFindMin x = (findMinBS x, deleteMinBS x)
+deleteFindMinBS :: BitSet -> (Int, BitSet)
+deleteFindMinBS x = (findMinBS x, deleteMinBS x)
 
-deleteFindMax :: BitSet -> (Int, BitSet)
-deleteFindMax x =
+deleteFindMaxBS :: BitSet -> (Int, BitSet)
+deleteFindMaxBS x =
   let i = findMaxBS x
    in (i, deleteBS i x)
 
-minView :: BitSet -> Maybe (Int, BitSet)
-minView x
-  | x /= BitSet 0 = Just $ deleteFindMin x
+minViewBS :: BitSet -> Maybe (Int, BitSet)
+minViewBS x
+  | x /= BitSet 0 = Just $ deleteFindMinBS x
   | otherwise = Nothing
 
-maxView :: BitSet -> Maybe (Int, BitSet)
-maxView x
-  | x /= BitSet 0 = Just $ deleteFindMax x
+maxViewBS :: BitSet -> Maybe (Int, BitSet)
+maxViewBS x
+  | x /= BitSet 0 = Just $ deleteFindMaxBS x
   | otherwise = Nothing
 
 newtype instance UM.MVector s BitSet = MV_BitSet (UM.MVector s Int)

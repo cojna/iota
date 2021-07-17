@@ -61,19 +61,19 @@ spec = do
       sizeBS [0] `shouldBe` 1
     it "sizeBS [0..63] == 64" $ do
       sizeBS [0 .. 63] `shouldBe` 64
-  describe "isSubsetOf" $ do
-    it "isSubsetOf [] [] == True" $ do
-      isSubsetOf [] [] `shouldBe` True
-    it "isSubsetOf [] [1, 2, 3] == True" $ do
-      isSubsetOf [] [1, 2, 3] `shouldBe` True
-    it "isSubsetOf [1, 2, 3] [2, 3, 4] == False" $ do
-      isSubsetOf [1, 2, 3] [2, 3, 4] `shouldBe` False
-    it "isSubsetOf [1, 2, 3] [4, 5, 6] == False" $ do
-      isSubsetOf [1, 2, 3] [4, 5, 6] `shouldBe` False
-    it "isSubsetOf [] [0..63] == True" $ do
-      isSubsetOf [] [0 .. 63] `shouldBe` True
-    it "isSubsetOf [0..63] [0..63] == True" $ do
-      isSubsetOf [0 .. 63] [0 .. 63] `shouldBe` True
+  describe "isSubsetOfBS" $ do
+    it "isSubsetOfBS [] [] == True" $ do
+      isSubsetOfBS [] [] `shouldBe` True
+    it "isSubsetOfBS [] [1, 2, 3] == True" $ do
+      isSubsetOfBS [] [1, 2, 3] `shouldBe` True
+    it "isSubsetOfBS [1, 2, 3] [2, 3, 4] == False" $ do
+      isSubsetOfBS [1, 2, 3] [2, 3, 4] `shouldBe` False
+    it "isSubsetOfBS [1, 2, 3] [4, 5, 6] == False" $ do
+      isSubsetOfBS [1, 2, 3] [4, 5, 6] `shouldBe` False
+    it "isSubsetOfBS [] [0..63] == True" $ do
+      isSubsetOfBS [] [0 .. 63] `shouldBe` True
+    it "isSubsetOfBS [0..63] [0..63] == True" $ do
+      isSubsetOfBS [0 .. 63] [0 .. 63] `shouldBe` True
   describe "unionBS" $ do
     it "unionBS [] [] == []" $ do
       unionBS [] [] `shouldBe` []
