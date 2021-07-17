@@ -16,6 +16,10 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import GHC.Exts
 
+{- $setup
+>>> :set -XOverloadedLists
+-}
+
 newtype BitSet = BitSet {getBitSet :: Int} deriving (Eq, Ord)
 
 instance Show BitSet where
@@ -35,22 +39,22 @@ singletonBS :: Int -> BitSet
 singletonBS (I# i#) = BitSet (I# (uncheckedIShiftL# 1# i#))
 
 {- |
- >>> insertBS 0 []
- fromList [0]
- >>> insertBS 0 [0]
- fromList [0]
+>>> insertBS 0 []
+fromList [0]
+>>> insertBS 0 [0]
+fromList [0]
 -}
 insertBS :: Int -> BitSet -> BitSet
 insertBS (I# i#) (BitSet (I# bs#)) =
   BitSet (I# (uncheckedIShiftL# 1# i# `orI#` bs#))
 
 {- |
- >>> deleteBS 2 [1,2,3]
- fromList [1,3]
- >>> deleteBS 10 [1,2,3]
- fromList [1,2,3]
- >>> deleteBS 0 []
- fromList []
+>>> deleteBS 2 [1,2,3]
+fromList [1,3]
+>>> deleteBS 10 [1,2,3]
+fromList [1,2,3]
+>>> deleteBS 0 []
+fromList []
 -}
 deleteBS :: Int -> BitSet -> BitSet
 deleteBS (I# i#) (BitSet (I# bs#)) =
@@ -69,6 +73,14 @@ nullBS = (== 0) . coerce @BitSet @Int
 sizeBS :: BitSet -> Int
 sizeBS = coerce (popCount @Int)
 
+{- |
+>>> isSubsetOf [] [1,2,3]
+True
+>>> isSubsetOf [1] []
+False
+>>> isSubsetOf [1,2,3] [1,2,3]
+True
+-}
 isSubsetOf :: BitSet -> BitSet -> Bool
 isSubsetOf x y = intersectionBS x y == x
 
@@ -78,6 +90,12 @@ unionBS = coerce ((.|.) @Int)
 complementBS :: BitSet -> BitSet
 complementBS = coerce (complement @Int)
 
+{-
+>>> differenceBS [1,2,3] [1,2]
+fromList [3]
+>>> differenceBS [1,2] [1,2,3]
+fromList []
+-}
 differenceBS :: BitSet -> BitSet -> BitSet
 differenceBS x y = intersectionBS x (complementBS y)
 
@@ -85,37 +103,37 @@ intersectionBS :: BitSet -> BitSet -> BitSet
 intersectionBS = coerce ((.&.) @Int)
 
 {- |
- >>> findMinBS [1,2,3]
- 1
- >>> findMinBS []
- 64
+>>> findMinBS [1,2,3]
+1
+>>> findMinBS []
+64
 -}
 findMinBS :: BitSet -> Int
 findMinBS = coerce (countTrailingZeros @Int)
 
 {- |
- >>> findMaxBS [1,2,3]
- 3
- >>> findMaxBS []
- -1
+>>> findMaxBS [1,2,3]
+3
+>>> findMaxBS []
+-1
 -}
 findMaxBS :: BitSet -> Int
 findMaxBS = (63 -) . coerce (countLeadingZeros @Int)
 
 {- |
- >>> deleteMinBS [1,2,3]
- fromList [2,3]
- >>> deleteMinBS []
- fromList []
+>>> deleteMinBS [1,2,3]
+fromList [2,3]
+>>> deleteMinBS []
+fromList []
 -}
 deleteMinBS :: BitSet -> BitSet
 deleteMinBS (BitSet x) = BitSet (x .&. (x - 1))
 
 {- |
- >>> deleteMaxBS [1,2,3]
- fromList [1,2]
- >>> deleteMaxBS []
- fromList []
+>>> deleteMaxBS [1,2,3]
+fromList [1,2]
+>>> deleteMaxBS []
+fromList []
 -}
 deleteMaxBS :: BitSet -> BitSet
 deleteMaxBS x = deleteBS (findMaxBS x) x
