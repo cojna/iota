@@ -3,6 +3,8 @@
 module Data.BitSetSpec (main, spec) where
 
 import Data.BitSet
+import qualified Data.Vector.Fusion.Stream.Monadic as MS
+import Data.Vector.Fusion.Util
 import Test.Prelude
 
 main :: IO ()
@@ -161,3 +163,19 @@ spec = do
       deleteMaxBS [0 .. 63] `shouldBe` [0 .. 62]
     it "deleteMaxBS [63] == []" $ do
       deleteMaxBS [63] `shouldBe` []
+  describe "powersetBS" $ do
+    it "powersetBS [0, 1, 2] == reverse $ map BitSet [0..7]" $ do
+      powerset [0, 1, 2] `shouldBe` reverse (map BitSet [0 .. 7])
+    it "powersetBS [] == [emptyBS]" $ do
+      powerset [] `shouldBe` [emptyBS]
+  describe "strictPowersetBS" $ do
+    it "strictPowersetBS [0, 1, 2] == reverse $ map BitSet [0..6]" $ do
+      strictPowerset [0, 1, 2] `shouldBe` reverse (map BitSet [0 .. 6])
+    it "strictPowersetBS [] == [emptyBS]" $ do
+      strictPowerset [] `shouldBe` []
+
+powerset :: BitSet -> [BitSet]
+powerset = unId . MS.toList . powersetBS
+
+strictPowerset :: BitSet -> [BitSet]
+strictPowerset = unId . MS.toList . strictPowersetBS

@@ -1,4 +1,6 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeApplications #-}
@@ -10,6 +12,7 @@ import Control.Monad
 import Data.Bits
 import Data.Coerce
 import qualified Data.Foldable as F
+import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
@@ -20,7 +23,9 @@ import GHC.Exts
 >>> :set -XOverloadedLists
 -}
 
-newtype BitSet = BitSet {getBitSet :: Int} deriving (Eq, Ord)
+newtype BitSet = BitSet {getBitSet :: Int}
+  deriving (Eq, Ord)
+  deriving newtype (Num, Bits)
 
 instance Show BitSet where
   showsPrec p xs =
@@ -155,6 +160,42 @@ maxViewBS :: BitSet -> Maybe (Int, BitSet)
 maxViewBS x
   | x /= BitSet 0 = Just $ deleteFindMaxBS x
   | otherwise = Nothing
+
+{- |
+>>> import Data.Functor.Identity
+>>> runIdentity . MS.toList $ powersetBS [0,1,2]
+[fromList [0,1,2],fromList [1,2],fromList [0,2],fromList [2],fromList [0,1],fromList [1],fromList [0],fromList []]
+>>> runIdentity . MS.toList $ powersetBS []
+[fromList []]
+-}
+powersetBS :: (Monad m) => BitSet -> MS.Stream m BitSet
+powersetBS s0 = MS.Stream step (s0 + 1)
+  where
+    step s
+      | s' < s = return $ MS.Yield s' s'
+      | otherwise = return MS.Done
+      where
+        !s' = (s - 1) .&. s0
+    {-# INLINE [0] step #-}
+{-# INLINE [1] powersetBS #-}
+
+{- |
+>>> import Data.Functor.Identity
+>>> runIdentity . MS.toList $ strictPowersetBS [0,1,2]
+[fromList [1,2],fromList [0,2],fromList [2],fromList [0,1],fromList [1],fromList [0],fromList []]
+>>> runIdentity . MS.toList $ strictPowersetBS []
+[]
+-}
+strictPowersetBS :: (Monad m) => BitSet -> MS.Stream m BitSet
+strictPowersetBS s0 = MS.Stream step s0
+  where
+    step s
+      | s' < s = return $ MS.Yield s' s'
+      | otherwise = return MS.Done
+      where
+        !s' = (s - 1) .&. s0
+    {-# INLINE [0] step #-}
+{-# INLINE [1] strictPowersetBS #-}
 
 newtype instance UM.MVector s BitSet = MV_BitSet (UM.MVector s Int)
 newtype instance U.Vector BitSet = V_BitSet (U.Vector Int)
