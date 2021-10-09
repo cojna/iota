@@ -5,10 +5,10 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Data.SegTree.GenericSpec (main, spec) where
+module Data.SegTree.PrimalSpec (main, spec) where
 
 import Data.Bits
-import Data.SegTree.Generic
+import Data.SegTree.Primal
 import Data.Semigroup
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as G

@@ -6,7 +6,7 @@
  == Reference
    * <https://codeforces.com/blog/entry/18051>
 -}
-module Data.SegTree.Generic where
+module Data.SegTree.Primal where
 
 import Control.Monad
 import Control.Monad.Primitive
