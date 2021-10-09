@@ -184,5 +184,5 @@ outDegree CSR{..} v =
 {-# INLINE outDegree #-}
 
 outDegrees :: SparseGraph w -> U.Vector Int
-outDegrees CSR{..} = U.zipWith (-) offsetCSR $ U.tail offsetCSR
+outDegrees CSR{..} = U.zipWith (-) (U.tail offsetCSR) offsetCSR
 {-# INLINE outDegrees #-}
