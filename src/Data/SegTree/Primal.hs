@@ -223,10 +223,7 @@ upperBoundFrom segtree l p = do
         cur0
 {-# INLINE upperBoundFrom #-}
 
-{- | min l s.t. f (mappendFromTo seg l r) == True
-
- >>>
--}
+-- | min l s.t. f (mappendFromTo seg l r) == True
 lowerBoundTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
