@@ -13,5 +13,5 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "MonoidAction (Product Int) (Sum Int)" $ do
-    monoidActionSpec (Proxy @(Product Int)) (Proxy @(Sum Int))
+  describe "MonoidAction (Dual (Product Int)) (Sum Int)" $ do
+    monoidActionSpec (Proxy @(Dual (Product Int))) (Proxy @(Sum Int))

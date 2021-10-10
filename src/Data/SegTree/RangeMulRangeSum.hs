@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -9,6 +10,6 @@ import Data.Coerce
 import Data.SegTree
 import Data.Semigroup
 
-instance (Num a) => MonoidAction (Product a) (Sum a) where
+instance (Num a) => MonoidAction (Dual (Product a)) (Sum a) where
   appMonoid = coerce ((*) @a)
   {-# INLINE appMonoid #-}
