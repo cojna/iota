@@ -182,33 +182,37 @@ upperBoundFrom ::
 upperBoundFrom segtree l p = do
   let tree = getSegTree segtree
   let !n = unsafeShiftR (GM.length tree) 1
-  fix
-    ( \oloop !oacc !ol -> do
-        let ol' = unsafeShiftR ol (countTrailingZeros ol)
-        oacc' <- (<> oacc) <$> GM.unsafeRead tree ol'
-        if p oacc'
-          then do
-            let !ol'' = ol' + 1
-            if (ol'' .&. (- ol'')) /= ol''
-              then oloop oacc' ol''
-              else return $! n
-          else do
-            fix
-              ( \iloop !iacc !il -> do
-                  if il < n
-                    then do
-                      let il' = 2 * il
-                      iacc' <- (<> iacc) <$> GM.unsafeRead tree il'
-                      if p iacc'
-                        then iloop iacc' (il' + 1)
-                        else iloop iacc il'
-                    else return $! il - n
-              )
-              oacc
-              ol'
-    )
-    mempty
-    (l + n)
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let rightParent = unsafeShiftR cur (countTrailingZeros cur)
+          !acc' <- (acc <>) <$> GM.unsafeRead tree rightParent
+          if p acc'
+            then do
+              let !cur' = rightParent + 1
+              if cur' .&. negate cur' /= cur'
+                then loopUp acc' cur'
+                else return Nothing
+            else return $ Just (acc, rightParent)
+      )
+      mempty
+      (l + n)
+  case violationNode of
+    Nothing -> return n
+    Just (!acc0, !cur0) -> do
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                let !leftChild = 2 * cur
+                !acc' <- (acc <>) <$> GM.unsafeRead tree leftChild
+                if p acc'
+                  then loopDown acc' (leftChild + 1)
+                  else loopDown acc leftChild
+              else return $! cur - n
+        )
+        acc0
+        cur0
 {-# INLINE upperBoundFrom #-}
 
 -- | min l s.t. f (mappendFromTo seg l r) == True
@@ -220,42 +224,42 @@ lowerBoundTo ::
   -- | predicate s.t. f memepty == True, monotone
   (a -> Bool) ->
   m Int
-lowerBoundTo segtree r0 p = do
+lowerBoundTo segtree r p = do
   let tree = getSegTree segtree
   let !n = unsafeShiftR (GM.length tree) 1
-  fix
-    ( \loop !acc !r -> do
-        let r' =
-              fix
-                ( \iloop !ir ->
-                    if ir > 1 && ir .&. 1 == 1
-                      then iloop (unsafeShiftR ir 1)
-                      else ir
-                )
-                (r - 1)
-        acc' <- (<> acc) <$> GM.unsafeRead tree r'
-        if p acc'
-          then do
-            if (r' .&. (- r')) /= r'
-              then loop acc' r'
-              else return 0
-          else do
-            fix
-              ( \iloop !iacc !ir -> do
-                  if ir < n
-                    then do
-                      let ir' = 2 * ir + 1
-                      iacc' <- (<> iacc) <$> GM.unsafeRead tree ir'
-                      if p iacc'
-                        then iloop iacc' (ir' - 1)
-                        else iloop iacc ir'
-                    else return $! ir + 1 - n
-              )
-              acc
-              r'
-    )
-    mempty
-    (r0 + n)
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let leftParent =
+                case unsafeShiftR cur (countTrailingZeros (complement cur)) of
+                  0 -> 1 -- cur: 2 ^ n
+                  v -> v
+          !acc' <- (<> acc) <$> GM.unsafeRead tree leftParent
+          if p acc'
+            then do
+              if leftParent .&. negate leftParent /= leftParent
+                then loopUp acc' (leftParent - 1)
+                else return Nothing
+            else return $ Just (acc, leftParent)
+      )
+      mempty
+      (r - 1 + n)
+  case violationNode of
+    Nothing -> return 0
+    Just (!acc0, !cur0) ->
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                let !rightChild = 2 * cur + 1
+                !acc' <- (<> acc) <$> GM.unsafeRead tree rightChild
+                if p acc'
+                  then loopDown acc' (rightChild - 1)
+                  else loopDown acc rightChild
+              else return $! cur + 1 - n
+        )
+        acc0
+        cur0
 {-# INLINE lowerBoundTo #-}
 
 {- |
