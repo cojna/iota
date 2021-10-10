@@ -218,6 +218,102 @@ appFromTo st l0 r0 f = when (l0 < r0) $ do
       pullSegTree st (unsafeShiftRL (r - 1) i)
 {-# INLINE appFromTo #-}
 
+-- | max r s.t. f (mappendFromTo seg l r) == True
+upperBoundFrom ::
+  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  SegTree (PrimState m) f a ->
+  -- | left
+  Int ->
+  -- | predicate s.t. f memepty == True, monotone
+  (a -> Bool) ->
+  m Int
+upperBoundFrom st l p = do
+  let !n = sizeSegTree st
+  rev1 (heightSegTree st) $ \i -> do
+    pushSegTree st (unsafeShiftR (l + n) i)
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let rightParent = unsafeShiftR cur (countTrailingZeros cur)
+          !acc' <- (acc <>) <$> UM.unsafeRead (getSegTree st) rightParent
+          if p acc'
+            then do
+              let !cur' = rightParent + 1
+              if cur' .&. negate cur' /= cur'
+                then loopUp acc' cur'
+                else return Nothing
+            else return $ Just (acc, rightParent)
+      )
+      mempty
+      (l + n)
+  case violationNode of
+    Nothing -> return n
+    Just (!acc0, !cur0) -> do
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                pushSegTree st cur
+                let !leftChild = 2 * cur
+                !acc' <- (acc <>) <$> UM.unsafeRead (getSegTree st) leftChild
+                if p acc'
+                  then loopDown acc' (leftChild + 1)
+                  else loopDown acc leftChild
+              else return $! cur - n
+        )
+        acc0
+        cur0
+{-# INLINE upperBoundFrom #-}
+
+-- | min l s.t. f (mappendFromTo seg l r) == True
+lowerBoundTo ::
+  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  SegTree (PrimState m) f a ->
+  -- | right
+  Int ->
+  -- | predicate s.t. f memepty == True, monotone
+  (a -> Bool) ->
+  m Int
+lowerBoundTo st r p = do
+  let !n = sizeSegTree st
+  rev1 (heightSegTree st) $ \i -> do
+    pushSegTree st (unsafeShiftR (r + n - 1) i)
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let leftParent =
+                case unsafeShiftR cur (countTrailingZeros (complement cur)) of
+                  0 -> 1 -- cur: 2 ^ n
+                  v -> v
+          !acc' <- (<> acc) <$> UM.unsafeRead (getSegTree st) leftParent
+          if p acc'
+            then do
+              if leftParent .&. negate leftParent /= leftParent
+                then loopUp acc' (leftParent - 1)
+                else return Nothing
+            else return $ Just (acc, leftParent)
+      )
+      mempty
+      (r - 1 + n)
+  case violationNode of
+    Nothing -> return 0
+    Just (!acc0, !cur0) ->
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                pushSegTree st cur
+                let !rightChild = 2 * cur + 1
+                !acc' <- (<> acc) <$> UM.unsafeRead (getSegTree st) rightChild
+                if p acc'
+                  then loopDown acc' (rightChild - 1)
+                  else loopDown acc rightChild
+              else return $! cur + 1 - n
+        )
+        acc0
+        cur0
+{-# INLINE lowerBoundTo #-}
+
 -- | /O(1)/
 evalAt ::
   (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
