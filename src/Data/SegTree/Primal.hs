@@ -171,7 +171,7 @@ mappendAll segtree = GM.unsafeRead (getSegTree segtree) 1
 {-# INLINE mappendAll #-}
 
 -- | max r s.t. f (mappendFromTo seg l r) == True
-maxRightSegTree ::
+upperBoundFrom ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
   -- | left
@@ -179,7 +179,7 @@ maxRightSegTree ::
   -- | predicate s.t. f memepty == True, monotone
   (a -> Bool) ->
   m Int
-maxRightSegTree segtree l p = do
+upperBoundFrom segtree l p = do
   let tree = getSegTree segtree
   let !n = unsafeShiftR (GM.length tree) 1
   fix
@@ -209,16 +209,16 @@ maxRightSegTree segtree l p = do
     )
     mempty
     (l + n)
-{-# INLINE maxRightSegTree #-}
+{-# INLINE upperBoundFrom #-}
 
 -- | min l s.t. f (mappendFromTo seg l r) == True
-minLeftSegTree ::
+lowerBoundTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
   Int ->
   (a -> Bool) ->
   m Int
-minLeftSegTree segtree r0 p = do
+lowerBoundTo segtree r0 p = do
   let tree = getSegTree segtree
   let !n = unsafeShiftR (GM.length tree) 1
   fix
@@ -254,7 +254,7 @@ minLeftSegTree segtree r0 p = do
     )
     mempty
     (r0 + n)
-{-# INLINE minLeftSegTree #-}
+{-# INLINE lowerBoundTo #-}
 
 {- |
 >>> extendToPowerOfTwo 0
