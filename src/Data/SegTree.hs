@@ -7,9 +7,7 @@ module Data.SegTree where
 import Control.Monad
 import Control.Monad.Primitive
 import Data.Bits
-import Data.Coerce
 import Data.Function
-import Data.Monoid hiding (First (..), Last (..))
 import Data.Semigroup
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -25,14 +23,6 @@ class (Monoid f) => MonoidAction f a where
 instance MonoidAction () m where
   appMonoid = const id
   {-# INLINE appMonoid #-}
-
-instance MonoidAction (Dual (Maybe (Last (Min Int)))) (Min Int) where
-  appMonoid (Dual Nothing) y = y
-  appMonoid (Dual (Just x)) _ = coerce x
-
-instance MonoidAction (Dual (Maybe (Last (Max Int)))) (Max Int) where
-  appMonoid (Dual Nothing) y = y
-  appMonoid (Dual (Just x)) _ = coerce x
 
 instance MonoidAction (Min Int) (Min Int) where
   appMonoid = (<>)
