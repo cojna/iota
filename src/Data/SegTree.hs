@@ -8,7 +8,6 @@ import Control.Monad
 import Control.Monad.Primitive
 import Data.Bits
 import Data.Function
-import Data.Semigroup
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
@@ -22,14 +21,6 @@ class (Monoid f) => MonoidAction f a where
 
 instance MonoidAction () m where
   appMonoid = const id
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Min Int) (Min Int) where
-  appMonoid = (<>)
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Max Int) (Max Int) where
-  appMonoid = (<>)
   {-# INLINE appMonoid #-}
 
 {- | * @appMonoid f (x <> y) = appMonoid f x <> appMonoid f y@
