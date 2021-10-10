@@ -18,6 +18,12 @@ import Unsafe.Coerce
 
 newtype SegTree mv s a = SegTree {getSegTree :: mv s a}
 
+{- |
+>>> :set -XTypeApplications
+>>> import Data.Semigroup (Min)
+>>> import qualified Data.Vector.Unboxed.Mutable as  UM
+>>> newSegTree @(Min Int) @UM.MVector 123
+-}
 newSegTree ::
   (Monoid a, GM.MVector mv a, PrimMonad m) =>
   Int ->
@@ -100,9 +106,10 @@ modifySegTree segtree f k = do
       loop $ unsafeShiftR i 1
 {-# INLINE modifySegTree #-}
 
-{- | mappend [l..r)
+{- |
+mconcat[a[l],...,a[r-1]]
 
- /O(log n)/
+/O(log n)/
 -}
 mappendFromTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
@@ -138,9 +145,10 @@ mappendFromTo segtree l0 r0 = do
     (r0 + n)
 {-# INLINE mappendFromTo #-}
 
-{- | mappend [0..k)
+{- |
+mconcat[a[0],...,a[k-1]]
 
- /O(log n)/
+/O(log n)/
 -}
 mappendTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
@@ -150,9 +158,10 @@ mappendTo ::
 mappendTo segtree = mappendFromTo segtree 0
 {-# INLINE mappendTo #-}
 
-{- | mappend [0..n)
+{- |
+mconcat[a[0],...,a[n-1]]
 
- /O(1)/
+/O(1)/
 -}
 mappendAll ::
   (PrimMonad m, GM.MVector mv a) =>
@@ -161,10 +170,13 @@ mappendAll ::
 mappendAll segtree = GM.unsafeRead (getSegTree segtree) 1
 {-# INLINE mappendAll #-}
 
+-- | max r s.t. f (mappendFromTo seg l r) == True
 maxRightSegTree ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
+  -- | left
   Int ->
+  -- | predicate s.t. f memepty == True, monotone
   (a -> Bool) ->
   m Int
 maxRightSegTree segtree l p = do
@@ -199,6 +211,7 @@ maxRightSegTree segtree l p = do
     (l + n)
 {-# INLINE maxRightSegTree #-}
 
+-- | min l s.t. f (mappendFromTo seg l r) == True
 minLeftSegTree ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
@@ -244,8 +257,8 @@ minLeftSegTree segtree r0 p = do
 {-# INLINE minLeftSegTree #-}
 
 {- |
- >>> extendToPowerOfTwo 0
- 1
+>>> extendToPowerOfTwo 0
+1
 -}
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
