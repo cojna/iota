@@ -26,10 +26,6 @@ instance MonoidAction () m where
   appMonoid = const id
   {-# INLINE appMonoid #-}
 
-instance MonoidAction (Product Int) (Sum Int) where
-  appMonoid = coerce ((*) :: Int -> Int -> Int)
-  {-# INLINE appMonoid #-}
-
 instance MonoidAction (Dual (Maybe (Last (Min Int)))) (Min Int) where
   appMonoid (Dual Nothing) y = y
   appMonoid (Dual (Just x)) _ = coerce x
