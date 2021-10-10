@@ -170,7 +170,15 @@ mappendAll ::
 mappendAll segtree = GM.unsafeRead (getSegTree segtree) 1
 {-# INLINE mappendAll #-}
 
--- | max r s.t. f (mappendFromTo seg l r) == True
+{- | max r s.t. f (mappendFromTo seg l r) == True
+
+>>> :set -XTypeApplications
+>>> import Data.Semigroup (Min)
+>>> import qualified Data.Vector.Unboxed.Mutable as  UM
+>>> seg <- newSegTree @(Min Int) @UM.MVector 10
+>>> upperBoundFrom seg 0 (const True)
+16
+-}
 upperBoundFrom ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
@@ -215,7 +223,10 @@ upperBoundFrom segtree l p = do
         cur0
 {-# INLINE upperBoundFrom #-}
 
--- | min l s.t. f (mappendFromTo seg l r) == True
+{- | min l s.t. f (mappendFromTo seg l r) == True
+
+ >>>
+-}
 lowerBoundTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
