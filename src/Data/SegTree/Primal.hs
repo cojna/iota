@@ -215,7 +215,9 @@ upperBoundFrom segtree l p = do
 lowerBoundTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
+  -- | right
   Int ->
+  -- | predicate s.t. f memepty == True, monotone
   (a -> Bool) ->
   m Int
 lowerBoundTo segtree r0 p = do
