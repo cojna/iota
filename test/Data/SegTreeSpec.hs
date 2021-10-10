@@ -16,10 +16,6 @@ spec :: Spec
 spec = do
   describe "MonoidAction () (Product IntMod)" $ do
     monoidActionSpec (Proxy @()) (Proxy @(Product IntMod))
-  describe "MonoidAction (Sum Int) (Min Int)" $ do
-    monoidActionSpec (Proxy @(Sum Int)) (Proxy @(Min Int))
-  describe "MonoidAction (Sum Int) (Max Int)" $ do
-    monoidActionSpec (Proxy @(Sum Int)) (Proxy @(Max Int))
   describe "MonoidAction (Sum Int) (Sum Int, Sum Int)" $ do
     monoidActionSpec (Proxy @(Sum Int)) (Proxy @(Sum Int, Sum Int))
   describe "MonoidAction (Product Int) (Sum Int)" $ do

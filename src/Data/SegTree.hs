@@ -26,18 +26,6 @@ instance MonoidAction () m where
   appMonoid = const id
   {-# INLINE appMonoid #-}
 
-instance MonoidAction (Sum Int) (Min Int) where
-  appMonoid (Sum x) (Min y)
-    | y /= maxBound = Min (x + y)
-    | otherwise = Min y
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Sum Int) (Max Int) where
-  appMonoid (Sum x) (Max y)
-    | y /= minBound = Max (x + y)
-    | otherwise = Max y
-  {-# INLINE appMonoid #-}
-
 instance MonoidAction (Sum Int) (Sum Int, Sum Int) where
   appMonoid (Sum x) (Sum y, Sum size) =
     (Sum (y + x * size), Sum size)
