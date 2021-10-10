@@ -5,10 +5,10 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Data.SegTree.GenericSpec (main, spec) where
+module Data.SegTree.PrimalSpec (main, spec) where
 
 import Data.Bits
-import Data.SegTree.Generic
+import Data.SegTree.Primal
 import Data.Semigroup
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as G
@@ -72,6 +72,90 @@ spec = do
     it "minimum [0, 1) for update 0 (-1) [0]" $
       runSegTree [0] [SegUpdate 0 (-1), SegQuery 0 1]
         `shouldBe` U.fromList [(-1) :: Min Int]
+  describe "upperBoundFrom" $ do
+    describe "[1, 2, 4 .. 512]" $ do
+      let vec = U.generate 10 (Sum (2 :: Int) ^)
+      it "upperBoundFrom seg 0 (<= Sum 0)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              upperBoundFrom seg 0 (<= Sum 0)
+        action `shouldReturn` 0
+      it "upperBoundFrom seg 0 (<= Sum 1)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              upperBoundFrom seg 0 (<= Sum 1)
+        action `shouldReturn` 1
+      it "upperBoundFrom seg 0 (<= Sum 512)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              upperBoundFrom seg 0 (<= Sum 512)
+        action `shouldReturn` 9
+      it "upperBoundFrom seg 2 (<= Sum 4)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              upperBoundFrom seg 2 (<= Sum 4)
+        action `shouldReturn` 3
+      it "upperBoundFrom seg 2 (<= Sum 12)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              upperBoundFrom seg 2 (<= Sum 12)
+        action `shouldReturn` 4
+      it "upperBoundFrom seg 9 (<= Sum 0)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              upperBoundFrom seg 9 (<= Sum 0)
+        action `shouldReturn` 9
+
+  describe "lowerBoundTo" $ do
+    describe "[1, 2, 4 .. 512]" $ do
+      let vec = U.generate 10 (Sum (2 :: Int) ^)
+      it "lowerBoundTo seg 3 (<= Sum 0)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 3 (<= Sum 0)
+        action `shouldReturn` 3
+      it "lowerBoundTo seg 3 (<= Sum 4)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 3 (<= Sum 4)
+        action `shouldReturn` 2
+      it "lowerBoundTo seg 3 (<= Sum 6)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 3 (<= Sum 6)
+        action `shouldReturn` 1
+      it "lowerBoundTo seg 3 (<= Sum 7)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 3 (<= Sum 7)
+        action `shouldReturn` 0
+
+      it "lowerBoundTo seg 10 (<= Sum 0)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 10 (<= Sum 0)
+        action `shouldReturn` 10
+      it "lowerBoundTo seg 10 (<= Sum 512)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 10 (<= Sum 512)
+        action `shouldReturn` 9
+      it "lowerBoundTo seg 10 (<= Sum (256 + 512) )" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 10 (<= Sum (256 + 512))
+        action `shouldReturn` 8
+      it "lowerBoundTo seg 10 (< Sum 1023)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 10 (< Sum 1023)
+        action `shouldReturn` 1
+      it "lowerBoundTo seg 10 (< Sum 1024)" $ do
+        let action = do
+              seg <- buildSegTree vec
+              lowerBoundTo seg 10 (< Sum 1024)
+        action `shouldReturn` 0
+
   describe "extendToPowerOfTwo" $ do
     it "f 0 == 1" $ extendToPowerOfTwo 0 `shouldBe` 1
     it "f 1 == 1" $ extendToPowerOfTwo 1 `shouldBe` 1

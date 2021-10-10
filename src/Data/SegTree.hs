@@ -7,10 +7,7 @@ module Data.SegTree where
 import Control.Monad
 import Control.Monad.Primitive
 import Data.Bits
-import Data.Coerce
 import Data.Function
-import Data.Monoid hiding (First (..), Last (..))
-import Data.Semigroup
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
@@ -24,42 +21,6 @@ class (Monoid f) => MonoidAction f a where
 
 instance MonoidAction () m where
   appMonoid = const id
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Sum Int) (Min Int) where
-  appMonoid (Sum x) (Min y)
-    | y /= maxBound = Min (x + y)
-    | otherwise = Min y
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Sum Int) (Max Int) where
-  appMonoid (Sum x) (Max y)
-    | y /= minBound = Max (x + y)
-    | otherwise = Max y
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Sum Int) (Sum Int, Sum Int) where
-  appMonoid (Sum x) (Sum y, Sum size) =
-    (Sum (y + x * size), Sum size)
-
-instance MonoidAction (Product Int) (Sum Int) where
-  appMonoid = coerce ((*) :: Int -> Int -> Int)
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Dual (Maybe (Last (Min Int)))) (Min Int) where
-  appMonoid (Dual Nothing) y = y
-  appMonoid (Dual (Just x)) _ = coerce x
-
-instance MonoidAction (Dual (Maybe (Last (Max Int)))) (Max Int) where
-  appMonoid (Dual Nothing) y = y
-  appMonoid (Dual (Just x)) _ = coerce x
-
-instance MonoidAction (Min Int) (Min Int) where
-  appMonoid = (<>)
-  {-# INLINE appMonoid #-}
-
-instance MonoidAction (Max Int) (Max Int) where
-  appMonoid = (<>)
   {-# INLINE appMonoid #-}
 
 {- | * @appMonoid f (x <> y) = appMonoid f x <> appMonoid f y@
@@ -256,6 +217,102 @@ appFromTo st l0 r0 f = when (l0 < r0) $ do
     when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
       pullSegTree st (unsafeShiftRL (r - 1) i)
 {-# INLINE appFromTo #-}
+
+-- | max r s.t. f (mappendFromTo seg l r) == True
+upperBoundFrom ::
+  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  SegTree (PrimState m) f a ->
+  -- | left
+  Int ->
+  -- | predicate s.t. f memepty == True, monotone
+  (a -> Bool) ->
+  m Int
+upperBoundFrom st l p = do
+  let !n = sizeSegTree st
+  rev1 (heightSegTree st) $ \i -> do
+    pushSegTree st (unsafeShiftR (l + n) i)
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let rightParent = unsafeShiftR cur (countTrailingZeros cur)
+          !acc' <- (acc <>) <$> UM.unsafeRead (getSegTree st) rightParent
+          if p acc'
+            then do
+              let !cur' = rightParent + 1
+              if cur' .&. negate cur' /= cur'
+                then loopUp acc' cur'
+                else return Nothing
+            else return $ Just (acc, rightParent)
+      )
+      mempty
+      (l + n)
+  case violationNode of
+    Nothing -> return n
+    Just (!acc0, !cur0) -> do
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                pushSegTree st cur
+                let !leftChild = 2 * cur
+                !acc' <- (acc <>) <$> UM.unsafeRead (getSegTree st) leftChild
+                if p acc'
+                  then loopDown acc' (leftChild + 1)
+                  else loopDown acc leftChild
+              else return $! cur - n
+        )
+        acc0
+        cur0
+{-# INLINE upperBoundFrom #-}
+
+-- | min l s.t. f (mappendFromTo seg l r) == True
+lowerBoundTo ::
+  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  SegTree (PrimState m) f a ->
+  -- | right
+  Int ->
+  -- | predicate s.t. f memepty == True, monotone
+  (a -> Bool) ->
+  m Int
+lowerBoundTo st r p = do
+  let !n = sizeSegTree st
+  rev1 (heightSegTree st) $ \i -> do
+    pushSegTree st (unsafeShiftR (r + n - 1) i)
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let leftParent =
+                case unsafeShiftR cur (countTrailingZeros (complement cur)) of
+                  0 -> 1 -- cur: 2 ^ n
+                  v -> v
+          !acc' <- (<> acc) <$> UM.unsafeRead (getSegTree st) leftParent
+          if p acc'
+            then do
+              if leftParent .&. negate leftParent /= leftParent
+                then loopUp acc' (leftParent - 1)
+                else return Nothing
+            else return $ Just (acc, leftParent)
+      )
+      mempty
+      (r - 1 + n)
+  case violationNode of
+    Nothing -> return 0
+    Just (!acc0, !cur0) ->
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                pushSegTree st cur
+                let !rightChild = 2 * cur + 1
+                !acc' <- (<> acc) <$> UM.unsafeRead (getSegTree st) rightChild
+                if p acc'
+                  then loopDown acc' (rightChild - 1)
+                  else loopDown acc rightChild
+              else return $! cur + 1 - n
+        )
+        acc0
+        cur0
+{-# INLINE lowerBoundTo #-}
 
 -- | /O(1)/
 evalAt ::

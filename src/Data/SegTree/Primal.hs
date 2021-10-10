@@ -6,7 +6,7 @@
  == Reference
    * <https://codeforces.com/blog/entry/18051>
 -}
-module Data.SegTree.Generic where
+module Data.SegTree.Primal where
 
 import Control.Monad
 import Control.Monad.Primitive
@@ -18,6 +18,12 @@ import Unsafe.Coerce
 
 newtype SegTree mv s a = SegTree {getSegTree :: mv s a}
 
+{- |
+>>> :set -XTypeApplications
+>>> import Data.Semigroup (Min)
+>>> import qualified Data.Vector.Unboxed.Mutable as  UM
+>>> newSegTree @(Min Int) @UM.MVector 123
+-}
 newSegTree ::
   (Monoid a, GM.MVector mv a, PrimMonad m) =>
   Int ->
@@ -100,9 +106,10 @@ modifySegTree segtree f k = do
       loop $ unsafeShiftR i 1
 {-# INLINE modifySegTree #-}
 
-{- | mappend [l..r)
+{- |
+mconcat[a[l],...,a[r-1]]
 
- /O(log n)/
+/O(log n)/
 -}
 mappendFromTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
@@ -138,9 +145,10 @@ mappendFromTo segtree l0 r0 = do
     (r0 + n)
 {-# INLINE mappendFromTo #-}
 
-{- | mappend [0..k)
+{- |
+mconcat[a[0],...,a[k-1]]
 
- /O(log n)/
+/O(log n)/
 -}
 mappendTo ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
@@ -150,9 +158,10 @@ mappendTo ::
 mappendTo segtree = mappendFromTo segtree 0
 {-# INLINE mappendTo #-}
 
-{- | mappend [0..n)
+{- |
+mconcat[a[0],...,a[n-1]]
 
- /O(1)/
+/O(1)/
 -}
 mappendAll ::
   (PrimMonad m, GM.MVector mv a) =>
@@ -161,91 +170,109 @@ mappendAll ::
 mappendAll segtree = GM.unsafeRead (getSegTree segtree) 1
 {-# INLINE mappendAll #-}
 
-maxRightSegTree ::
-  (Monoid a, PrimMonad m, GM.MVector mv a) =>
-  SegTree mv (PrimState m) a ->
-  Int ->
-  (a -> Bool) ->
-  m Int
-maxRightSegTree segtree l p = do
-  let tree = getSegTree segtree
-  let !n = unsafeShiftR (GM.length tree) 1
-  fix
-    ( \oloop !oacc !ol -> do
-        let ol' = unsafeShiftR ol (countTrailingZeros ol)
-        oacc' <- (<> oacc) <$> GM.unsafeRead tree ol'
-        if p oacc'
-          then do
-            let !ol'' = ol' + 1
-            if (ol'' .&. (- ol'')) /= ol''
-              then oloop oacc' ol''
-              else return $! n
-          else do
-            fix
-              ( \iloop !iacc !il -> do
-                  if il < n
-                    then do
-                      let il' = 2 * il
-                      iacc' <- (<> iacc) <$> GM.unsafeRead tree il'
-                      if p iacc'
-                        then iloop iacc' (il' + 1)
-                        else iloop iacc il'
-                    else return $! il - n
-              )
-              oacc
-              ol'
-    )
-    mempty
-    (l + n)
-{-# INLINE maxRightSegTree #-}
+{- | max r s.t. f (mappendFromTo seg l r) == True
 
-minLeftSegTree ::
+>>> :set -XTypeApplications
+>>> import Data.Semigroup (Min)
+>>> import qualified Data.Vector.Unboxed.Mutable as  UM
+>>> seg <- newSegTree @(Min Int) @UM.MVector 10
+>>> upperBoundFrom seg 0 (const True)
+16
+-}
+upperBoundFrom ::
   (Monoid a, PrimMonad m, GM.MVector mv a) =>
   SegTree mv (PrimState m) a ->
+  -- | left
   Int ->
+  -- | predicate s.t. f memepty == True, monotone
   (a -> Bool) ->
   m Int
-minLeftSegTree segtree r0 p = do
+upperBoundFrom segtree l p = do
   let tree = getSegTree segtree
   let !n = unsafeShiftR (GM.length tree) 1
-  fix
-    ( \loop !acc !r -> do
-        let r' =
-              fix
-                ( \iloop !ir ->
-                    if ir > 1 && ir .&. 1 == 1
-                      then iloop (unsafeShiftR ir 1)
-                      else ir
-                )
-                (r - 1)
-        acc' <- (<> acc) <$> GM.unsafeRead tree r'
-        if p acc'
-          then do
-            if (r' .&. (- r')) /= r'
-              then loop acc' r'
-              else return 0
-          else do
-            fix
-              ( \iloop !iacc !ir -> do
-                  if ir < n
-                    then do
-                      let ir' = 2 * ir + 1
-                      iacc' <- (<> iacc) <$> GM.unsafeRead tree ir'
-                      if p iacc'
-                        then iloop iacc' (ir' - 1)
-                        else iloop iacc ir'
-                    else return $! ir + 1 - n
-              )
-              acc
-              r'
-    )
-    mempty
-    (r0 + n)
-{-# INLINE minLeftSegTree #-}
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let rightParent = unsafeShiftR cur (countTrailingZeros cur)
+          !acc' <- (acc <>) <$> GM.unsafeRead tree rightParent
+          if p acc'
+            then do
+              let !cur' = rightParent + 1
+              if cur' .&. negate cur' /= cur'
+                then loopUp acc' cur'
+                else return Nothing
+            else return $ Just (acc, rightParent)
+      )
+      mempty
+      (l + n)
+  case violationNode of
+    Nothing -> return n
+    Just (!acc0, !cur0) -> do
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                let !leftChild = 2 * cur
+                !acc' <- (acc <>) <$> GM.unsafeRead tree leftChild
+                if p acc'
+                  then loopDown acc' (leftChild + 1)
+                  else loopDown acc leftChild
+              else return $! cur - n
+        )
+        acc0
+        cur0
+{-# INLINE upperBoundFrom #-}
+
+-- | min l s.t. f (mappendFromTo seg l r) == True
+lowerBoundTo ::
+  (Monoid a, PrimMonad m, GM.MVector mv a) =>
+  SegTree mv (PrimState m) a ->
+  -- | right
+  Int ->
+  -- | predicate s.t. f memepty == True, monotone
+  (a -> Bool) ->
+  m Int
+lowerBoundTo segtree r p = do
+  let tree = getSegTree segtree
+  let !n = unsafeShiftR (GM.length tree) 1
+  violationNode <-
+    fix
+      ( \loopUp !acc !cur -> do
+          let leftParent =
+                case unsafeShiftR cur (countTrailingZeros (complement cur)) of
+                  0 -> 1 -- cur: 2 ^ n
+                  v -> v
+          !acc' <- (<> acc) <$> GM.unsafeRead tree leftParent
+          if p acc'
+            then do
+              if leftParent .&. negate leftParent /= leftParent
+                then loopUp acc' (leftParent - 1)
+                else return Nothing
+            else return $ Just (acc, leftParent)
+      )
+      mempty
+      (r - 1 + n)
+  case violationNode of
+    Nothing -> return 0
+    Just (!acc0, !cur0) ->
+      fix
+        ( \loopDown !acc !cur -> do
+            if cur < n
+              then do
+                let !rightChild = 2 * cur + 1
+                !acc' <- (<> acc) <$> GM.unsafeRead tree rightChild
+                if p acc'
+                  then loopDown acc' (rightChild - 1)
+                  else loopDown acc rightChild
+              else return $! cur + 1 - n
+        )
+        acc0
+        cur0
+{-# INLINE lowerBoundTo #-}
 
 {- |
- >>> extendToPowerOfTwo 0
- 1
+>>> extendToPowerOfTwo 0
+1
 -}
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
