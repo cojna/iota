@@ -2,6 +2,7 @@
 iota.cabal
 *~
 *.yaml.lock
+doc/
 
 .vscode/
 
