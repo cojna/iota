@@ -1,6 +1,10 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -17,21 +21,33 @@ import GHC.TypeLits
 import Data.GaloisField (GF (GF), natValAsInt)
 import My.Prelude (rep, rep1)
 
--- | /O(1)/
-fact :: (KnownNat p) => Int -> GF p
-fact = U.unsafeIndex factCache
+newtype FactCache p = FactCache (U.Vector (GF p))
+type HasFactCache (p :: Nat) = (?factCache :: FactCache p)
+
+newtype RecipFactCache p = RecipFactCache (U.Vector (GF p))
+type HasRecipFactCache (p :: Nat) = (?recipFactCache :: RecipFactCache p)
+
+type HasCombCache (p :: Nat) = (HasFactCache p, HasRecipFactCache p)
+
+{- | /O(1)/
+>>> :set -XTypeApplications -XDataKinds
+>>> withFactCache @1000000007 10 $ fact 10
+3628800
+-}
+fact :: (HasFactCache p, KnownNat p) => Int -> GF p
+fact = U.unsafeIndex (coerce ?factCache)
 {-# INLINE fact #-}
 
 -- | /O(1)/
-recipFact :: (KnownNat p) => Int -> GF p
-recipFact = U.unsafeIndex recipFactCache
+recipFact :: (HasRecipFactCache p, KnownNat p) => Int -> GF p
+recipFact = U.unsafeIndex (coerce ?recipFactCache)
 {-# INLINE recipFact #-}
 
 {- | /O(1)/
 
  n < p
 -}
-perm :: (KnownNat p) => Int -> Int -> GF p
+perm :: (HasFactCache p, HasRecipFactCache p, KnownNat p) => Int -> Int -> GF p
 perm n k
   | 0 <= k, k <= n = fact n * recipFact (n - k)
   | otherwise = GF 0
@@ -41,7 +57,7 @@ perm n k
 
  n < p
 -}
-comb :: (KnownNat p) => Int -> Int -> GF p
+comb :: (HasFactCache p, HasRecipFactCache p, KnownNat p) => Int -> Int -> GF p
 comb n k
   | 0 <= k, k <= n = fact n * recipFact (n - k) * recipFact k
   | otherwise = GF 0
@@ -70,22 +86,37 @@ combNaive n@(I# ni#) r@(I# ri#)
             (# z#, _ #) -> go# z# (plusWord# i# 1##)
       | otherwise = I# (word2Int# acc#)
 
-defaultFactCacheSize :: Int
-defaultFactCacheSize = 1024 * 1024
-
-factCache :: forall p. (KnownNat p) => U.Vector (GF p)
-factCache = U.scanl' (\x y -> x * coerce y) (GF 1) $ U.generate size (+ 1)
+buildFactCache :: forall p. (KnownNat p) => Int -> FactCache p
+buildFactCache n =
+  FactCache
+    . U.scanl' (\x y -> x * coerce y) (GF 1)
+    $ U.generate size (+ 1)
   where
-    size = min defaultFactCacheSize (natValAsInt (Proxy @p) - 1)
-{-# NOINLINE factCache #-}
+    size = min n (natValAsInt (Proxy @p) - 1)
 
-recipFactCache :: forall p. (KnownNat p) => U.Vector (GF p)
-recipFactCache =
-  U.scanr' ((*) . coerce) (1 / factCache U.! size) $
-    U.generate size (+ 1)
+withFactCache :: forall p r. (KnownNat p) => Int -> (HasFactCache p => r) -> r
+withFactCache n x = let ?factCache = cache in x
   where
-    size = min defaultFactCacheSize (natValAsInt (Proxy @p) - 1)
-{-# NOINLINE recipFactCache #-}
+    !cache = buildFactCache n
+{-# INLINE withFactCache #-}
+
+buildRecipFactCache :: forall p. (HasFactCache p, KnownNat p) => Int -> RecipFactCache p
+buildRecipFactCache n =
+  RecipFactCache
+    . U.scanr' ((*) . coerce) (1 / fact size)
+    $ U.generate size (+ 1)
+  where
+    size = min n (natValAsInt (Proxy @p) - 1)
+
+withRecipFactCache :: forall p r. (HasFactCache p, KnownNat p) => Int -> (HasRecipFactCache p => r) -> r
+withRecipFactCache n x = let ?recipFactCache = cache in x
+  where
+    !cache = buildRecipFactCache n
+{-# INLINE withRecipFactCache #-}
+
+withCombCache :: forall p r. (KnownNat p) => Int -> (HasCombCache p => r) -> r
+withCombCache n x = withFactCache n $ withRecipFactCache n x
+{-# INLINE withCombCache #-}
 
 {- | Lucas's theorem
 

@@ -1,30 +1,26 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Math.CombinatricsSpec (main, spec) where
 
+import Data.Coerce
 import qualified Data.Vector.Unboxed as U
 
 import Data.GaloisField
-import Math.Combinatrics hiding (comb, fact, perm)
-import qualified Math.Combinatrics
+import Math.Combinatrics
 import Test.Prelude
-
-fact :: Int -> GF 1000000007
-fact = Math.Combinatrics.fact
-
-perm :: Int -> Int -> GF 1000000007
-perm = Math.Combinatrics.perm
-
-comb :: Int -> Int -> GF 1000000007
-comb = Math.Combinatrics.comb
 
 main :: IO ()
 main = hspec spec
 
+cacheSize :: Int
+cacheSize = 1024
+
 spec :: Spec
-spec = do
+spec = withCombCache @1000000007 cacheSize $ do
   describe "fact" $ do
     it "fact 0 = 1" $ do
       fact 0 `shouldBe` 1
@@ -36,6 +32,11 @@ spec = do
       fact 10 `shouldBe` 3628800
     it "fact 100 = 437918130 (mod 1000000007)" $ do
       fact 100 `shouldBe` 437918130
+  describe "recipFact" $ do
+    it "recipFact 2 == 1 / 2" $ do
+      recipFact 2 `shouldBe` recip 2
+    it "recipFact 3 == 1 / 6" $ do
+      recipFact 3 `shouldBe` recip 6
   describe "perm" $ do
     it "perm 10 0 == 1" $ do
       perm 10 0 `shouldBe` 1
@@ -58,7 +59,7 @@ spec = do
     prop "comb n k = perm n k / fact k" prop_combByPerm
   describe "fact/recipFact cache" $ do
     it "fact * recipFact = 1" $
-      U.zipWith (*) factCache (recipFactCache @1000000007)
+      U.zipWith ((*) @(GF 1000000007)) (coerce ?factCache) (coerce ?recipFactCache)
         `shouldSatisfy` U.all (== 1)
   describe "combNaive" $ do
     specify "combNaive 0 0 == 1" $ do
@@ -82,22 +83,38 @@ spec = do
         `shouldBe` U.fromListN 9 [1, 0, 0, 1, 1, 0, 1, 2, 1]
 
 normalize :: Int -> Int
-normalize = flip mod defaultFactCacheSize
+normalize = flip mod cacheSize
 
-prop_permNN :: NonNegative Int -> Bool
+prop_permNN ::
+  forall p.
+  (HasFactCache p, HasRecipFactCache p, KnownNat p) =>
+  NonNegative Int ->
+  Bool
 prop_permNN (normalize . getNonNegative -> n) =
   perm n n == fact n
 
-prop_combN0 :: NonNegative Int -> Bool
+prop_combN0 ::
+  forall p.
+  (HasFactCache p, HasRecipFactCache p, KnownNat p) =>
+  NonNegative Int ->
+  Bool
 prop_combN0 (normalize . getNonNegative -> n) =
   comb n 0 == 1
 
-prop_combNN :: NonNegative Int -> Bool
+prop_combNN ::
+  forall p.
+  (HasFactCache p, HasRecipFactCache p, KnownNat p) =>
+  NonNegative Int ->
+  Bool
 prop_combNN (normalize . getNonNegative -> n) =
   comb n n == 1
 
 prop_constructPascal'sTriangle ::
-  Positive Int -> Positive Int -> Bool
+  forall p.
+  (HasFactCache p, HasRecipFactCache p, KnownNat p) =>
+  Positive Int ->
+  Positive Int ->
+  Bool
 prop_constructPascal'sTriangle
   (normalize . getPositive -> x)
   (normalize . getPositive -> y) =
@@ -107,7 +124,11 @@ prop_constructPascal'sTriangle
       k = max 1 $ min x y
 
 prop_combSym ::
-  Positive Int -> Positive Int -> Bool
+  forall p.
+  (HasFactCache p, HasRecipFactCache p, KnownNat p) =>
+  Positive Int ->
+  Positive Int ->
+  Bool
 prop_combSym
   (normalize . getPositive -> x)
   (normalize . getPositive -> y) =
@@ -117,7 +138,11 @@ prop_combSym
       k = min x y
 
 prop_combByPerm ::
-  Positive Int -> Positive Int -> Bool
+  forall p.
+  (HasFactCache p, HasRecipFactCache p, KnownNat p) =>
+  Positive Int ->
+  Positive Int ->
+  Bool
 prop_combByPerm
   (normalize . getPositive -> x)
   (normalize . getPositive -> y) =
