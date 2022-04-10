@@ -30,6 +30,7 @@ type HasRecipFactCache (p :: Nat) = (?recipFactCache :: RecipFactCache p)
 type HasCombCache (p :: Nat) = (HasFactCache p, HasRecipFactCache p)
 
 {- | /O(1)/
+
 >>> :set -XTypeApplications -XDataKinds
 >>> withFactCache @1000000007 10 $ fact 10
 3628800
