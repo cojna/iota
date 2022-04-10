@@ -50,7 +50,7 @@ jobs:
             - run:
                 name: Build documents
                 command: |
-                    stack haddock --haddock-arguments --odir=doc
+                    stack haddock iota:lib
             - run:
                 name: Install ssh
                 command: which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )
