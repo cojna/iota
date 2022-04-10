@@ -2,7 +2,7 @@ version: 2
 jobs:
     build:
         docker:
-            - image: fpco/stack-build-small:lts-15
+            - image: fpco/stack-build-small:lts-19
         working_directory: /work
         steps:
             - checkout
@@ -16,9 +16,27 @@ jobs:
                 paths:
                     - ~/.stack
                     - /work/.stack-work
-    deploy:
+    build_atcoder:
         docker:
             - image: fpco/stack-build-small:lts-15
+        working_directory: /work
+        environment:
+            - STACK_YAML: stack-atcoder.yaml
+        steps:
+            - checkout
+            - restore_cache:
+                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack-atcoder.yaml"}}
+            - run: stack --version
+            - run: stack ghc -- --version
+            - run: stack test --pedantic --ghc-options="-fno-ignore-asserts"
+            - save_cache:
+                key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack-atcoder.yaml"}}
+                paths:
+                    - ~/.stack
+                    - /work/.stack-work
+    deploy:
+        docker:
+            - image: fpco/stack-build-small:lts-19
         working_directory: /work
         environment:
             - GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"
@@ -58,6 +76,13 @@ workflows:
     test_and_deploy:
         jobs:
             - build
+            - build_atcoder:
+                requires:
+                    - build
+                filters:
+                    branches:
+                        only:
+                          - master
             - deploy:
                 requires:
                     - build

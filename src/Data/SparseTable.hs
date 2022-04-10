@@ -7,6 +7,7 @@ module Data.SparseTable where
 
 import Data.Bits
 import Data.Coerce
+import Data.Kind
 import Data.Semigroup
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
@@ -31,13 +32,13 @@ queryMin :: (U.Unbox a, Ord a) => RMQ a -> Int -> Int -> a
 queryMin = querySparseTable
 {-# INLINE queryMin #-}
 
-newtype SparseTable (f :: * -> *) a = SparseTable
+newtype SparseTable (f :: Type -> Type) a = SparseTable
   { getSparseTable :: V.Vector (U.Vector a)
   }
   deriving (Eq, Show)
 
 buildSparseTable ::
-  forall (f :: * -> *) a.
+  forall (f :: Type -> Type) a.
   (U.Unbox a, Semigroup (f a), Coercible (f a) a) =>
   U.Vector a ->
   SparseTable f a
@@ -55,7 +56,7 @@ readSparseTable st = U.unsafeIndex (V.unsafeIndex (getSparseTable st) 0)
  /O(1)/
 -}
 querySparseTable ::
-  forall (f :: * -> *) a.
+  forall (f :: Type -> Type) a.
   (U.Unbox a, Semigroup (f a), Coercible (f a) a) =>
   SparseTable f a ->
   Int ->
