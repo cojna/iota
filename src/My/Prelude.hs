@@ -5,6 +5,7 @@
 
 module My.Prelude where
 
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
@@ -97,7 +98,7 @@ matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 matrixB h w f mat =
   F.foldMap
     ((<> endlB) . unwordsB f)
-    [G.slice (i * w) w mat | i <- [0 .. h -1]]
+    [G.slice (i * w) w mat | i <- [0 .. h - 1]]
 
 {- |
  >>> B.toLazyByteString . gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
@@ -109,7 +110,7 @@ gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 gridB h w f mat =
   F.foldMap
     ((<> endlB) . concatB f)
-    [G.slice (i * w) w mat | i <- [0 .. h -1]]
+    [G.slice (i * w) w mat | i <- [0 .. h - 1]]
 
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
 sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
@@ -149,15 +150,15 @@ validateSolverState = do
   unless (C.all isSpace bs) $ do
     liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
 
-line :: (MonadFail m) => Parser a -> StateT C.ByteString m a
+line :: (Fail.MonadFail m) => Parser a -> StateT C.ByteString m a
 line f =
-  mapStateT (maybe (fail "parse error") return) $
+  mapStateT (maybe (Fail.fail "parse error") return) $
     takeLine >>= lift . evalStateT f
 {-# INLINE line #-}
 
-linesN :: (MonadFail m) => Int -> Parser a -> StateT C.ByteString m a
+linesN :: (Fail.MonadFail m) => Int -> Parser a -> StateT C.ByteString m a
 linesN n f =
-  mapStateT (maybe (fail "parse error") return) $
+  mapStateT (maybe (Fail.fail "parse error") return) $
     takeLines n >>= lift . evalStateT f
 {-# INLINE linesN #-}
 

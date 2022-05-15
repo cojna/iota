@@ -7,6 +7,7 @@
 module Control.Monad.Interactive where
 
 import Control.Applicative
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import qualified Data.List as L
@@ -113,7 +114,7 @@ instance Monad (Judge m) where
       unJudge (f x) ac wa k
   {-# INLINE (>>=) #-}
 
-instance MonadFail (Judge m) where
+instance Fail.MonadFail (Judge m) where
   fail _ = Judge $ \_ wa _ -> wa
   {-# INLINE fail #-}
 

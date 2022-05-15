@@ -33,7 +33,7 @@ jobs:
                 key: package-cache--{{ checksum "package.yaml" }}--{{ checksum "stack-atcoder.yaml"}}
                 paths:
                     - ~/.stack
-                    - /work/.stack-work
+                    - /work/.stack-work/atcoder
     deploy:
         docker:
             - image: fpco/stack-build-small:lts-19
