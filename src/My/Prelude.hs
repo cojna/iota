@@ -5,6 +5,7 @@
 
 module My.Prelude where
 
+import qualified Control.Monad.Fail as Fail
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
@@ -149,15 +150,15 @@ validateSolverState = do
   unless (C.all isSpace bs) $ do
     liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
 
-line :: (MonadFail m) => Parser a -> StateT C.ByteString m a
+line :: (Fail.MonadFail m) => Parser a -> StateT C.ByteString m a
 line f =
-  mapStateT (maybe (fail "parse error") return) $
+  mapStateT (maybe (Fail.fail "parse error") return) $
     takeLine >>= lift . evalStateT f
 {-# INLINE line #-}
 
-linesN :: (MonadFail m) => Int -> Parser a -> StateT C.ByteString m a
+linesN :: (Fail.MonadFail m) => Int -> Parser a -> StateT C.ByteString m a
 linesN n f =
-  mapStateT (maybe (fail "parse error") return) $
+  mapStateT (maybe (Fail.fail "parse error") return) $
     takeLines n >>= lift . evalStateT f
 {-# INLINE linesN #-}
 
