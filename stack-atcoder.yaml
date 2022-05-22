@@ -17,6 +17,7 @@
 #  location: "./custom-snapshot.yaml"
 resolver: lts-15.13
 work-dir: .stack-work/atcoder
+allow-different-user: true
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
