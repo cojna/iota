@@ -1,0 +1,44 @@
+name: Document
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      runner: ${{ steps.runner.outputs.runner }}
+    steps:
+      - id: runner
+        run: echo "::set-output name=runner::$(id -u):$(id -g)"
+
+  build-and-deploy:
+    needs: configure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: fpco/stack-build-small:lts-19
+      options: --user ${{ needs.configure.outputs.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Versions
+        run: |
+          stack --version
+          stack ghc -- --version
+
+      - name: Build
+        run: stack haddock iota:lib --fast
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./doc
+          force_orphan: true
