@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      runner: ${{ steps.runner.outputs.runner }}
+    steps:
+      - id: runner
+        run: echo "::set-output name=runner::$(id -u):$(id -g)"
+
+  build-and-test:
+    needs: configure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: fpco/stack-build-small:lts-19
+      options: --user ${{ needs.configure.outputs.runner }}
+    strategy:
+      matrix:
+        include:
+          - { stack-yaml: "stack.yaml", stack-work: ".stack-work" }
+          - { stack-yaml: "stack-atcoder.yaml", stack-work: ".stack-work/atcoder" }
+          # - { stack-yaml: "stack-gcj.yaml", stack-work: ".stack-work/gcj", allow-failure: true }
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Versions
+        run: |
+          stack --version
+          stack ghc -- --version
+        env:
+          STACK_YAML: ${{ matrix.stack-yaml }}
+
+      - name: Cache ~/.stack
+        uses: actions/cache@v3
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-global-${{ hashFiles(matrix.stack-yaml) }}-${{ hashFiles('package.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-global-${{ hashFiles(matrix.stack-yaml) }}-
+
+      - name: Cache .stack-work
+        uses: actions/cache@v3
+        with:
+          path: ${{ matrix.stack-work }}
+          key: ${{ runner.os }}-stack-work-${{ hashFiles(matrix.stack-yaml) }}-${{ hashFiles('package.yaml') }}-${{ hashFiles('**/*.hs') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-work-${{ hashFiles(matrix.stack-yaml) }}-
+
+      - name: Build and Test
+        run: |
+          stack build iota:test:iota-test --pedantic --ghc-options="-fno-ignore-asserts"
+        env:
+          STACK_YAML: ${{ matrix.stack-yaml }}

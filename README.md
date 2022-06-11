@@ -1,5 +1,6 @@
 # iota
-[![CircleCI](https://circleci.com/gh/cojna/iota.svg?style=svg&circle-token=1cf96b5aee7f1aceb1fa285e904ea008a23f2a7c)](https://circleci.com/gh/cojna/iota)
+
+[![CI](https://github.com/cojna/iota/actions/workflows/ci.yml/badge.svg)](https://github.com/cojna/iota/actions/workflows/ci.yml)
 
 my library for competitive programming
 

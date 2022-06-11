@@ -17,6 +17,7 @@
 #  location: "./custom-snapshot.yaml"
 resolver: lts-12.26
 work-dir: .stack-work/gcj
+allow-different-user: true
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
