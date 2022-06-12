@@ -19,7 +19,7 @@ jobs:
   build-and-deploy:
     needs: configure
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     container:
       image: fpco/stack-build-small:lts-19
       options: --user ${{ needs.configure.outputs.runner }}
