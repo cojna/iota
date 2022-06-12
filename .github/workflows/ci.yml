@@ -26,10 +26,10 @@ jobs:
       options: --user ${{ needs.configure.outputs.runner }}
     strategy:
       matrix:
-        include:
-          - { stack-yaml: "stack.yaml", stack-work: ".stack-work" }
-          - { stack-yaml: "stack-atcoder.yaml", stack-work: ".stack-work/atcoder" }
-          # - { stack-yaml: "stack-gcj.yaml", stack-work: ".stack-work/gcj", allow-failure: true }
+        stack-lts:
+          - lts-19.3
+          - lts-15.13 # AtCoder
+          # - lts-12.26 # GCJ
       fail-fast: false
     steps:
       - name: Checkout
@@ -38,28 +38,29 @@ jobs:
       - name: Versions
         run: |
           stack --version
-          stack ghc -- --version
-        env:
-          STACK_YAML: ${{ matrix.stack-yaml }}
+          stack ghc --resolver ${{ matrix.stack-lts }} -- --version
 
       - name: Cache ~/.stack
         uses: actions/cache@v3
         with:
           path: ~/.stack
-          key: ${{ runner.os }}-stack-global-${{ hashFiles(matrix.stack-yaml) }}-${{ hashFiles('package.yaml') }}
+          key: ${{ runner.os }}-stack-global-${{ matrix.stack-lts }}-${{ hashFiles('package.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-stack-global-${{ hashFiles(matrix.stack-yaml) }}-
+            ${{ runner.os }}-stack-global-${{ matrix.stack-lts }}-
 
       - name: Cache .stack-work
         uses: actions/cache@v3
         with:
-          path: ${{ matrix.stack-work }}
-          key: ${{ runner.os }}-stack-work-${{ hashFiles(matrix.stack-yaml) }}-${{ hashFiles('package.yaml') }}-${{ hashFiles('**/*.hs') }}
+          path: .stack-work
+          key: ${{ runner.os }}-stack-work-${{ matrix.stack-lts }}-${{ hashFiles('package.yaml') }}-${{ hashFiles('**/*.hs') }}
           restore-keys: |
-            ${{ runner.os }}-stack-work-${{ hashFiles(matrix.stack-yaml) }}-
+            ${{ runner.os }}-stack-work-${{ matrix.stack-lts }}-
 
       - name: Build and Test
-        run: |
-          stack build iota:test:iota-test --pedantic --ghc-options="-fno-ignore-asserts"
-        env:
-          STACK_YAML: ${{ matrix.stack-yaml }}
+        run: >
+          stack build
+          iota:test:iota-test
+          --resolver ${{ matrix.stack-lts }}
+          --pedantic
+          --ghc-options="-fno-ignore-asserts"
+
