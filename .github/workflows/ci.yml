@@ -22,11 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Versions
-        run: |
-          stack --version
-          stack ghc --resolver ${{ matrix.stack-lts }} -- --version
-
       - name: Cache ~/.stack
         uses: actions/cache@v3
         with:
@@ -42,6 +37,11 @@ jobs:
           key: ${{ runner.os }}-stack-work-${{ matrix.stack-lts }}-${{ hashFiles('package.yaml') }}-${{ hashFiles('**/*.hs') }}
           restore-keys: |
             ${{ runner.os }}-stack-work-${{ matrix.stack-lts }}-
+
+      - name: Versions
+        run: |
+          stack --version
+          stack ghc --resolver ${{ matrix.stack-lts }} -- --version
 
       - name: Build and Test
         run: >
