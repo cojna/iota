@@ -8,22 +8,9 @@ on:
       - master
 
 jobs:
-  configure:
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    outputs:
-      runner: ${{ steps.runner.outputs.runner }}
-    steps:
-      - id: runner
-        run: echo "::set-output name=runner::$(id -u):$(id -g)"
-
   build-and-test:
-    needs: configure
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    container:
-      image: fpco/stack-build-small:lts-19
-      options: --user ${{ needs.configure.outputs.runner }}
     strategy:
       matrix:
         stack-lts:
