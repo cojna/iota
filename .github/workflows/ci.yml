@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         stack-lts:
-          - lts-19.3
+          - lts-19.11
           - lts-15.13 # AtCoder
           # - lts-12.26 # GCJ
       fail-fast: false
