@@ -1,6 +1,6 @@
 # iota
 
-[![CI](https://github.com/cojna/iota/actions/workflows/ci.yml/badge.svg)](https://github.com/cojna/iota/actions/workflows/ci.yml)
+[![CI](https://github.com/cojna/iota/actions/workflows/ci.yml/badge.svg)](https://github.com/cojna/iota/actions/workflows/ci.yml) [![GitHub Pages](https://github.com/cojna/iota/actions/workflows/document.yml/badge.svg)](https://github.com/cojna/iota/actions/workflows/document.yml)
 
 my library for competitive programming
 
