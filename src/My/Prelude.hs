@@ -1,28 +1,23 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE TypeApplications #-}
 
 module My.Prelude where
 
-import qualified Control.Monad.Fail as Fail
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
-import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as B
-import qualified Data.ByteString.Char8 as C
-import Data.Char
-import Data.Coerce
 import qualified Data.Foldable as F
 import Data.Functor.Identity
+import qualified Data.Vector as V
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-import Data.Word
-import GHC.Exts (Int (..), uncheckedIShiftRL#)
-import System.IO (stderr, stdout)
+import GHC.Exts
+import System.IO
+
+import Data.PrimParser
 
 rep :: (Monad m) => Int -> (Int -> m ()) -> m ()
 rep n = flip MS.mapM_ (stream 0 n)
@@ -137,133 +132,11 @@ endlB :: B.Builder
 endlB = B.char7 '\n'
 {-# INLINE endlB #-}
 
-type Solver a = StateT C.ByteString IO a
-
-runSolver :: Solver () -> IO ()
-runSolver solver =
-  C.getContents
-    >>= evalStateT (solver <* validateSolverState)
-
-validateSolverState :: Solver ()
-validateSolverState = do
-  bs <- get
-  unless (C.all isSpace bs) $ do
-    liftIO $ C.hPutStrLn stderr (C.pack "\ESC[33m[WARNING]\ESC[0m " <> bs)
-
-line :: (Fail.MonadFail m) => Parser a -> StateT C.ByteString m a
-line f =
-  mapStateT (maybe (Fail.fail "parse error") return) $
-    takeLine >>= lift . evalStateT f
-{-# INLINE line #-}
-
-linesN :: (Fail.MonadFail m) => Int -> Parser a -> StateT C.ByteString m a
-linesN n f =
-  mapStateT (maybe (Fail.fail "parse error") return) $
-    takeLines n >>= lift . evalStateT f
-{-# INLINE linesN #-}
-
 putBuilder :: (MonadIO m) => B.Builder -> m ()
 putBuilder = liftIO . B.hPutBuilder stdout
 
 putBuilderLn :: (MonadIO m) => B.Builder -> m ()
 putBuilderLn b = putBuilder b *> putBuilder (B.char7 '\n')
-
-type Parser a = StateT C.ByteString Maybe a
-
-runParser :: Parser a -> C.ByteString -> Maybe (a, C.ByteString)
-runParser = runStateT
-{-# INLINE runParser #-}
-
-int :: Parser Int
-int = coerce $ C.readInt . C.dropWhile isSpace
-{-# INLINE int #-}
-
-int1 :: Parser Int
-int1 = fmap (subtract 1) int
-{-# INLINE int1 #-}
-
-integer :: Parser Integer
-integer = coerce $ C.readInteger . C.dropWhile isSpace
-{-# INLINE integer #-}
-
-integral :: (Integral a) => Parser a
-integral = fmap fromIntegral int
-{-# INLINE integral #-}
-
-char :: Parser Char
-char = coerce C.uncons
-{-# INLINE char #-}
-
-byte :: Parser Word8
-byte = coerce B.uncons
-{-# INLINE byte #-}
-
-bytestring :: Parser C.ByteString
-bytestring = do
-  skipSpaces
-  gets (C.findIndex isSpace) >>= \case
-    Just i -> state (C.splitAt i)
-    Nothing -> state (flip (,) C.empty)
-{-# INLINE bytestring #-}
-
-skipSpaces :: Parser ()
-skipSpaces = modify' (C.dropWhile isSpace)
-{-# INLINE skipSpaces #-}
-
-vector :: (G.Vector v a) => Parser a -> Parser (v a)
-vector p = G.unfoldr (runParser p) <$> get
-{-# INLINE vector #-}
-
-vectorN :: (G.Vector v a) => Int -> Parser a -> Parser (v a)
-vectorN n p = G.unfoldrN n (runParser p) <$> get
-{-# INLINE vectorN #-}
-
-vectorHW :: (G.Vector v a) => Int -> Int -> Parser a -> Parser (v a)
-vectorHW h w = vectorN (h * w)
-{-# INLINE vectorHW #-}
-
-gridHW :: Int -> Int -> Parser (U.Vector Char)
-gridHW h w = U.unfoldrN (h * w) (runParser char) . C.filter (/= '\n') <$> get
-{-# INLINE gridHW #-}
-
-{- |
- >>> runStateT @_ @Identity takeLine (C.pack "abc")
- Identity ("abc","")
- >>> runStateT @_ @Identity takeLine (C.pack "abc\n")
- Identity ("abc","")
- >>> runStateT @_ @Identity takeLine (C.pack "abc\r\n")
- Identity ("abc\r","")
- >>> runStateT @_ @Identity takeLine C.empty
- Identity ("","")
- >>> runStateT @_ @Identity takeLine (C.pack "\n")
- Identity ("","")
- >>> runStateT @_ @Identity takeLine (C.pack "\n\n")
- Identity ("","\n")
--}
-takeLine :: (Monad m) => StateT C.ByteString m C.ByteString
-takeLine =
-  state $
-    fmap (B.drop 1) . C.span (/= '\n')
-{-# INLINE takeLine #-}
-
-{- |
- >>> runStateT @_ @Identity (takeLines 1) (C.pack "abc\ndef\n")
- Identity ("abc\n","def\n")
- >>> runStateT @_ @Identity (takeLines 2) (C.pack "abc\ndef\n")
- Identity ("abc\ndef\n","")
- >>> runStateT @_ @Identity (takeLines 0) (C.pack "abc\ndef\n")
- Identity ("","abc\ndef\n")
- >>> runStateT @_ @Identity (takeLines 999) (C.pack "abc")
- Identity ("abc","")
--}
-takeLines :: (Monad m) => Int -> StateT C.ByteString m C.ByteString
-takeLines n
-  | n > 0 = do
-    gets (drop (n - 1) . C.elemIndices '\n') >>= \case
-      (i : _) -> state (C.splitAt (i + 1))
-      [] -> state (flip (,) C.empty)
-  | otherwise = pure C.empty
-{-# INLINE takeLines #-}
 
 neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
 neighbor4 h w xy f =
@@ -320,3 +193,20 @@ decode32x2 xy =
       !y = xy .&. 0xffffffff
    in (x, y)
 {-# INLINE decode32x2 #-}
+
+uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
+uvectorN = vectorN
+{-# INLINE uvectorN #-}
+
+bvectorN :: Int -> PrimParser a -> PrimParser (V.Vector a)
+bvectorN = vectorN
+{-# INLINE bvectorN #-}
+
+vectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
+vectorN n f = do
+  (e, o) <- viewPrimParser
+  pure $ G.unfoldrN n (pure . runPrimParser f e) o
+{-# INLINE vectorN #-}
+
+runSolver :: (a -> IO ()) -> PrimParser a -> IO ()
+runSolver = withInputHandle stdin
