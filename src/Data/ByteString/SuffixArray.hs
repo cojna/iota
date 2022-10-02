@@ -17,7 +17,17 @@ import Data.Word
 
 import My.Prelude
 
-{- |
+data SuffixArray = SuffixArray !Int !ByteArray
+
+instance Show SuffixArray where
+  show (SuffixArray n ba) = show $ map (indexByteArray @Int32 ba) [0 .. n - 1]
+
+indexSA :: SuffixArray -> Int -> Int
+indexSA (SuffixArray _ ba) = fromIntegral @Int32 . indexByteArray ba
+{-# INLINE indexSA #-}
+
+{- | SA-IS /O(n)/
+
 >>> :set -XOverloadedStrings
 >>> buildSuffixArray "aaa"
 [3,2,1,0]
@@ -28,15 +38,6 @@ import My.Prelude
 >>> buildSuffixArray "ababab"
 [6,4,2,0,5,3,1]
 -}
-data SuffixArray = SuffixArray !Int !ByteArray
-
-instance Show SuffixArray where
-  show (SuffixArray n ba) = show $ map (indexByteArray @Int32 ba) [0 .. n - 1]
-
-indexSA :: SuffixArray -> Int -> Int
-indexSA (SuffixArray _ ba) = fromIntegral @Int32 . indexByteArray ba
-{-# INLINE indexSA #-}
-
 buildSuffixArray :: B.ByteString -> SuffixArray
 buildSuffixArray bs = runST $ do
   sa <- newPinnedByteArray (4 * n)
