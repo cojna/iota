@@ -13,10 +13,20 @@ import My.Prelude
 
 newtype LCPArray = LCPArray {getLCPArray :: U.Vector Int} deriving (Show)
 
+{- | /O(n)/
+
+* lcp[i] = lcp(sa[i], sa[i+1])
+* lcp(s[l],s[r]) = minimum[lcp[sa[l]],lcp[sa[l]+1]..lcp[sa[r]-1]]
+
+>>> :set -XOverloadedStrings
+>>> bs = "abracadabra"
+>>> buildLCPArray bs $ buildSuffixArray bs
+LCPArray {getLCPArray = [0,1,4,1,1,0,3,0,0,0,2]}
+-}
 buildLCPArray :: B.ByteString -> SuffixArray -> LCPArray
 buildLCPArray bs sa = LCPArray $
   U.create $ do
-    lcp <- UM.unsafeNew (n + 1)
+    lcp <- UM.unsafeNew n
     UM.unsafeWrite lcp 0 0
     U.ifoldM'_
       ( \h i r -> do
