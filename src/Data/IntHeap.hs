@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.IntHeap where
@@ -17,19 +18,19 @@ instance IsList IntHeap where
   type Item IntHeap = Int
   fromList = L.foldl' (flip insertIH) emptyIH
   toList =
-    concatMap (\(k, x) -> replicate x k)
-      . IM.toList
-      . (coerce :: IntHeap -> IM.IntMap Int)
+    concatMap @[] (\(k, x) -> replicate x k)
+      . coerce (IM.toList @Int)
 
 emptyIH :: IntHeap
-emptyIH = coerce (IM.empty :: IM.IntMap Int)
+emptyIH = coerce (IM.empty @Int)
 
 singletonIH :: Int -> IntHeap
-singletonIH x = coerce $ IM.singleton x (1 :: Int)
+singletonIH = coerce (flip (IM.singleton @Int) 1)
 
 -- | /O(min(n,W))/
 insertIH :: Int -> IntHeap -> IntHeap
-insertIH x = coerce . IM.insertWith (+) x (1 :: Int) . coerce
+insertIH = coerce (flip (IM.insertWith @Int (+)) 1)
+{-# INLINE insertIH #-}
 
 {- | /O(min(n,W))/
 
@@ -39,29 +40,25 @@ insertIH x = coerce . IM.insertWith (+) x (1 :: Int) . coerce
 [0,0,1,2]
 -}
 deleteIH :: Int -> IntHeap -> IntHeap
-deleteIH x =
-  (coerce :: IM.IntMap Int -> IntHeap)
-    . IM.update (\y -> if y > 1 then Just $! y - 1 else Nothing) x
-    . coerce
+deleteIH = coerce (IM.update @Int (\y -> if y > 1 then Just $! y - 1 else Nothing))
 
 {- | /O(min(n,W))/
 
 >>> deleteAllIH 0 (fromList [0, 0, 1, 2])
 [1,2]
+>>> deleteAllIH 3 (fromList [0, 0, 1, 2])
+[0,0,1,2]
 -}
 deleteAllIH :: Int -> IntHeap -> IntHeap
-deleteAllIH x =
-  (coerce :: IM.IntMap Int -> IntHeap)
-    . IM.delete x
-    . coerce
+deleteAllIH = coerce (IM.delete @Int)
 
 -- | /O(min(n,W))/
 memberIH :: Int -> IntHeap -> Bool
-memberIH x = IM.member x . (coerce :: IntHeap -> IM.IntMap Int)
+memberIH = coerce (IM.member @Int)
 
 -- | /O(min(n,W))/
 notMemberIH :: Int -> IntHeap -> Bool
-notMemberIH x = not . memberIH x
+notMemberIH = coerce (IM.notMember @Int)
 
 {- | /O(min(n, W))/
 
@@ -73,7 +70,7 @@ notMemberIH x = not . memberIH x
 0
 -}
 countIH :: Int -> IntHeap -> Int
-countIH key = IM.findWithDefault 0 key . coerce
+countIH = coerce (IM.findWithDefault @Int 0)
 
 {- | /O(log n)/
 
@@ -83,10 +80,7 @@ Just 0
 Nothing
 -}
 lookupLTIH :: Int -> IntHeap -> Maybe Int
-lookupLTIH x =
-  fmap fst
-    . IM.lookupLT x
-    . (coerce :: IntHeap -> IM.IntMap Int)
+lookupLTIH x = coerce (fmap fst . IM.lookupLT @Int x)
 
 {- | /O(log n)/
 
@@ -96,10 +90,7 @@ Just 2
 Nothing
 -}
 lookupGTIH :: Int -> IntHeap -> Maybe Int
-lookupGTIH x =
-  fmap fst
-    . IM.lookupGT x
-    . (coerce :: IntHeap -> IM.IntMap Int)
+lookupGTIH x = coerce (fmap fst . IM.lookupGT @Int x)
 
 {- | /O(log n)/
 
@@ -111,10 +102,7 @@ Just 0
 Nothing
 -}
 lookupLEIH :: Int -> IntHeap -> Maybe Int
-lookupLEIH x =
-  fmap fst
-    . IM.lookupLE x
-    . (coerce :: IntHeap -> IM.IntMap Int)
+lookupLEIH x = coerce (fmap fst . IM.lookupLE @Int x)
 
 {- | /O(log n)/
 
@@ -126,16 +114,11 @@ Just 2
 Nothing
 -}
 lookupGEIH :: Int -> IntHeap -> Maybe Int
-lookupGEIH x =
-  fmap fst
-    . IM.lookupGE x
-    . (coerce :: IntHeap -> IM.IntMap Int)
+lookupGEIH x = coerce (fmap fst . IM.lookupGE @Int x)
 
 -- | /O(1)/
 nullIH :: IntHeap -> Bool
-nullIH =
-  IM.null
-    . (coerce :: IntHeap -> IM.IntMap Int)
+nullIH = coerce (IM.null @Int)
 
 {- | /O(n)/
 
@@ -145,9 +128,7 @@ nullIH =
 0
 -}
 sizeIH :: IntHeap -> Int
-sizeIH =
-  IM.foldl' (+) 0
-    . (coerce :: IntHeap -> IM.IntMap Int)
+sizeIH = coerce (IM.foldl' @Int (+) 0)
 
 {- | /O(min(n,W))/
 
@@ -157,10 +138,7 @@ sizeIH =
 *** Exception: findMin: empty map has no minimal element
 -}
 findMinIH :: IntHeap -> Int
-findMinIH =
-  fst
-    . IM.findMin
-    . (coerce :: IntHeap -> IM.IntMap Int)
+findMinIH = coerce (fst . IM.findMin @Int)
 
 {- | /O(min(n,W))/
 
@@ -170,10 +148,7 @@ findMinIH =
 *** Exception: findMax: empty map has no maximal element
 -}
 findMaxIH :: IntHeap -> Int
-findMaxIH =
-  fst
-    . IM.findMax
-    . (coerce :: IntHeap -> IM.IntMap Int)
+findMaxIH = coerce (fst . IM.findMax @Int)
 
 {- | /O(min(n,W))/
 
@@ -184,9 +159,7 @@ findMaxIH =
 -}
 deleteMinIH :: IntHeap -> IntHeap
 deleteMinIH =
-  coerce
-    . IM.updateMin (\x -> if x > 1 then Just $! x - 1 else Nothing)
-    . (coerce :: IntHeap -> IM.IntMap Int)
+  coerce (IM.updateMin @Int (\x -> if x > 1 then Just $! x - 1 else Nothing))
 
 {- | /O(min(n,W))/
 
@@ -198,9 +171,7 @@ deleteMinIH =
 -}
 deleteMaxIH :: IntHeap -> IntHeap
 deleteMaxIH =
-  coerce
-    . IM.updateMax (\x -> if x > 1 then Just $! x - 1 else Nothing)
-    . (coerce :: IntHeap -> IM.IntMap Int)
+  coerce (IM.updateMax @Int (\x -> if x > 1 then Just $! x - 1 else Nothing))
 
 {- | /O(min(n,W))/
 
@@ -211,16 +182,13 @@ Just (0,[0,1,2])
 Nothing
 -}
 minViewIH :: IntHeap -> Maybe (Int, IntHeap)
-minViewIH =
-  maybe Nothing just
-    . IM.minViewWithKey
-    . (coerce :: IntHeap -> IM.IntMap Int)
+minViewIH = coerce (maybe Nothing just . IM.minViewWithKey)
   where
     just :: ((Int, Int), IM.IntMap Int) -> Maybe (Int, IntHeap)
     just ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-          m' -> Just (k, coerce m')
-      | otherwise = Just (k, coerce m)
+          m' -> coerce (Just (k, m'))
+      | otherwise = coerce (Just (k, m))
 
 {- | /O(min(n,W))/
 
@@ -231,13 +199,10 @@ Just (2,[0,1,2])
 Nothing
 -}
 maxViewIH :: IntHeap -> Maybe (Int, IntHeap)
-maxViewIH =
-  maybe Nothing just
-    . IM.maxViewWithKey
-    . (coerce :: IntHeap -> IM.IntMap Int)
+maxViewIH = coerce (maybe Nothing just . IM.maxViewWithKey)
   where
     just :: ((Int, Int), IM.IntMap Int) -> Maybe (Int, IntHeap)
     just ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-          m' -> Just (k, coerce m')
-      | otherwise = Just (k, coerce m)
+          m' -> coerce (Just (k, m'))
+      | otherwise = coerce (Just (k, m))
