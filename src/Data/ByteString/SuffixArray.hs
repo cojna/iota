@@ -162,8 +162,7 @@ buildBucketSA maxC cs = do
   rep (fromIntegral @Word32 maxC + 1) $ \i -> do
     cnt <- PVM.unsafeRead bkt i
     PVM.unsafeModify bkt (+ cnt) (i + 1)
-  -- PV.unsafeFreeze bkt
-  PV.freeze bkt
+  PV.unsafeFreeze bkt
 
 induceSortL ::
   PVM.MVector s Word32 ->
