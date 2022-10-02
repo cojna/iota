@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Data.ByteString.SuffixArray where
 
@@ -8,16 +7,26 @@ import Control.Monad.ST
 import Data.Bits
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
+import Data.Coerce
 import Data.Function
 import Data.Int
-import Data.Primitive
-import qualified Data.Vector.Primitive as PV
-import qualified Data.Vector.Primitive.Mutable as PVM
-import Data.Word
+import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as UM
 
 import My.Prelude
 
-{- |
+newtype SuffixArray a = SuffixArray {getSuffixArray :: U.Vector a}
+  deriving (Eq)
+
+instance (Show a, U.Unbox a) => Show (SuffixArray a) where
+  show = show . getSuffixArray
+
+indexSA :: (U.Unbox a) => SuffixArray a -> Int -> a
+indexSA = coerce U.unsafeIndex
+{-# INLINE indexSA #-}
+
+{- | SA-IS /O(n)/
+
 >>> :set -XOverloadedStrings
 >>> buildSuffixArray "aaa"
 [3,2,1,0]
@@ -27,246 +36,290 @@ import My.Prelude
 [11,10,7,0,3,5,8,1,4,6,9,2]
 >>> buildSuffixArray "ababab"
 [6,4,2,0,5,3,1]
+>>> buildSuffixArray ""
+[0]
 -}
-data SuffixArray = SuffixArray !Int !ByteArray
-
-instance Show SuffixArray where
-  show (SuffixArray n ba) = show $ map (indexByteArray @Int32 ba) [0 .. n - 1]
-
-indexSA :: SuffixArray -> Int -> Int
-indexSA (SuffixArray _ ba) = fromIntegral @Int32 . indexByteArray ba
-{-# INLINE indexSA #-}
-
-buildSuffixArray :: B.ByteString -> SuffixArray
-buildSuffixArray bs = runST $ do
-  sa <- newPinnedByteArray (4 * n)
-  mbuf <- PVM.MVector 0 n <$> newPinnedByteArray (4 * n)
-  PVM.unsafeWrite mbuf (n - 1) (setLMSFlag 0)
-  rev (n - 1) $ \i ->
-    writeLSInfo mbuf i . fromIntegral $ B.unsafeIndex bs i
-  sais 127 mbuf (PVM.MVector 0 n sa)
-  SuffixArray n <$!> unsafeFreezeByteArray sa
+buildSuffixArray :: B.ByteString -> SuffixArray Int32
+buildSuffixArray bs = SuffixArray $ U.create $ do
+  sa <- UM.replicate (n + 1) (-1)
+  if n > 0
+    then
+      sais sa (maxBound :: Int8) $
+        U.scanr' setLS sentinelLS (U.generate n (fromIntegral . B.unsafeIndex bs))
+    else UM.write sa 0 0
+  return sa
   where
-    !n = B.length bs + 1
+    n = B.length bs
 
-sais ::
-  Word32 -> PVM.MVector s Word32 -> PVM.MVector s Int32 -> ST s ()
-sais !maxC cs sa@(PVM.MVector o n bufSA) = do
-  fillByteArray bufSA (4 * o) (4 * n) 0xff
+class (Ord a, Num a, Integral a) => LSInt a where
+  isL :: a -> Bool
+  isS :: a -> Bool
+  unLS :: a -> a
+  setLS :: a -> a -> a
+  sentinelLS :: a
+  sentinelLS = 0
 
-  !bucket0 <- buildBucketSA maxC cs
+instance LSInt Int where
+  isL = (< 0)
+  {-# INLINE isL #-}
+  isS = (>= 0)
+  {-# INLINE isS #-}
+  unLS = (.&. maxBound)
+  {-# INLINE unLS #-}
+  setLS c c' = case compare c (unLS c') of
+    LT -> c
+    EQ -> c .|. c' .&. minBound
+    GT -> c .|. minBound
+  {-# INLINE setLS #-}
 
-  bucket <- PV.thaw $ PV.tail bucket0
-  rep n $ \i -> do
-    lsc <- PVM.unsafeRead cs i
-    when (isLMS lsc) $ do
-      let c = viewC lsc
-      pos <- subtract 1 <$!> PVM.unsafeRead bucket c
-      PVM.unsafeWrite bucket c pos
-      PVM.unsafeWrite sa pos $ fromIntegral @_ @Int32 i
+instance LSInt Int8 where
+  isL = (< 0)
+  {-# INLINE isL #-}
+  isS = (>= 0)
+  {-# INLINE isS #-}
+  unLS = (.&. maxBound)
+  {-# INLINE unLS #-}
+  setLS c c' = case compare c (unLS c') of
+    LT -> c
+    EQ -> c .|. c' .&. minBound
+    GT -> c .|. minBound
+  {-# INLINE setLS #-}
 
-  induceSortL cs sa bucket0 bucket
-  induceSortS cs sa bucket0 bucket
+instance LSInt Int16 where
+  isL = (< 0)
+  {-# INLINE isL #-}
+  isS = (>= 0)
+  {-# INLINE isS #-}
+  unLS = (.&. maxBound)
+  {-# INLINE unLS #-}
+  setLS c c' = case compare c (unLS c') of
+    LT -> c
+    EQ -> c .|. c' .&. minBound
+    GT -> c .|. minBound
+  {-# INLINE setLS #-}
 
-  (maxC', ls', sa') <- compressLMS cs sa
+instance LSInt Int32 where
+  isL = (< 0)
+  {-# INLINE isL #-}
+  isS = (>= 0)
+  {-# INLINE isS #-}
+  unLS = (.&. maxBound)
+  {-# INLINE unLS #-}
+  setLS c c' = case compare c (unLS c') of
+    LT -> c
+    EQ -> c .|. c' .&. minBound
+    GT -> c .|. minBound
+  {-# INLINE setLS #-}
 
-  let !n1 = PVM.length ls'
+instance LSInt Int64 where
+  isL = (< 0)
+  {-# INLINE isL #-}
+  isS = (>= 0)
+  {-# INLINE isS #-}
+  unLS = (.&. maxBound)
+  {-# INLINE unLS #-}
+  setLS c c' = case compare c (unLS c') of
+    LT -> c
+    EQ -> c .|. c' .&. minBound
+    GT -> c .|. minBound
+  {-# INLINE setLS #-}
 
-  if fromIntegral maxC' < n1 - 1
-    then sais maxC' ls' sa'
-    else do
-      rep n1 $ \i -> do
-        c <- viewC <$> PVM.unsafeRead ls' i
-        PVM.unsafeWrite sa' c (fromIntegral @_ @Int32 i)
-
-  PV.foldM'_
-    ( \pos i -> do
-        lcs <- PVM.unsafeRead cs i
-        if isLMS lcs
-          then do
-            PVM.unsafeWrite ls' pos (fromIntegral i)
-            return $ pos + 1
-          else return pos
-    )
-    0
-    (PV.generate n id)
-
-  rep n1 $ \i -> do
-    PVM.unsafeRead sa' i
-      >>= PVM.unsafeRead ls' . fromIntegral @Int32
-      >>= PVM.unsafeWrite sa' i . fromIntegral @Word32 @Int32
-
-  fillByteArray bufSA (4 * (o + n1)) (4 * (n - n1)) 0xff
-  PV.copy bucket (PV.tail bucket0)
-  rev n1 $ \i -> do
-    !j <- PVM.unsafeRead sa' i
-    PVM.unsafeWrite sa' i (-1)
-    c <- viewC <$!> PVM.unsafeRead cs (fromIntegral @Int32 j)
-    pos <- subtract 1 <$!> PVM.unsafeRead bucket c
-    PVM.unsafeWrite bucket c pos
-    PVM.unsafeWrite sa pos j
-
-  induceSortL cs sa bucket0 bucket
-  induceSortS cs sa bucket0 bucket
-
-writeLSInfo :: PVM.MVector s Word32 -> Int -> Word32 -> ST s ()
-writeLSInfo cs i cur = do
-  next <- PVM.unsafeRead cs (i + 1)
-  case compare (viewC cur) (viewC next) of
-    LT -> PVM.unsafeWrite cs i $ setSFlag cur
-    EQ -> PVM.unsafeWrite cs i $ cur .|. maskLSFlag next
-    GT -> do
-      PVM.unsafeWrite cs i cur
-      when (isS next) $ do
-        PVM.unsafeWrite cs (i + 1) $ setLMSFlag next
-{-# INLINE writeLSInfo #-}
-
-setSFlag :: Word32 -> Word32
-setSFlag = (.|. 0x40000000)
-{-# INLINE setSFlag #-}
-
-setLFlag :: Word32 -> Word32
-setLFlag = (.&. complement 0x40000000)
-{-# INLINE setLFlag #-}
-
-setLMSFlag :: Word32 -> Word32
-setLMSFlag = (.|. 0xc0000000)
-{-# INLINE setLMSFlag #-}
-
-maskLSFlag :: Word32 -> Word32
-maskLSFlag = (.&. 0x40000000)
-{-# INLINE maskLSFlag #-}
-
-isS :: Word32 -> Bool
-isS = (> 0x40000000)
-{-# INLINE isS #-}
-
-isL :: Word32 -> Bool
-isL = (< 0x40000000)
-{-# INLINE isL #-}
-
-isLMS :: Word32 -> Bool
-isLMS = (> 0x80000000)
+isLMS :: (LSInt a, LSInt b, U.Unbox a, U.Unbox b) => U.Vector a -> b -> Bool
+isLMS ls si =
+  si > 0
+    && isL (U.unsafeIndex ls (fromIntegral si - 1))
+    && isS (U.unsafeIndex ls (fromIntegral si))
 {-# INLINE isLMS #-}
 
-viewC :: Word32 -> Int
-viewC = fromIntegral . (.&. 0x3fffffff)
-{-# INLINE viewC #-}
+buildInitialBucket :: (LSInt a, U.Unbox a) => a -> U.Vector a -> U.Vector Int32
+buildInitialBucket maxC ls =
+  U.scanl' (+) 0 $
+    U.unsafeAccumulate_
+      (+)
+      (U.replicate (fromIntegral maxC + 1) 0)
+      (U.map (fromIntegral . unLS) ls)
+      (U.replicate (U.length ls) 1)
+{-# INLINE buildInitialBucket #-}
 
-buildBucketSA :: Word32 -> PVM.MVector s Word32 -> ST s (PV.Vector Int)
-buildBucketSA maxC cs = do
-  bkt <- PVM.replicate (fromIntegral @Word32 maxC + 2) 0
-  rep (PVM.length cs) $ \i -> do
-    c <- viewC <$> PVM.unsafeRead cs i
-    PVM.unsafeModify bkt (+ 1) (c + 1)
-  rep (fromIntegral @Word32 maxC + 1) $ \i -> do
-    cnt <- PVM.unsafeRead bkt i
-    PVM.unsafeModify bkt (+ cnt) (i + 1)
-  -- PV.unsafeFreeze bkt
-  PV.freeze bkt
+findLMSIndices :: (LSInt a, U.Unbox a) => U.Vector a -> U.Vector Int
+findLMSIndices ls =
+  U.filter (> 0) $
+    U.izipWith
+      ( \i pc c ->
+          if isL pc && isS c
+            then i + 1
+            else 0
+      )
+      ls
+      (U.tail ls)
+{-# INLINE findLMSIndices #-}
 
 induceSortL ::
-  PVM.MVector s Word32 ->
-  PVM.MVector s Int32 ->
-  PV.Vector Int ->
-  PVM.MVector s Int ->
+  (LSInt a, LSInt b, U.Unbox a, U.Unbox b) =>
+  UM.MVector s a ->
+  UM.MVector s Int32 ->
+  U.Vector b ->
+  U.Vector Int32 ->
   ST s ()
-induceSortL cs sa bucket0 bucket = do
-  PV.copy bucket $ PV.init bucket0
-  rep (PVM.length cs) $ \i -> do
-    j <- subtract 1 <$!> PVM.unsafeRead sa i
+induceSortL sa bucket ls bucket0 = do
+  U.copy bucket (U.init bucket0)
+  rep (U.length ls) $ \i -> do
+    j <- subtract 1 . fromIntegral <$!> UM.unsafeRead sa i
     when (j >= 0) $ do
-      lcs <- PVM.unsafeRead cs $ fromIntegral @Int32 @Int j
-      when (isL lcs) $ do
-        let !c = viewC lcs
-        pos <- PVM.unsafeRead bucket c
-        PVM.unsafeWrite bucket c (pos + 1)
-        PVM.unsafeWrite sa pos j
+      let c = U.unsafeIndex ls j
+      when (isL c) $ do
+        pos <- UM.unsafeRead bucket (fromIntegral (unLS c))
+        UM.unsafeWrite bucket (fromIntegral (unLS c)) (pos + 1)
+        UM.unsafeWrite sa (fromIntegral pos) (fromIntegral j)
 {-# INLINE induceSortL #-}
 
 induceSortS ::
-  PVM.MVector s Word32 ->
-  PVM.MVector s Int32 ->
-  PV.Vector Int ->
-  PVM.MVector s Int ->
+  (LSInt a, LSInt b, U.Unbox a, U.Unbox b) =>
+  UM.MVector s a ->
+  UM.MVector s Int32 ->
+  U.Vector b ->
+  U.Vector Int32 ->
   ST s ()
-induceSortS cs sa bucket0 bucket = do
-  PV.copy bucket $ PV.tail bucket0
-  rev (PVM.length cs) $ \i -> do
-    j <- subtract 1 <$!> PVM.unsafeRead sa i
+induceSortS sa bucket ls bucket0 = do
+  U.copy bucket (U.tail bucket0)
+  rev (U.length ls) $ \i -> do
+    j <- subtract 1 . fromIntegral <$!> UM.unsafeRead sa i
     when (j >= 0) $ do
-      lsc <- PVM.unsafeRead cs $ fromIntegral @Int32 @Int j
-      when (isS lsc) $ do
-        let !c = viewC lsc
-        pos <- subtract 1 <$!> PVM.unsafeRead bucket c
-        PVM.unsafeWrite bucket c pos
-        PVM.unsafeWrite sa pos j
+      let c = U.unsafeIndex ls j
+      when (isS c) $ do
+        pos <- subtract 1 <$!> UM.unsafeRead bucket (fromIntegral (unLS c))
+        UM.unsafeWrite bucket (fromIntegral (unLS c)) pos
+        UM.unsafeWrite sa (fromIntegral pos) (fromIntegral j)
 {-# INLINE induceSortS #-}
 
-compressLMS ::
-  PVM.MVector s Word32 ->
-  PVM.MVector s Int32 ->
-  ST s (Word32, PVM.MVector s Word32, PVM.MVector s Int32)
-compressLMS cs sa@(PVM.MVector o n bufSA) = do
+reduceLMS ::
+  (LSInt a, LSInt b, U.Unbox a, U.Unbox b) =>
+  UM.MVector s a ->
+  U.Vector b ->
+  ST s (UM.MVector s a, a, U.Vector a)
+reduceLMS sa ls = do
   !n1 <-
-    PV.foldM'
+    U.foldM'
       ( \pos i -> do
-          sai <- PVM.unsafeRead sa i
-          lsc <- PVM.unsafeRead cs $ fromIntegral @Int32 @Int sai
-          if isLMS lsc
+          sj <- UM.unsafeRead sa i
+          if isLMS ls sj
             then do
-              PVM.unsafeWrite sa pos sai
+              UM.unsafeWrite sa pos sj
               return $! pos + 1
             else return pos
       )
       0
-      (PV.generate n id)
+      (U.generate n id)
 
-  fillByteArray bufSA (4 * (o + n1)) (4 * (n - n1)) 0xff
-  rank <-
+  UM.set (UM.drop n1 sa) (-1)
+  !rank <-
     fst
-      <$!> PV.foldM'
+      <$!> U.foldM'
         ( \(!r, !prev) i -> do
-            cur <- fromIntegral @Int32 <$> PVM.unsafeRead sa i
-            !r' <- (+ r) <$> eqLMS prev cur
-            PVM.unsafeWrite sa (n1 + unsafeShiftR cur 1) r'
+            cur <- fromIntegral <$!> UM.unsafeRead sa i
+            let !r' = r + neqLMS ls prev cur
+            UM.unsafeWrite sa (n1 + unsafeShiftR cur 1) r'
             return (r', cur)
         )
         (-1, 0)
-        (PV.generate n1 id)
-  PVM.write sa (n - 1) (fromIntegral @Word32 @Int32 $ setLMSFlag 0)
+        (U.generate n1 id)
+
+  UM.write sa (n - 1) sentinelLS
   fix
     ( \loop !pos !i -> when (i >= n1) $ do
-        r <- PVM.unsafeRead sa i
+        r <- UM.unsafeRead sa i
         if r > 0
           then do
-            writeLSInfo (PVM.MVector o n bufSA) pos $ fromIntegral @Int32 @Word32 r
+            r' <- UM.unsafeRead sa (pos + 1)
+            UM.unsafeWrite sa pos (setLS r r')
             loop (pos - 1) (i - 1)
           else loop pos (i - 1)
     )
     (n - 2)
     (n1 + unsafeShiftR (n - 1) 1 - 1)
-  return
-    ( fromIntegral @Int32 rank
-    , PVM.MVector (o + n - n1) n1 bufSA
-    , PVM.take n1 sa
-    )
+
+  (,,) (UM.take n1 sa) rank
+    <$> U.unsafeFreeze (UM.drop (n - n1) sa)
   where
-    eqLMS x y = do
-      cx0 <- PVM.unsafeRead cs x
-      cy0 <- PVM.unsafeRead cs y
-      if cx0 == cy0
-        then go 1
-        else return 1
+    !n = U.length ls
+
+neqLMS :: (LSInt a, LSInt b, U.Unbox a) => U.Vector a -> Int -> Int -> b
+neqLMS ls si sj
+  | U.unsafeIndex ls si /= U.unsafeIndex ls sj = 1
+  | otherwise = go 1
+  where
+    go !k
+      | ci /= cj = 1
+      | isS ci, isL (U.unsafeIndex ls (si + k - 1)) = 0
+      | otherwise = go (k + 1)
       where
-        go !i = do
-          cx <- PVM.unsafeRead cs (x + i)
-          cy <- PVM.unsafeRead cs (y + i)
-          if cx == cy
-            then
-              if isLMS cx
-                then return 0
-                else go (i + 1)
-            else return 1
-    {-# INLINE eqLMS #-}
-{-# INLINE compressLMS #-}
+        ci = U.unsafeIndex ls (si + k)
+        cj = U.unsafeIndex ls (sj + k)
+{-# INLINE neqLMS #-}
+
+sais ::
+  (LSInt a, LSInt b, U.Unbox a, U.Unbox b) =>
+  -- | filled with (-1)
+  UM.MVector s b ->
+  -- | the maximum alphabet
+  a ->
+  -- | LS typed
+  U.Vector a ->
+  ST s ()
+sais msa _ ls | U.length ls == 1 = UM.write msa 0 0
+sais msa maxC ls = do
+  bkt <- U.thaw $ U.tail bucket0
+
+  U.ifoldM'_
+    ( \pc si c -> do
+        if isL pc && isS c
+          then do
+            pos <- subtract 1 <$!> UM.unsafeRead bkt (fromIntegral (unLS c))
+            UM.unsafeWrite bkt (fromIntegral (unLS c)) pos
+            UM.unsafeWrite msa (fromIntegral pos) (fromIntegral si)
+            return c
+          else return c
+    )
+    sentinelLS
+    ls
+
+  induceSortL msa bkt ls bucket0
+  induceSortS msa bkt ls bucket0
+
+  (msa', maxC', ls') <- reduceLMS msa ls
+
+  if fromIntegral maxC' < U.length ls' - 1
+    then do
+      UM.set msa' (-1)
+      sais msa' maxC' ls'
+    else do
+      flip U.imapM_ ls' $ \i c -> do
+        UM.unsafeWrite msa' (fromIntegral (unLS c)) (fromIntegral i)
+
+  mls' <- U.unsafeThaw ls'
+  U.imapM_ (\pos si -> UM.unsafeWrite mls' pos (fromIntegral si)) $
+    findLMSIndices ls
+
+  rep (UM.length msa') $ \i -> do
+    UM.unsafeRead msa' i
+      >>= UM.unsafeRead mls' . fromIntegral
+      >>= UM.unsafeWrite msa' i . fromIntegral
+  UM.set (UM.drop (UM.length msa') msa) (-1)
+
+  U.copy bkt (U.tail bucket0)
+  rev (UM.length msa') $ \i -> do
+    !sj <- UM.unsafeRead msa' i
+    UM.unsafeWrite msa' i (-1)
+    let c = fromIntegral . unLS $ U.unsafeIndex ls (fromIntegral sj)
+    pos <- subtract 1 <$!> UM.unsafeRead bkt c
+    UM.unsafeWrite bkt c pos
+    UM.unsafeWrite msa (fromIntegral pos) sj
+
+  induceSortL msa bkt ls bucket0
+  induceSortS msa bkt ls bucket0
+  where
+    !bucket0 = buildInitialBucket maxC ls
+{-# SPECIALIZE sais :: UM.MVector s Int32 -> Int8 -> U.Vector Int8 -> ST s () #-}
+{-# SPECIALIZE sais :: UM.MVector s Int32 -> Int32 -> U.Vector Int32 -> ST s () #-}
+{-# SPECIALIZE sais :: UM.MVector s Int -> Int8 -> U.Vector Int8 -> ST s () #-}
+{-# SPECIALIZE sais :: UM.MVector s Int -> Int -> U.Vector Int -> ST s () #-}
