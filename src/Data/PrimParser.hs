@@ -89,9 +89,9 @@ wordP# :: Addr# -> Word# -> (# Addr#, Word# #)
 wordP# p# acc# = case indexWord8OffAddr# p# 0# of
   c
     | isTrue# (geWord# c 0x30##) ->
-      wordP#
-        (plusAddr# p# 1#)
-        (plusWord# (and# c 0x0f##) (timesWord# 10## acc#))
+        wordP#
+          (plusAddr# p# 1#)
+          (plusWord# (and# c 0x0f##) (timesWord# 10## acc#))
     | otherwise -> (# p#, acc# #)
 
 intP :: PrimParser Int
@@ -230,8 +230,11 @@ line f = PrimParser $ \e p ->
 {-# INLINE line #-}
 
 linesN :: Int -> PrimParser a -> PrimParser a
-linesN (I# n) f = PrimParser $ \e p ->
-  case plusAddr# (memchrNthP# n e p 0xa) 1# of
-    pos -> case runPrimParser# f pos p of
-      (# _, x #) -> (# pos, x #)
+linesN (I# n#) f = PrimParser $ \e p ->
+  if isTrue# (n# ># 0#)
+    then case plusAddr# (memchrNthP# n# e p 0xa) 1# of
+      pos -> case runPrimParser# f pos p of
+        (# _, x #) -> (# pos, x #)
+    else case runPrimParser# f p p of
+      (# _, x #) -> (# p, x #)
 {-# INLINE linesN #-}

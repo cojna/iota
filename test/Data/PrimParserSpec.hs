@@ -165,3 +165,8 @@ spec = do
         "abc\ndef\nghi\n"
         ((,) <$> linesN 2 viewPrimParserAsByteString <*> viewPrimParserAsByteString)
         `shouldBe` ("abc\ndef\n", "ghi\n")
+    it "linesN 0" $ do
+      unsafeWithByteString
+        "linesN 0\n"
+        ((,) <$> linesN 0 viewPrimParserAsByteString <*> viewPrimParserAsByteString)
+        `shouldBe` ("", "linesN 0\n")
