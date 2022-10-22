@@ -89,9 +89,9 @@ wordP# :: Addr# -> Word# -> (# Addr#, Word# #)
 wordP# p# acc# = case indexWord8OffAddr# p# 0# of
   c
     | isTrue# (geWord# c 0x30##) ->
-      wordP#
-        (plusAddr# p# 1#)
-        (plusWord# (and# c 0x0f##) (timesWord# 10## acc#))
+        wordP#
+          (plusAddr# p# 1#)
+          (plusWord# (and# c 0x0f##) (timesWord# 10## acc#))
     | otherwise -> (# p#, acc# #)
 
 intP :: PrimParser Int
