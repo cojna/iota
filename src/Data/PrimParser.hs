@@ -230,8 +230,11 @@ line f = PrimParser $ \e p ->
 {-# INLINE line #-}
 
 linesN :: Int -> PrimParser a -> PrimParser a
-linesN (I# n) f = PrimParser $ \e p ->
-  case plusAddr# (memchrNthP# n e p 0xa) 1# of
-    pos -> case runPrimParser# f pos p of
-      (# _, x #) -> (# pos, x #)
+linesN (I# n#) f = PrimParser $ \e p ->
+  if isTrue# (n# ># 0#)
+    then case plusAddr# (memchrNthP# n# e p 0xa) 1# of
+      pos -> case runPrimParser# f pos p of
+        (# _, x #) -> (# pos, x #)
+    else case runPrimParser# f p p of
+      (# _, x #) -> (# p, x #)
 {-# INLINE linesN #-}
