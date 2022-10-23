@@ -72,3 +72,49 @@ runTSP gr@DenseGraph{numVerticesDG = n} = runST $ do
         . U.maximum
         $ adjacentDG gr
 {-# INLINE runTSP #-}
+
+{- |
+
+/O(n^2)/
+
+>>> let gr = fromListDG @Int [[0,1,999],[999,0,2],[4,999,0]]
+>>> reconstructTSP gr $ runTSP gr
+[2,0,1,2]
+-}
+reconstructTSP ::
+  (U.Unbox w, Num w, Eq w) =>
+  DenseGraph w ->
+  TSPResult w ->
+  U.Vector Int
+reconstructTSP
+  gr@DenseGraph{numVerticesDG = n}
+  TSPResult
+    { freezedTSP = dp
+    , lastVisitTSP = lastVisit
+    , resultTSP
+    } = U.create $ do
+    path <- UM.unsafeNew (n + 1)
+    UM.write path 0 lastVisit
+    UM.write path n lastVisit
+
+    U.foldM'_
+      ( \(!visited, !nv, !dnv) pos -> do
+          let !v =
+                maybe (error "reconstructTSP") id
+                  . U.findIndex (isPrev visited nv dnv)
+                  $ U.generate n id
+          UM.write path pos v
+          pure (deleteBS v visited, v, dist visited v)
+      )
+      (deleteBS lastVisit visitedAll, lastVisit, resultTSP)
+      (U.generate (n - 1) ((n - 1) -))
+    return path
+    where
+      visitedAll = BitSet (shiftL 1 n - 1)
+
+      isPrev visited nv dnv = \v ->
+        memberBS v visited && dist visited v + matDG gr v nv == dnv
+      {-# INLINE isPrev #-}
+
+      dist visited v = U.unsafeIndex dp (coerce @BitSet visited * n + v)
+      {-# INLINE dist #-}
