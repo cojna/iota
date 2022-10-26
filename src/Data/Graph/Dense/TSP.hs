@@ -9,17 +9,18 @@ import Control.Monad.ST
 import Data.Bits
 import Data.Coerce
 import Data.Semigroup
+import qualified Data.Vector.Fusion.Stream.Monadic as MS
+import Data.Vector.Fusion.Util
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.BitSet
 import Data.Graph.Dense
-import My.Prelude (rep)
+import My.Prelude
 
 data TSPResult a = TSPResult
   { resultTSP :: !a
   , infTSP :: !a
-  , lastVisitTSP :: !Int
   , freezedTSP :: U.Vector a
   }
 
@@ -34,43 +35,45 @@ data TSPResult a = TSPResult
 >>> resultTSP . runTSP $ fromListDG @Int [[0]]
 0
 -}
-runTSP ::
-  (U.Unbox w, Num w, Ord w) =>
-  DenseGraph w ->
-  TSPResult w
-runTSP gr@DenseGraph{numVerticesDG = n} = runST $ do
+runTSP :: (U.Unbox w, Num w, Eq w, Ord w) => DenseGraph w -> TSPResult w
+runTSP gr = runST $ do
   dp <- UM.replicate (shiftL 1 n * n) inf
 
-  -- from start
-  rep (n - 1) $ \v -> do
+  rep n $ \v -> do
     UM.unsafeWrite dp (ixTSP (singletonBS v) v) $ matDG gr origin v
 
-  U.forM_ (U.generate (shiftL 1 (n - 1)) BitSet) $ \visited ->
-    -- skip from goal
-    rep (n - 1) $ \v -> when (memberBS v visited) $ do
-      dpv <- UM.unsafeRead dp (ixTSP visited v)
-      rep n $ \nv -> when (notMemberBS nv visited) $ do
-        let !dnv' = dpv + matDG gr v nv
-        UM.unsafeModify dp (min dnv') (ixTSP (insertBS nv visited) nv)
+  rep (shiftL 1 n) . (. BitSet) $ \visited ->
+    rev n $ \v -> when (memberBS v visited) $ do
+      let !o = ixTSP (deleteBS v visited) 0
+      when (o > 0) $ do
+        MS.foldM'
+          ( \acc pv -> do
+              !dpv <- UM.unsafeRead dp (o + pv)
+              return $ min acc (dpv + matDG gr pv v)
+          )
+          inf
+          (streamR 0 n)
+          >>= UM.unsafeWrite dp (ixTSP visited v)
 
-  !res <- UM.read dp (ixTSP visitedAll origin)
-  TSPResult res inf origin
-    <$> U.unsafeFreeze dp
+  !res <-
+    MS.foldM'
+      ( \acc v -> do
+          dv <- UM.unsafeRead dp (ixTSP visitedAll v)
+          return $ min acc (dv + matDG gr v origin)
+      )
+      inf
+      $ stream 0 n
+
+  TSPResult res inf <$> U.unsafeFreeze dp
   where
-    ixTSP :: BitSet -> Int -> Int
-    ixTSP i j = coerce @BitSet @Int i * n + j
-    {-# INLINE ixTSP #-}
-
-    origin = n - 1
-
+    !n = numVerticesDG gr - 1
+    origin = n
     visitedAll = BitSet (shiftL 1 n - 1)
+    !inf = getProduct . stimes (n + 1) . Product . U.maximum $ adjacentDG gr
 
-    !inf =
-      getProduct
-        . stimes n
-        . Product
-        . U.maximum
-        $ adjacentDG gr
+    ixTSP :: BitSet -> Int -> Int
+    ixTSP visited lastPos = coerce @BitSet @Int visited * n + lastPos
+    {-# INLINE ixTSP #-}
 {-# INLINE runTSP #-}
 
 {- |
@@ -86,35 +89,33 @@ reconstructTSP ::
   DenseGraph w ->
   TSPResult w ->
   U.Vector Int
-reconstructTSP
-  gr@DenseGraph{numVerticesDG = n}
-  TSPResult
-    { freezedTSP = dp
-    , lastVisitTSP = lastVisit
-    , resultTSP
-    } = U.create $ do
-    path <- UM.unsafeNew (n + 1)
-    UM.write path 0 lastVisit
-    UM.write path n lastVisit
+reconstructTSP gr TSPResult{freezedTSP = dp, resultTSP} = U.create $ do
+  path <- UM.unsafeNew (n + 2)
+  UM.write path 0 origin
+  UM.write path (n + 1) origin
 
-    U.foldM'_
+  void $
+    MS.foldM'
       ( \(!visited, !nv, !dnv) pos -> do
           let !v =
                 maybe (error "reconstructTSP") id
-                  . U.findIndex (isPrev visited nv dnv)
-                  $ U.generate n id
+                  . unId
+                  . MS.findIndex (isPrev visited nv dnv)
+                  $ stream 0 n
           UM.write path pos v
           pure (deleteBS v visited, v, dist visited v)
       )
-      (deleteBS lastVisit visitedAll, lastVisit, resultTSP)
-      (U.generate (n - 1) ((n - 1) -))
-    return path
-    where
-      visitedAll = BitSet (shiftL 1 n - 1)
+      (visitedAll, origin, resultTSP)
+      (streamR 1 (n + 1))
+  return path
+  where
+    !n = numVerticesDG gr - 1
+    visitedAll = BitSet (shiftL 1 n - 1)
+    origin = n
 
-      isPrev visited nv dnv = \v ->
-        memberBS v visited && dist visited v + matDG gr v nv == dnv
-      {-# INLINE isPrev #-}
+    isPrev visited nv dnv = \v ->
+      memberBS v visited && dist visited v + matDG gr v nv == dnv
+    {-# INLINE isPrev #-}
 
-      dist visited v = U.unsafeIndex dp (coerce @BitSet visited * n + v)
-      {-# INLINE dist #-}
+    dist visited v = U.unsafeIndex dp (coerce @BitSet visited * n + v)
+    {-# INLINE dist #-}
