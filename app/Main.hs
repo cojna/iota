@@ -25,11 +25,13 @@ main = do
         "stack"
         ["ghc", "--", "-E", originalPath, "-o", processedPath]
     removeMacros <$> readFile processedPath
-  let Just (_, exts) = H.readExtensions processed
+  let extensions = case H.readExtensions processed of
+        Just (_, exts) -> exts
+        Nothing -> []
   let parseOption =
         H.defaultParseMode
           { H.parseFilename = path
-          , H.extensions = exts
+          , H.extensions = extensions
           }
   case H.parseModuleWithMode parseOption processed of
     H.ParseOk ast -> case opts of

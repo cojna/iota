@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 
@@ -17,7 +18,11 @@ rollingHash = B.foldl' step 0
       case uncheckedIShiftRL# acc# 50#
         +# andI# (uncheckedIShiftL# acc# 11#) m#
         -# acc#
+#if __GLASGOW_HASKELL__ >= 902
+        +# word2Int# (word8ToWord# w8#) of
+#else
         +# word2Int# w8# of
+#endif
         qr# -> case qr# <# 0# of
           b# -> I# (qr# -# b# +# uncheckedIShiftL# b# 61#)
 
