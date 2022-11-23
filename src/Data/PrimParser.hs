@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -86,7 +87,11 @@ viewPrimParserAsByteString = PrimParser $ \e p ->
    in (# p, bs #)
 
 wordP# :: Addr# -> Word# -> (# Addr#, Word# #)
+#if __GLASGOW_HASKELL__ >= 902
+wordP# p# acc# = case word8ToWord# (indexWord8OffAddr# p# 0#) of
+#else
 wordP# p# acc# = case indexWord8OffAddr# p# 0# of
+#endif
   c
     | isTrue# (geWord# c 0x30##) ->
         wordP#
@@ -96,7 +101,11 @@ wordP# p# acc# = case indexWord8OffAddr# p# 0# of
 
 intP :: PrimParser Int
 intP = PrimParser $ \_ p ->
+#if __GLASGOW_HASKELL__ >= 902
+  case word8ToWord# (indexWord8OffAddr# p 0#) of
+#else
   case indexWord8OffAddr# p 0# of
+#endif
     0x2d## -> case wordP# (plusAddr# p 1#) 0## of
       (# p', w #) -> (# p', I# (negateInt# (word2Int# w)) #)
     c -> case wordP# (plusAddr# p 1#) (and# c 0xf##) of
@@ -111,7 +120,11 @@ wordP = PrimParser $ \_ p ->
 
 doubleP :: PrimParser Double
 doubleP = PrimParser $ \_ p ->
+#if __GLASGOW_HASKELL__ >= 902
+  case word8ToWord# (indexWord8OffAddr# p 0#) of
+#else
   case indexWord8OffAddr# p 0# of
+#endif
     0x2d## -> case unsignedDoubleP# (plusAddr# p 1#) 0## of
       (# p', d #) -> (# p', D# (negateDouble# d) #)
     c -> case unsignedDoubleP# (plusAddr# p 1#) (and# c 0xf##) of
@@ -119,7 +132,11 @@ doubleP = PrimParser $ \_ p ->
 
 unsignedDoubleP# :: Addr# -> Word# -> (# Addr#, Double# #)
 unsignedDoubleP# p w = case wordP# p w of
+#if __GLASGOW_HASKELL__ >= 902
+  (# p', iw #) -> case word8ToWord# (indexWord8OffAddr# p' 0#) of
+#else
   (# p', iw #) -> case indexWord8OffAddr# p' 0# of
+#endif
     0x2e## -> case wordP# (plusAddr# p' 1#) 0## of
       (# p'', fw #) ->
         let ipart = word2Double# iw
@@ -169,19 +186,31 @@ charSp = PrimParser $ \_ p ->
 digitC :: PrimParser Int
 digitC = PrimParser $ \_ p ->
   case indexWord8OffAddr# p 0# of
+#if __GLASGOW_HASKELL__ >= 902
+    w -> (# plusAddr# p 1#, I# (word2Int# (word8ToWord# w) -# 0x30#) #)
+#else
     w -> (# plusAddr# p 1#, I# (word2Int# w -# 0x30#) #)
+#endif
 {-# INLINE digitC #-}
 
 lowerC :: PrimParser Int
 lowerC = PrimParser $ \_ p ->
   case indexWord8OffAddr# p 0# of
+#if __GLASGOW_HASKELL__ >= 902
+    w -> (# plusAddr# p 1#, I# (word2Int# (word8ToWord# w) -# 0x61#) #)
+#else
     w -> (# plusAddr# p 1#, I# (word2Int# w -# 0x61#) #)
+#endif
 {-# INLINE lowerC #-}
 
 upperC :: PrimParser Int
 upperC = PrimParser $ \_ p ->
   case indexWord8OffAddr# p 0# of
+#if __GLASGOW_HASKELL__ >= 902
+    w -> (# plusAddr# p 1#, I# (word2Int# (word8ToWord# w) -# 0x41#) #)
+#else
     w -> (# plusAddr# p 1#, I# (word2Int# w -# 0x41#) #)
+#endif
 {-# INLINE upperC #-}
 
 memchrP# :: Addr# -> Addr# -> Word8 -> Addr#
