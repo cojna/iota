@@ -10,6 +10,7 @@ import qualified Data.ByteString as B
 import GHC.Exts
 import GHC.Word
 
+-- | @rollingHash == rollingHashWith 2047@
 rollingHash :: B.ByteString -> Int
 rollingHash = B.foldl' step 0
   where
@@ -26,6 +27,7 @@ rollingHash = B.foldl' step 0
         qr# -> case qr# <# 0# of
           b# -> I# (qr# -# b# +# uncheckedIShiftL# b# 61#)
 
+-- | @base@ should be a primitive root of (@2^61-1@)
 rollingHashWith :: Int -> B.ByteString -> Int
 rollingHashWith base = B.foldl' (\acc w -> acc *% base +% fromIntegral w) 0
 
@@ -66,6 +68,7 @@ x ^% n
       | m == 1 = acc *% y
       | otherwise = go (acc *% y) (y *% y) (unsafeShiftR (m - 1) 1)
 
+-- |
 -- >>> take 10 $ filter isPrimitiveRootRH [2..]
 -- [37,43,55,69,74,86,110,123,133,138]
 isPrimitiveRootRH :: Int -> Bool
