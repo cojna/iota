@@ -11,6 +11,7 @@ import qualified Data.Foldable as F
 import Data.Functor.Identity
 import qualified Data.Vector as V
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
+import Data.Vector.Fusion.Util
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -215,6 +216,12 @@ vectorN n f = do
   (e, o) <- viewPrimParser
   pure $ G.unfoldrN n (pure . runPrimParser f e) o
 {-# INLINE vectorN #-}
+
+streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
+streamN n f = do
+  (e, o) <- viewPrimParser
+  pure $ MS.unfoldrN n (pure . runPrimParser f e) o
+{-# INLINE streamN #-}
 
 runSolver :: (a -> IO ()) -> PrimParser a -> IO ()
 runSolver = withInputHandle stdin
