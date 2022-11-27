@@ -4,6 +4,9 @@
 module Data.Vector.Utils where
 
 import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Generic.Mutable as GM
+
+import My.Prelude (rep)
 
 chunks :: (G.Vector u a, G.Vector v (u a)) => Int -> u a -> v (u a)
 chunks n = G.unfoldr $ \u ->
@@ -76,3 +79,21 @@ tuples4N n = G.unfoldrN n $ \v ->
       !z = G.unsafeIndex v 2
       !w = G.unsafeIndex v 3
    in Just ((x, y, z, w), G.drop 4 v)
+
+{- |
+>>> import qualified Data.Vector.Unboxed as U
+>>> transpose 2 3 (U.fromList "abcdef")
+"adbecf"
+-}
+transpose :: (G.Vector v a) => Int -> Int -> v a -> v a
+transpose h w vec = G.create $ do
+  buf <- GM.unsafeNew (w * h)
+  rep h $ \x -> do
+    G.foldM'_
+      ( \pos mxy -> do
+          GM.write buf pos mxy
+          pure $! pos + h
+      )
+      x
+      (G.slice (x * w) w vec)
+  return buf
