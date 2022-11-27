@@ -162,6 +162,14 @@ binarySearch :: Int -> Int -> (Int -> Bool) -> Int
 binarySearch low high p = runIdentity $ binarySearchM low high (return . p)
 {-# INLINE binarySearch #-}
 
+lowerBound :: (Ord a, G.Vector v a) => v a -> a -> Int
+lowerBound !vec !key = binarySearch 0 (G.length vec) ((key <=) . G.unsafeIndex vec)
+{-# INLINE lowerBound #-}
+
+upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
+upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
+{-# INLINE upperBound #-}
+
 radixSort :: U.Vector Int -> U.Vector Int
 radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
