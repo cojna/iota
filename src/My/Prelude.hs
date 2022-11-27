@@ -79,8 +79,8 @@ unwordsB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unwordsB f vec
   | G.null vec = mempty
   | otherwise =
-    f (G.head vec)
-      <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
+      f (G.head vec)
+        <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
 
 concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 concatB f = G.foldr ((<>) . f) mempty
