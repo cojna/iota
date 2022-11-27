@@ -30,6 +30,12 @@ epsGS :: Double
 epsGS = 1e-12
 {-# INLINE epsGS #-}
 
+{- |
+@f@ should be unimodal
+
+>>> goldenSectionSearchMin 0.0 10.0 (\x -> (x-1)^2)
+Min {getMin = Arg 9.802089785436835e-28 0.9999999999999687}
+-}
 goldenSectionSearchMin ::
   (Ord a) => Double -> Double -> (Double -> a) -> ArgMin a Double
 goldenSectionSearchMin low high f =
@@ -40,12 +46,16 @@ goldenSectionSearchMin low high f =
     go !n !x0 !x1 !x2 !x3 !fx1 !fx2
       | n == 0 || abs (x3 - x0) < epsGS = Min (Arg fx1 x1)
       | fx1 < fx2 =
-        let !x = mid1 x0 x2 -- mid2 x0 x2 == x1
-         in go (n - 1) x0 x x1 x2 (f x) fx1
+          let !x = mid1 x0 x2 -- mid2 x0 x2 == x1
+           in go (n - 1) x0 x x1 x2 (f x) fx1
       | otherwise =
-        let !x = mid2 x1 x3 -- mid1 x1 x3 == x2
-         in go (n - 1) x1 x2 x x3 fx2 (f x)
+          let !x = mid2 x1 x3 -- mid1 x1 x3 == x2
+           in go (n - 1) x1 x2 x x3 fx2 (f x)
 
+{- |
+>>> goldenSectionSearchMax 0.0 10.0 (\x -> log x/x)
+Max {getMax = Arg 0.36787944117144233 2.7182818604248506}
+-}
 goldenSectionSearchMax ::
   (Ord a) => Double -> Double -> (Double -> a) -> ArgMax a Double
 goldenSectionSearchMax low high f =
