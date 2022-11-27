@@ -16,6 +16,7 @@ import Data.Word
 import GHC.Exts
 
 {- | at most 16 bytes
+
 >>> compare (packTBS "a") (packTBS "b")
 LT
 >>> compare (packTBS "a") (packTBS "ab")
@@ -43,10 +44,10 @@ toTiny bs = TBS (pack bs) (pack $ B.drop 8 bs)
           [56, 48, 40, 32, 24, 16, 8, 0]
 
 {- |
--- >>> lengthTBS (packTBS "")
--- 0
--- >>> lengthTBS (packTBS $ take 16 ['a'..])
--- 16
+>>> lengthTBS (packTBS "")
+0
+>>> lengthTBS (packTBS $ take 16 ['a'..])
+16
 -}
 lengthTBS :: TinyByteString -> Int
 lengthTBS (TBS bs0 bs1) = len bs0 + len bs1

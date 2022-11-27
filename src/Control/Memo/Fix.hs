@@ -9,13 +9,15 @@ import qualified Data.Map.Strict as M
 import qualified Data.Vector as V
 
 {- |
- >>> :{
- let fib memo 0 = 0
-     fib memo 1 = 1
-     fib memo i = memo (i - 1) + memo (i - 2)
- in memoFix 100 fib 50
- :}
- 12586269025
+>>> :set -XLambdaCase
+>>> :{
+let memoFib = \fib -> \case
+      0 -> 0
+      1 -> 1
+      i -> fib (i - 1) + fib (i - 2)
+ in memoFix 100 memoFib 50
+:}
+12586269025
 -}
 memoFix ::
   -- | memo size
@@ -25,15 +27,24 @@ memoFix ::
   a
 memoFix n f = fix $ \memo -> (V.generate n (f memo) V.!)
 
+hoge :: (Monad m) => (Int -> m Integer) -> Int -> m Integer
+hoge = \fib -> \case
+  0 -> pure 0
+  1 -> pure 1
+  i -> (+) <$> fib (i - 1) <*> fib (i - 2)
+{-# INLINE hoge #-}
+
 {- |
- >>>  :{
- let fibM :: (Monad m) => (Int -> m Integer) -> Int -> m Integer
-     fibM _ 0 = pure 0
-     fibM _ 1 = pure 1
-     fibM memo i = (+) <$> memo (i - 1) <*> memo (i - 2)
- in memoFixMap fibM 50
- :}
- 12586269025
+>>> :set -XLambdaCase
+>>> :{
+let memoFibM :: (Monad m) => (Int -> m Integer) -> Int -> m Integer
+    memoFibM = \fib -> \case
+      0 -> pure 0
+      1 -> pure 1
+      i -> (+) <$> fib (i - 1) <*> fib (i - 2)
+ in memoFixMap memoFibM 50
+:}
+12586269025
 -}
 memoFixMap ::
   (Ord k) =>
@@ -49,14 +60,16 @@ memoFixMap f k = flip evalState M.empty $ do
           modify' (M.insert x fx) $> fx
 
 {- |
- >>>  :{
- let fibM :: (Monad m) => (Int -> m Integer) -> Int -> m Integer
-     fibM _ 0 = pure 0
-     fibM _ 1 = pure 1
-     fibM memo i = (+) <$> memo (i - 1) <*> memo (i - 2)
- in memoFixIntMap fibM 50
- :}
- 12586269025
+>>> :set -XLambdaCase
+>>> :{
+let memoFibM :: (Monad m) => (Int -> m Integer) -> Int -> m Integer
+    memoFibM = \fib -> \case
+      0 -> pure 0
+      1 -> pure 1
+      i -> (+) <$> fib (i - 1) <*> fib (i - 2)
+ in memoFixIntMap memoFibM 50
+:}
+12586269025
 -}
 memoFixIntMap ::
   ((Int -> State (IM.IntMap a) a) -> Int -> State (IM.IntMap a) a) ->

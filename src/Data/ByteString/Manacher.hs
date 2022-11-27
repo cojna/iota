@@ -11,16 +11,17 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 {- |
- /n/ must be odd
+/n/ must be odd
 
- /O(n)/
+/O(n)/
 
- >>> manacher "a"
- [1]
- >>> manacher "aba"
- [1,2,1]
- >>> manacher "a$b$b$a"
- [1,1,2,4,2,1,1]
+>>> import qualified Data.ByteString.Char8 as C
+>>> manacher (C.pack "a")
+[1]
+>>> manacher (C.pack "aba")
+[1,2,1]
+>>> manacher (C.pack "a$b$b$a")
+[1,1,2,4,2,1,1]
 -}
 manacher :: B.ByteString -> U.Vector Int
 manacher bs = assert (odd n) $
@@ -48,7 +49,7 @@ manacher bs = assert (odd n) $
       where
         go !i
           | c - i >= 0
-            , c + i < n
-            , B.unsafeIndex bs (c - i) == B.unsafeIndex bs (c + i) =
-            go (i + 1)
+          , c + i < n
+          , B.unsafeIndex bs (c - i) == B.unsafeIndex bs (c + i) =
+              go (i + 1)
           | otherwise = i
