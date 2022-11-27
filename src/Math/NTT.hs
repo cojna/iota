@@ -26,9 +26,11 @@ import My.Prelude (
 
 {- | Number Theoretic Transform
 p: prime (c * 2 ^ k + 1)
+
 n = 2 ^ i, n < 2 ^ k
 
  /O(n log n)/
+
 >>> ntt @998244353 [1,1,1,1]
 [4,0,0,0]
 >>> ntt @469762049 [123,0,0,0]
@@ -159,15 +161,15 @@ invButterfly mvec = void $ do
 {-# INLINE invButterfly #-}
 
 {- |
- >>> growToPowerOfTwo [1,2,3]
- [1,2,3,0]
+>>> growToPowerOfTwo (U.fromListN 3 [1::Int,2,3])
+[1,2,3,0]
 -}
 growToPowerOfTwo :: (Num a, U.Unbox a) => U.Vector a -> U.Vector a
 growToPowerOfTwo v
   | U.null v = U.singleton 0
   | U.length v == 1 = v
   | n <- unsafeShiftRL (-1) (countLeadingZeros (U.length v - 1)) + 1 =
-    v U.++ U.replicate (n - U.length v) 0
+      v U.++ U.replicate (n - U.length v) 0
 
 {- |
 >>> extendToPowerOfTwo 0
