@@ -8,8 +8,10 @@
 module Data.PrimParser where
 
 import Control.Applicative
+import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
+import Data.Function
 import Foreign
 import GHC.Exts
 import GHC.Word
@@ -250,6 +252,16 @@ byteStringN n@(I# n#) = PrimParser $ \_ p ->
         B.memcpy dst (Ptr p) n
    in (# plusAddr# p n#, bs #)
 {-# INLINE byteStringN #-}
+
+byteStringHW :: Int -> Int -> PrimParser B.ByteString
+byteStringHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
+  let bs = B.unsafeCreate (h * w) $ \dst0 ->
+        fix (\loop !dst !src !i -> when (i < h) $ do
+            B.memcpy dst src w
+            loop (plusPtr dst w) (plusPtr src (w + 1)) (i + 1)
+            ) dst0 (Ptr p) 0
+   in (# plusAddr# p (h# *# (w# +# 1#)), bs #)
+{-# INLINE byteStringHW #-}
 
 line :: PrimParser a -> PrimParser a
 line f = PrimParser $ \e p ->

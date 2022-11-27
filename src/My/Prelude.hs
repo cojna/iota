@@ -11,6 +11,7 @@ import qualified Data.Foldable as F
 import Data.Functor.Identity
 import qualified Data.Vector as V
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
+import Data.Vector.Fusion.Util
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -79,8 +80,8 @@ unwordsB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unwordsB f vec
   | G.null vec = mempty
   | otherwise =
-    f (G.head vec)
-      <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
+      f (G.head vec)
+        <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
 
 concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 concatB f = G.foldr ((<>) . f) mempty
@@ -162,6 +163,14 @@ binarySearch :: Int -> Int -> (Int -> Bool) -> Int
 binarySearch low high p = runIdentity $ binarySearchM low high (return . p)
 {-# INLINE binarySearch #-}
 
+lowerBound :: (Ord a, G.Vector v a) => v a -> a -> Int
+lowerBound !vec !key = binarySearch 0 (G.length vec) ((key <=) . G.unsafeIndex vec)
+{-# INLINE lowerBound #-}
+
+upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
+upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
+{-# INLINE upperBound #-}
+
 radixSort :: U.Vector Int -> U.Vector Int
 radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
@@ -207,6 +216,12 @@ vectorN n f = do
   (e, o) <- viewPrimParser
   pure $ G.unfoldrN n (pure . runPrimParser f e) o
 {-# INLINE vectorN #-}
+
+streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
+streamN n f = do
+  (e, o) <- viewPrimParser
+  pure $ MS.unfoldrN n (pure . runPrimParser f e) o
+{-# INLINE streamN #-}
 
 runSolver :: (a -> IO ()) -> PrimParser a -> IO ()
 runSolver = withInputHandle stdin
