@@ -39,6 +39,9 @@ spec = do
     prop "gcd" prop_gcd
     prop "a * x + b * y == gcd a b" prop_bezout
     prop "|x| <= b / gcd a b, |y| <= a / gcd a b" prop_extGCD
+  describe "linearDiophantine" $ do
+    prop "a * x + b * y == c" prop_linearDiophantine
+    prop "a * (x - k * b / g) + b * (y + k * a / g) == c" prop_linearDiophantineMultiple
   describe "crt" $ do
     it "crt (10, 20) (10, 30) = Just (10, 60)" $ do
       crt @Int (10, 20) (10, 30) `shouldBe` Just (10, 60)
@@ -109,6 +112,21 @@ prop_extGCD
   (getPositive -> b) =
     let (x, y, _) = extGCD a b
      in abs x <= div b (gcd a b) && abs y <= div a (gcd a b)
+
+prop_linearDiophantine :: Integer -> Integer -> Integer -> Bool
+prop_linearDiophantine a b c = case linearDiophantine a b c of
+  Just (x, y) -> a * x + b * y == c
+  Nothing -> True
+
+prop_linearDiophantineMultiple :: Integer -> Integer -> Integer -> Integer -> Bool
+prop_linearDiophantineMultiple a b c k = case linearDiophantine a b c of
+  Just (x, y)
+    | a /= 0
+    , b /= 0 ->
+        let x' = x - k * div b (gcd a b)
+            y' = y + k * div a (gcd a b)
+         in a * x' + b * y' == c
+  _ -> True
 
 -- >>> validateCRT' (0, Prime 2) (1, Prime 2)
 -- False

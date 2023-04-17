@@ -77,6 +77,48 @@ extGCD a0 b0 = go a0 b0 1 0
       | otherwise = (u, quot (a - a0 * u) b0, a)
 {-# INLINE extGCD #-}
 
+{- | Solve @a * x + b * y == c@
+
+If multiple solutions exists then return the minimum non-negative @x@.
+
+If @a /= 0, b /= 0, a * x + b * y == c@
+then @a (x - k * b / g) + b * (y + k * a / g) == c@
+
+>>> linearDiophantine 3 5 1
+Just (2,-1)
+
+>>> linearDiophantine 3 5 3
+Just (1,0)
+
+>>> linearDiophantine 4 6 2
+Just (2,-1)
+
+>>> linearDiophantine 4 6 3
+Nothing
+
+prop> \a b c -> maybe True (\(x, y) -> a * x + b * y == c) $ linearDiophantine a b c
++++ OK, passed 100 tests.
+-}
+linearDiophantine :: (Integral a) => a -> a -> a -> Maybe (a, a)
+linearDiophantine _ _ 0 = Just (0, 0)
+linearDiophantine 0 0 _ = Nothing
+linearDiophantine 0 b c
+  | (q, 0) <- divMod c b = Just (0, q)
+  | otherwise = Nothing
+linearDiophantine a 0 c
+  | (q, 0) <- divMod c a = Just (q, 0)
+  | otherwise = Nothing
+linearDiophantine a b c | c < 0 = linearDiophantine (-a) (-b) (-c)
+linearDiophantine a b c
+  | mod c g > 0 = Nothing
+  | otherwise = Just (x, y)
+  where
+    (!x0, !_, !g) = extGCD (abs a) (abs b)
+    b' = quot (abs b) g
+    c' = quot c g -- c > 0
+    x = mod (signum a * c' * x0) b'
+    y = div (c - a * x) b
+
 {- | Chinese Remainder Theorem
 
   x = r0 (mod m0), x = r1 (mod m1) ==> x (mod (lcm m0 m1))
