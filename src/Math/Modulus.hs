@@ -35,31 +35,94 @@ powMod x n m
 {-# INLINE powMod #-}
 
 {- |
- >>> recipMod 2 1000000007
- 500000004
- >>> recipMod 10 1000000007
- 700000005
+>>> recipMod 2 1000000007
+500000004
+>>> recipMod 10 1000000007
+700000005
+>>> recipMod 0 1000000007
+0
+
+prop> \x m -> not (m >= 1) || mod (x * recipMod x m) m == mod (gcd x m) m
++++ OK, passed 100 tests.
 -}
 recipMod :: (Integral a) => a -> a -> a
-recipMod x m = go x m 1 0
+recipMod x m = go (mod x m) m 1 0
   where
     go !a !b !u !v
       | b > 0 = case a `quot` b of
-        q -> go b (a - (q * b)) v (u - (q * v))
+          q -> go b (a - (q * b)) v (u - (q * v))
       | otherwise = u `mod` m
 {-# INLINE recipMod #-}
 
-{- |
- (x, y, g) = extGCD a b (a * x + b * y = g)
+{- | Extended Euclidean algorithm
+
+@(x, y, g) = extGCD a b (a * x + b * y = g)@
+
+>>> extGCD 3 5
+(2,-1,1)
+
+>>> extGCD 4 6
+(-1,1,2)
+
+prop> \a b -> not (a > 0 && b > 0) || let (_, _ , g) = extGCD a b in g == gcd a b
++++ OK, passed 100 tests.
+
+prop> \a b -> not (a > 0 && b > 0) || let (x, y, g) = extGCD a b in a * x + b * y == g
++++ OK, passed 100 tests.
+
+prop> \a b -> not (a > 0 && b > 0) || let (x, y, g) = extGCD a b in abs x <= div b g && abs y <= div a g
++++ OK, passed 100 tests.
 -}
 extGCD :: (Integral a) => a -> a -> (a, a, a)
 extGCD a0 b0 = go a0 b0 1 0
   where
     go !a !b !u !v
-      | b > 0 = case a `quot` b of
-        q -> go b (a - (q * b)) v (u - (q * v))
-      | otherwise = (u, v, a)
+      | b > 0 = case quot a b of
+          q -> go b (a - (q * b)) v (u - (q * v))
+      | otherwise = (u, quot (a - a0 * u) b0, a)
 {-# INLINE extGCD #-}
+
+{- | Solve @a * x + b * y == c@
+
+If multiple solutions exists then return the minimum non-negative @x@.
+
+If @a /= 0, b /= 0, a * x + b * y == c@
+then @a (x - k * b / g) + b * (y + k * a / g) == c@
+
+>>> linearDiophantine 3 5 1
+Just (2,-1)
+
+>>> linearDiophantine 3 5 3
+Just (1,0)
+
+>>> linearDiophantine 4 6 2
+Just (2,-1)
+
+>>> linearDiophantine 4 6 3
+Nothing
+
+prop> \a b c -> maybe True (\(x, y) -> a * x + b * y == c) $ linearDiophantine a b c
++++ OK, passed 100 tests.
+-}
+linearDiophantine :: (Integral a) => a -> a -> a -> Maybe (a, a)
+linearDiophantine _ _ 0 = Just (0, 0)
+linearDiophantine 0 0 _ = Nothing
+linearDiophantine 0 b c
+  | (q, 0) <- divMod c b = Just (0, q)
+  | otherwise = Nothing
+linearDiophantine a 0 c
+  | (q, 0) <- divMod c a = Just (q, 0)
+  | otherwise = Nothing
+linearDiophantine a b c | c < 0 = linearDiophantine (-a) (-b) (-c)
+linearDiophantine a b c
+  | mod c g > 0 = Nothing
+  | otherwise = Just (x, y)
+  where
+    (!x0, !_, !g) = extGCD (abs a) (abs b)
+    b' = quot (abs b) g
+    c' = quot c g -- c > 0
+    x = mod (signum a * c' * x0) b'
+    y = div (c - a * x) b
 
 {- | Chinese Remainder Theorem
 
