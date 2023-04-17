@@ -35,6 +35,10 @@ spec = do
     it "recipMod 10 1000000007 = 700000005" $ do
       recipMod @Int 10 1000000007 `shouldBe` 700000005
     prop "x * recip x == 1" prop_recipMod
+  describe "extGCD" $ do
+    prop "gcd" prop_gcd
+    prop "a * x + b * y == gcd a b" prop_bezout
+    prop "|x| <= b / gcd a b, |y| <= a / gcd a b" prop_extGCD
   describe "crt" $ do
     it "crt (10, 20) (10, 30) = Just (10, 60)" $ do
       crt @Int (10, 20) (10, 30) `shouldBe` Just (10, 60)
@@ -84,6 +88,27 @@ prop_recipMod
   (getPositive -> x)
   (getPrime -> m) =
     x `mod` m == 0 || x * recipMod x m `mod` m == 1
+
+prop_gcd :: Positive Integer -> Positive Integer -> Bool
+prop_gcd
+  (getPositive -> a)
+  (getPositive -> b) =
+    let (_, _, g) = extGCD a b
+     in g == gcd a b
+
+prop_bezout :: Positive Integer -> Positive Integer -> Bool
+prop_bezout
+  (getPositive -> a)
+  (getPositive -> b) =
+    let (x, y, _) = extGCD a b
+     in a * x + b * y == gcd a b
+
+prop_extGCD :: Positive Integer -> Positive Integer -> Bool
+prop_extGCD
+  (getPositive -> a)
+  (getPositive -> b) =
+    let (x, y, _) = extGCD a b
+     in abs x <= div b (gcd a b) && abs y <= div a (gcd a b)
 
 -- >>> validateCRT' (0, Prime 2) (1, Prime 2)
 -- False

@@ -49,16 +49,32 @@ recipMod x m = go x m 1 0
       | otherwise = u `mod` m
 {-# INLINE recipMod #-}
 
-{- |
- (x, y, g) = extGCD a b (a * x + b * y = g)
+{- | Extended Euclidean algorithm
+
+@(x, y, g) = extGCD a b (a * x + b * y = g)@
+
+>>> extGCD 3 5
+(2,-1,1)
+
+>>> extGCD 4 6
+(-1,1,2)
+
+prop> \a b -> not (a > 0 && b > 0) || let (_, _ , g) = extGCD a b in g == gcd a b
++++ OK, passed 100 tests.
+
+prop> \a b -> not (a > 0 && b > 0) || let (x, y, g) = extGCD a b in a * x + b * y == g
++++ OK, passed 100 tests.
+
+prop> \a b -> not (a > 0 && b > 0) || let (x, y, g) = extGCD a b in abs x <= div b g && abs y <= div a g
++++ OK, passed 100 tests.
 -}
 extGCD :: (Integral a) => a -> a -> (a, a, a)
 extGCD a0 b0 = go a0 b0 1 0
   where
     go !a !b !u !v
-      | b > 0 = case a `quot` b of
-        q -> go b (a - (q * b)) v (u - (q * v))
-      | otherwise = (u, v, a)
+      | b > 0 = case quot a b of
+          q -> go b (a - (q * b)) v (u - (q * v))
+      | otherwise = (u, quot (a - a0 * u) b0, a)
 {-# INLINE extGCD #-}
 
 {- | Chinese Remainder Theorem
