@@ -35,17 +35,22 @@ powMod x n m
 {-# INLINE powMod #-}
 
 {- |
- >>> recipMod 2 1000000007
- 500000004
- >>> recipMod 10 1000000007
- 700000005
+>>> recipMod 2 1000000007
+500000004
+>>> recipMod 10 1000000007
+700000005
+>>> recipMod 0 1000000007
+0
+
+prop> \x m -> not (m >= 1) || mod (x * recipMod x m) m == mod (gcd x m) m
++++ OK, passed 100 tests.
 -}
 recipMod :: (Integral a) => a -> a -> a
-recipMod x m = go x m 1 0
+recipMod x m = go (mod x m) m 1 0
   where
     go !a !b !u !v
       | b > 0 = case a `quot` b of
-        q -> go b (a - (q * b)) v (u - (q * v))
+          q -> go b (a - (q * b)) v (u - (q * v))
       | otherwise = u `mod` m
 {-# INLINE recipMod #-}
 

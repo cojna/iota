@@ -86,11 +86,11 @@ prop_Fermat'sLittleTheorem
   (getPrime -> p) =
     gcd x p == 1 ==> powMod x p p == mod x p
 
-prop_recipMod :: Positive Integer -> Prime Integer -> Bool
+prop_recipMod :: Integer -> Positive Integer -> Bool
 prop_recipMod
-  (getPositive -> x)
-  (getPrime -> m) =
-    x `mod` m == 0 || x * recipMod x m `mod` m == 1
+  x
+  (getPositive -> m) =
+    x * recipMod x m `mod` m == gcd x m `mod` m
 
 prop_gcd :: Positive Integer -> Positive Integer -> Bool
 prop_gcd
