@@ -7,20 +7,20 @@ import Data.Bits
 import qualified Data.Foldable as F
 
 {- |
- >>> powMod 2 0 1000000007
- 1
- >>> powMod 0 0 1000000007
- 1
- >>> powMod 2 1000000005 1000000007
- 500000004
- >>> powMod 2 (-1) 1000000007
- 500000004
- >>> powMod 123456789 998244353 998244353
- 123456789
- >>> powMod (-2) 2 1000000007
- 4
- >>> powMod (-2) 3 1000000007
- 999999999
+>>> powMod 2 0 1000000007
+1
+>>> powMod 0 0 1000000007
+1
+>>> powMod 2 1000000005 1000000007
+500000004
+>>> powMod 2 (-1) 1000000007
+500000004
+>>> powMod 123456789 998244353 998244353
+123456789
+>>> powMod (-2) 2 1000000007
+4
+>>> powMod (-2) 3 1000000007
+999999999
 -}
 powMod :: (Integral a) => a -> Int -> a -> a
 powMod x n m
@@ -60,7 +60,6 @@ recipMod x m = go (mod x m) m 1 0
 
 >>> extGCD 3 5
 (2,-1,1)
-
 >>> extGCD 4 6
 (-1,1,2)
 
@@ -86,21 +85,17 @@ extGCD a0 b0 = go a0 b0 1 0
 
 If multiple solutions exists then return the minimum non-negative @x@.
 
-If @a /= 0, b /= 0, a * x + b * y == c@
-then @a (x - k * b / g) + b * (y + k * a / g) == c@
+If @a \/= 0, b \/= 0, a * x + b * y == c@
+then @a (x - k * b \/ g) + b * (y + k * a \/ g) == c@
 
 >>> linearDiophantine 3 5 1
 Just (2,-1)
-
 >>> linearDiophantine 3 5 3
 Just (1,0)
-
 >>> linearDiophantine 4 6 2
 Just (2,-1)
-
 >>> linearDiophantine 4 6 3
 Nothing
-
 prop> \a b c -> maybe True (\(x, y) -> a * x + b * y == c) $ linearDiophantine a b c
 +++ OK, passed 100 tests.
 -}
@@ -126,14 +121,14 @@ linearDiophantine a b c
 
 {- | Chinese Remainder Theorem
 
-  x = r0 (mod m0), x = r1 (mod m1) ==> x (mod (lcm m0 m1))
+@x = r0 (mod m0), x = r1 (mod m1) ==> x (mod (lcm m0 m1))@
 
- >>> crt (10, 20) (10, 30)
- Just (10,60)
- >>> crt (10, 20) (10, 20)
- Just (10,20)
- >>> crt (10, 20) (11, 20)
- Nothing
+>>> crt (10, 20) (10, 30)
+Just (10,60)
+>>> crt (10, 20) (10, 20)
+Just (10,20)
+>>> crt (10, 20) (11, 20)
+Nothing
 -}
 crt :: (Integral a) => (a, a) -> (a, a) -> Maybe (a, a)
 crt (!r0, !m0) (!r1, !m1)
@@ -148,39 +143,39 @@ crt (!r0, !m0) (!r1, !m1)
 {- | * @p0@, @p1@ are prime
    * @p0 /= p1@ or @r0 == r1@
 
- >>> crt' (2,3) (3,5)
- 8
- >>> crt' (3,5) (3,7)
- 3
- >>> crt' (3,7) (3,7)
- 3
+>>> crt' (2,3) (3,5)
+8
+>>> crt' (3,5) (3,7)
+3
+>>> crt' (3,7) (3,7)
+3
 -}
 crt' :: (Integral a) => (a, a) -> (a, a) -> a
 crt' (r0, p0) (r1, p1) =
   mod (r0 + p0 * recipMod p0 p1 `rem` (p0 * p1) * (r1 - r0)) (p0 * p1)
 
 {- |
- >>> crts [(20,30),(30,50),(20,70)]
- Just (230,1050)
- >>> crts []
- Just (0,1)
- >>> crts [(1, 10), (2, 20), (3, 30)]
- Nothing
+>>> crts [(20,30),(30,50),(20,70)]
+Just (230,1050)
+>>> crts []
+Just (0,1)
+>>> crts [(1, 10), (2, 20), (3, 30)]
+Nothing
 -}
 crts :: (Integral a) => [(a, a)] -> Maybe (a, a)
 crts cs = foldr ((>=>) . crt) return cs (0, 1)
 
 {- |
- x (mod m) (x = r[i] (mod m[i]))
+@x (mod m) (x = r[i] (mod m[i]))@
 
- gcd m[i] m[j] == 1
+@gcd m[i] m[j] == 1@
 
- /O(n^2)/
+/O(n^2)/
 
- >>> garner [(2, 3), (3, 5), (2, 7)] 999
- 23
- >>> garner [(2, 3), (3, 5), (2, 7)] 10
- 3
+>>> garner [(2, 3), (3, 5), (2, 7)] 999
+23
+>>> garner [(2, 3), (3, 5), (2, 7)] 10
+3
 -}
 garner :: (Integral a) => [(a, a)] -> a -> a
 garner rms m0 = go [] rms
