@@ -8,18 +8,18 @@ import qualified Data.IntMap.Strict as IM
 import Math.Modulus (powMod)
 
 {- |
- Baby-step Giant-step
+Baby-step Giant-step
 
- @a^x = b (mod p)@ p is prime
+@a^x = b (mod p)@ p is prime
 
- /O(sqrt P * log P)/
+/O(sqrt P * log P)/
 
- >>> logMod 3 27 998244353
- Just 3
- >>> logMod 3 123456789 998244353
- Just 772453214
- >>> logMod 1 2 1000000007
- Nothing
+>>> logMod 3 27 998244353
+Just 3
+>>> logMod 3 123456789 998244353
+Just 772453214
+>>> logMod 1 2 1000000007
+Nothing
 -}
 logMod :: Int -> Int -> Int -> Maybe Int
 logMod a b p = go 0 b

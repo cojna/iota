@@ -9,22 +9,22 @@ import System.Random.XoRoShiRo (nextInt, withRNG)
 
 {- | Legendre symbol (Euler's criterion)
 
- p is /odd/ prime
+p is /odd/ prime
 -}
 legendreSymbol :: Int -> Int -> Int
 legendreSymbol a p = powMod a (quot (p - 1) 2) p
 
 {- |
- @x^2 = a (mod p)@ p is prime
+@x^2 = a (mod p)@ p is prime
 
- >>> sqrtMod 2 1000000007
- [59713600,940286407]
- >>> sqrtMod 3 1000000007
- [82062379,917937628]
- >>> sqrtMod 4 1000000007
- [2,1000000005]
- >>> sqrtMod 5 1000000007
- []
+>>> sqrtMod 2 1000000007
+[59713600,940286407]
+>>> sqrtMod 3 1000000007
+[82062379,917937628]
+>>> sqrtMod 4 1000000007
+[2,1000000005]
+>>> sqrtMod 5 1000000007
+[]
 -}
 sqrtMod :: Int -> Int -> [Int]
 sqrtMod 0 _ = [0]
@@ -42,12 +42,12 @@ sqrtMod a p = case legendreSymbol a p of
        in [min x x', max x x']
 
 {- |
- @cipolla a p ^ 2 = a (mod p)@ p is odd prime, (a | p) = 1
+@cipolla a p ^ 2 = a (mod p)@ p is odd prime, (a | p) = 1
 
- >>> cipolla 9 998244353
- 3
- >>> cipolla 9 1000000007
- 1000000004
+>>> cipolla 9 998244353
+3
+>>> cipolla 9 1000000007
+1000000004
 -}
 cipolla :: Int -> Int -> Int
 cipolla a p = fst $ pow (ns, 1) (quot (p + 1) 2)

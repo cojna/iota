@@ -61,6 +61,7 @@ isPrime n = [n] == primeFactors n
 {- |
 prop> \n -> not (n >= 0) || totient n == length [x|x<-[1..n], gcd n x == 1]
 +++ OK, passed 100 tests.
+
 >>> totient 0
 0
 >>> totient 1
