@@ -12,10 +12,17 @@ main = hspec spec
 spec :: Spec
 spec = do
   describe "floorSqrt" $ do
+    it "floorSqrt 0 = 0" $ do
+      floorSqrt 0 `shouldBe` 0
+    it "floorSqrt 1 = 1" $ do
+      floorSqrt 1 `shouldBe` 1
+    it "floorSqrt (2^52+2^27) = 67108864" $ do
+      floorSqrt (2 ^ (52 :: Int) + 2 ^ (27 :: Int))
+        `shouldBe` 67108864
+    it "floorSqrt maxBound = 3037000499" $ do
+      floorSqrt maxBound `shouldBe` 3037000499
     prop "floor (sqrt x)" prop_floorSqrt
   describe "floorLog2" $ do
-    it "floorLog2 0 = -1023" $ do
-      floorLog2 0 `shouldBe` (-1023)
     it "floorLog2 1 = 0" $ do
       floorLog2 1 `shouldBe` 0
     it "floorLog2 2 = 1" $ do
@@ -31,9 +38,11 @@ spec = do
     prop "2 ^ n <= floorLog2 n < 2 ^ (n + 1)" prop_floorLog2
 
 prop_floorSqrt :: NonNegative Int -> Bool
-prop_floorSqrt (getNonNegative -> n) = res * res <= n && (res + 1) * (res + 1) > n
+prop_floorSqrt (getNonNegative -> n) =
+  res * res <= fromIntegral n
+    && fromIntegral n < (res + 1) * (res + 1)
   where
-    res = floorSqrt n
+    res = toInteger $ floorSqrt n
 
 prop_floorLog2 :: Positive Int -> Bool
 prop_floorLog2 (getPositive -> n) =
