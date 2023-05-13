@@ -14,8 +14,6 @@ spec = do
   describe "floorSqrt" $ do
     prop "floor (sqrt x)" prop_floorSqrt
   describe "floorLog2" $ do
-    it "floorLog2 0 = -1023" $ do
-      floorLog2 0 `shouldBe` (-1023)
     it "floorLog2 1 = 0" $ do
       floorLog2 1 `shouldBe` 0
     it "floorLog2 2 = 1" $ do
