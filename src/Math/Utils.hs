@@ -3,15 +3,15 @@
 module Math.Utils where
 
 import Data.Bits
-import Data.Word
-import Unsafe.Coerce
 
 floorSqrt :: Int -> Int
 floorSqrt = floor . sqrt @Double . fromIntegral
 
 {- |
+BSR (Bit Scan Reverse)
+
 >>> floorLog2 0
--1023
+-1
 >>> floorLog2 1
 0
 >>> floorLog2 2
@@ -20,9 +20,9 @@ floorSqrt = floor . sqrt @Double . fromIntegral
 9
 >>> floorLog2 1024
 10
+>>> floorLog2 maxBound
+62
 -}
 floorLog2 :: Int -> Int
-floorLog2 x = fromIntegral $ unsafeShiftR y 52 - 1023
-  where
-    y :: Word64
-    y = unsafeCoerce (fromIntegral x :: Double)
+floorLog2 x = 63 - countLeadingZeros x
+{-# INLINE floorLog2 #-}
