@@ -10,20 +10,27 @@ import qualified Data.Vector.Unboxed as U
 import Data.Graph.Sparse
 import Data.Graph.Sparse.SCC
 
-twoSat :: Int -> (forall s. CNFBuilder s () -> ST s ()) -> Maybe (U.Vector Bool)
-twoSat n run
+twoSat ::
+  -- | the number of variables
+  Int ->
+  -- | the number of clauses
+  Int ->
+  -- | CNF(Conjunctive Normal Form)
+  (forall s. CNFBuilder s () -> ST s ()) ->
+  Maybe (U.Vector Bool)
+twoSat numVars numClauses run
   | satisfiable = Just $
-    U.generate n $ \i ->
+    U.generate numVars $ \i ->
       U.unsafeIndex comp i > U.unsafeIndex comp (i + offset)
   | otherwise = Nothing
   where
     satisfiable = U.and $
-      U.generate n $ \i ->
+      U.generate numVars $ \i ->
         U.unsafeIndex comp i /= U.unsafeIndex comp (i + offset)
-    offset = n
+    offset = numVars
     !comp =
       stronglyConnectedComponents $
-        buildSparseGraph (2 * n) run
+        buildSparseGraph (2 * numVars) (2 * numClauses) run
 
 type CNFBuilder s w = SparseGraphBuilder s w
 

@@ -11,9 +11,9 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "buildUndirectedGraph 5 [(0,1),(0,2),(1,3),(1,4)]" $ do
+  describe "buildUndirectedGraph 5 4 [(0,1),(0,2),(1,3),(1,4)]" $ do
     let n = 5
-    let gr = buildUndirectedGraph n [(0, 1), (0, 2), (1, 3), (1, 4)]
+    let gr = buildUndirectedGraph n 4 [(0, 1), (0, 2), (1, 3), (1, 4)]
     describe "buildLCA gr 0" $ do
       let lca = buildLCA gr 0
       it "queryLCA 1 2 == 0" $ do

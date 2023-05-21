@@ -31,11 +31,14 @@ data SparseGraphBuilder s w = SparseGraphBuilder
 
 buildSparseGraph ::
   (U.Unbox w) =>
+  -- | the number of vertices
+  Int ->
+  -- | upper bound on the number of edges
   Int ->
   (forall s. SparseGraphBuilder s w -> ST s ()) ->
   SparseGraph w
-buildSparseGraph numVerticesCSR run = runST $ do
-  bufferSGB <- newBuffer (1024 * 1024)
+buildSparseGraph numVerticesCSR ubNumE run = runST $ do
+  bufferSGB <- newBuffer ubNumE
   outDegSGB <- UM.replicate numVerticesCSR 0
   run SparseGraphBuilder{numVerticesSGB = numVerticesCSR, ..}
   numEdgesCSR <- lengthBuffer bufferSGB
@@ -99,32 +102,53 @@ addUndirectedEdge_ SparseGraphBuilder{..} (src, dst) = do
 {-# INLINE addUndirectedEdge_ #-}
 
 buildDirectedGraph ::
-  Int -> U.Vector Edge -> SparseGraph ()
-buildDirectedGraph numVerticesCSR edges =
-  buildSparseGraph numVerticesCSR $ \builder -> do
+  -- | the number of vertices
+  Int ->
+  -- | upper bound on the number of edges
+  Int ->
+  U.Vector Edge ->
+  SparseGraph ()
+buildDirectedGraph numVerticesCSR ubNumE edges =
+  buildSparseGraph numVerticesCSR ubNumE $ \builder -> do
     U.mapM_ (addDirectedEdge_ builder) edges
 
-buildUndirectedGraph :: Int -> U.Vector Edge -> SparseGraph ()
-buildUndirectedGraph numVerticesCSR edges =
-  buildSparseGraph numVerticesCSR $ \builder -> do
+{- |
+>>> numEdgesCSR . buildUndirectedGraph 2 1 $ U.fromList [(0, 1)]
+2
+-}
+buildUndirectedGraph ::
+  -- | the number of vertices
+  Int ->
+  -- | upper bound on the number of undirected edges
+  Int ->
+  U.Vector Edge ->
+  SparseGraph ()
+buildUndirectedGraph numVerticesCSR ubNumE edges =
+  buildSparseGraph numVerticesCSR (2 * ubNumE) $ \builder -> do
     U.mapM_ (addUndirectedEdge_ builder) edges
 
 buildDirectedGraphW ::
   (U.Unbox w) =>
+  -- | the number of vertices
+  Int ->
+  -- | upper bound on the number of edges
   Int ->
   U.Vector (EdgeWith w) ->
   SparseGraph w
-buildDirectedGraphW numVerticesCSR edges =
-  buildSparseGraph numVerticesCSR $ \builder -> do
+buildDirectedGraphW numVerticesCSR ubNumE edges =
+  buildSparseGraph numVerticesCSR ubNumE $ \builder -> do
     U.mapM_ (addDirectedEdge builder) edges
 
 buildUndirectedGraphW ::
   (U.Unbox w) =>
+  -- | the number of vertices
+  Int ->
+  -- | upper bound on the number of undirected edges
   Int ->
   U.Vector (EdgeWith w) ->
   SparseGraph w
-buildUndirectedGraphW numVerticesCSR edges =
-  buildSparseGraph numVerticesCSR $ \builder -> do
+buildUndirectedGraphW numVerticesCSR ubNumE edges =
+  buildSparseGraph numVerticesCSR (2 * ubNumE) $ \builder -> do
     U.mapM_ (addUndirectedEdge builder) edges
 
 adj :: SparseGraph w -> Vertex -> U.Vector Vertex
