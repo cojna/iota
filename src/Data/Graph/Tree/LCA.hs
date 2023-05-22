@@ -23,8 +23,8 @@ data LCA = LCA
 
 buildLCA :: (U.Unbox w) => SparseGraph w -> Vertex -> LCA
 buildLCA gr root = runST $ do
-  met <- newBuffer (2 * numVerticesCSR gr - 1)
-  mfv <- UM.unsafeNew (numVerticesCSR gr)
+  met <- newBuffer (2 * numVerticesSG gr - 1)
+  mfv <- UM.unsafeNew (numVerticesSG gr)
 
   fix
     ( \dfs !p !d !v -> do

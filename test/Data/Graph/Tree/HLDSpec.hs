@@ -12,9 +12,9 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "buildUndirectedGraph 5 [(0,1),(0,2),(1,3),(1,4)]" $ do
+  describe "buildUndirectedGraph 5 4 [(0,1),(0,2),(1,3),(1,4)]" $ do
     let n = 5
-    let gr = buildUndirectedGraph n [(0, 1), (0, 2), (1, 3), (1, 4)]
+    let gr = buildUndirectedGraph n 4 [(0, 1), (0, 2), (1, 3), (1, 4)]
     describe "buildHLD 0 gr" $ do
       let hld = buildHLD 0 gr
       it "lcaHLD 1 2 == 0" $ do
@@ -37,9 +37,9 @@ spec = do
       it "lcaHLD 2 3 == 1" $ do
         lcaHLD hld 2 3 `shouldBe` 1
 
-  describe "buildUndirectedGraph 5 [(0,1),(1,2),(2,3),(1,4)]" $ do
+  describe "buildUndirectedGraph 5 4 [(0,1),(1,2),(2,3),(1,4)]" $ do
     let n = 5
-    let gr = buildUndirectedGraph n [(0, 1), (1, 2), (2, 3), (1, 4)]
+    let gr = buildUndirectedGraph n 4 [(0, 1), (1, 2), (2, 3), (1, 4)]
     describe "buildHLD 0 gr" $ do
       let hld = buildHLD 0 gr
       it "pathHLD hld 0 1 = [(1,2)]" $ do

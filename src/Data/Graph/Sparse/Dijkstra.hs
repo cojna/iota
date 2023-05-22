@@ -11,14 +11,14 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Graph.Sparse
 import Data.Heap.Binary
 
-dijkstraCSR ::
+dijkstraSG ::
   (U.Unbox w, Num w, Ord w, Bounded w) =>
   Vertex ->
   SparseGraph w ->
   U.Vector w
-dijkstraCSR source gr@CSR{..} = U.create $ do
-  dist <- UM.replicate numVerticesCSR maxBound
-  heap <- newMinBinaryHeap (numEdgesCSR + 1)
+dijkstraSG source gr@SparseGraph{..} = U.create $ do
+  dist <- UM.replicate numVerticesSG maxBound
+  heap <- newMinBinaryHeap (numEdgesSG + 1)
   UM.write dist source 0
   insertBH (0, source) heap
   fix $ \loop -> do

@@ -62,14 +62,14 @@ pathHLD HLD{..} = go
 
 -- | /O(V)/
 buildHLD :: Vertex -> SparseGraph w -> HLD
-buildHLD root gr@CSR{..}
-  | numEdgesCSR /= 2 * (numVerticesCSR - 1) = error "not undirected tree"
+buildHLD root gr@SparseGraph{..}
+  | numEdgesSG /= 2 * (numVerticesSG - 1) = error "not undirected tree"
   | otherwise = runST $ do
-    mindexHLD <- UM.unsafeNew numVerticesCSR
-    mparentHLD <- UM.replicate numVerticesCSR nothing
-    mpathHeadHLD <- UM.replicate numVerticesCSR nothing
+    mindexHLD <- UM.unsafeNew numVerticesSG
+    mparentHLD <- UM.replicate numVerticesSG nothing
+    mpathHeadHLD <- UM.replicate numVerticesSG nothing
 
-    madjacent <- U.thaw adjacentCSR
+    madjacent <- U.thaw adjacentSG
     void $
       fix
         ( \dfs pv v -> do
@@ -84,7 +84,7 @@ buildHLD root gr@CSR{..}
                 . U.filter ((/= pv) . snd)
                 $ gr `iadj` v
             when (heavyId /= nothing) $ do
-              UM.swap madjacent heavyId (offsetCSR U.! v)
+              UM.swap madjacent heavyId (offsetSG U.! v)
             return size
         )
         nothing
@@ -94,7 +94,7 @@ buildHLD root gr@CSR{..}
         ( \dfs i h pv v -> do
             UM.write mindexHLD v i
             UM.write mpathHeadHLD v h
-            let o = offsetCSR U.! v
+            let o = offsetSG U.! v
             nv0 <- UM.read madjacent o
             acc0 <- if nv0 /= pv then dfs (i + 1) h v nv0 else pure i
             MS.foldM'
@@ -105,7 +105,7 @@ buildHLD root gr@CSR{..}
                     else pure acc
               )
               acc0
-              $ stream (o + 1) (offsetCSR U.! (v + 1))
+              $ stream (o + 1) (offsetSG U.! (v + 1))
         )
         0
         root

@@ -12,12 +12,12 @@ import Data.Graph.Sparse
 
 topSort :: SparseGraph w -> Maybe (U.Vector Int)
 topSort gr = runST $ do
-  let n = numVerticesCSR gr
+  let n = numVerticesSG gr
   q <- newBufferAsQueue n
   let inDegree =
         U.unsafeAccumulate (+) (U.replicate n (0 :: Int))
           . U.map (flip (,) 1)
-          $ adjacentCSR gr
+          $ adjacentSG gr
   U.mapM_ (flip pushBack q . fst)
     . U.filter ((== 0) . snd)
     $ U.indexed inDegree

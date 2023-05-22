@@ -13,10 +13,10 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Buffer
 import Data.Graph.Sparse
 
-bfs01CSR :: Vertex -> SparseGraph Int -> U.Vector Int
-bfs01CSR source gr@CSR{..} = U.create $ do
-  dist <- UM.replicate numVerticesCSR maxBound
-  deque <- newBufferAsDeque (numEdgesCSR + 1)
+bfs01SG :: Vertex -> SparseGraph Int -> U.Vector Int
+bfs01SG source gr@SparseGraph{..} = U.create $ do
+  dist <- UM.replicate numVerticesSG maxBound
+  deque <- newBufferAsDeque (numEdgesSG + 1)
   UM.write dist source 0
   pushFront (0, source) deque
   fix $ \loop ->
