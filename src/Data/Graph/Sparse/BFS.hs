@@ -12,10 +12,10 @@ import Data.Buffer
 import Data.Graph.Sparse
 
 -- | /O(V+E)/
-bfsCSR :: Vertex -> SparseGraph w -> U.Vector Int
-bfsCSR source gr@CSR{..} = U.create $ do
-  dist <- UM.replicate numVerticesCSR maxBound
-  que <- newBufferAsQueue (numEdgesCSR + 1)
+bfsSG :: Vertex -> SparseGraph w -> U.Vector Int
+bfsSG source gr@SparseGraph{..} = U.create $ do
+  dist <- UM.replicate numVerticesSG maxBound
+  que <- newBufferAsQueue (numEdgesSG + 1)
   UM.write dist source 0
   pushBack source que
   fix $ \loop -> do

@@ -12,7 +12,7 @@ import Data.Graph.Sparse
 
 shortestPath :: (U.Unbox w, Num w) => SparseGraph w -> Vertex -> U.Vector w
 shortestPath gr root = U.create $ do
-  let n = numVerticesCSR gr
+  let n = numVerticesSG gr
   dist <- UM.unsafeNew n
   UM.unsafeWrite dist root 0
   stack <- newBufferAsStack n
@@ -26,7 +26,7 @@ shortestPath gr root = U.create $ do
   fix $ \loop ->
     popBack stack >>= \case
       Just ei -> do
-        let v = adjacentCSR gr `U.unsafeIndex` ei
+        let v = adjacentSG gr `U.unsafeIndex` ei
         pv <- UM.unsafeRead parent v
         dv <- UM.unsafeRead dist v
         U.forM_ (gr `iadjW` v) $ \(nei, nv, d) -> do

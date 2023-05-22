@@ -16,7 +16,7 @@ type ComponentId = Int
 
 stronglyConnectedComponents :: SparseGraph w -> U.Vector ComponentId
 stronglyConnectedComponents gr = runST $ do
-  let numV = numVerticesCSR gr
+  let numV = numVerticesSG gr
   low <- UM.replicate numV nothing
   preord <- UM.replicate numV nothing
   stack <- newBufferAsStack numV

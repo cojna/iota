@@ -21,7 +21,7 @@ data Lowlink = Lowlink
 
 buildLowlink :: SparseGraph w -> Lowlink
 buildLowlink gr = runST $ do
-  let numV = numVerticesCSR gr
+  let numV = numVerticesSG gr
   low <- UM.replicate numV nothing
   preord <- UM.replicate numV nothing
   parent <- UM.replicate numV nothing
@@ -65,7 +65,7 @@ articulations gr = U.findIndices id isArticulation
     nothing = -1
     !Lowlink{..} = buildLowlink gr
     !isArticulation = U.create $ do
-      isa <- UM.replicate (numVerticesCSR gr) False
+      isa <- UM.replicate (numVerticesSG gr) False
       flip U.imapM_ parentLL $ \v pv -> when (pv /= nothing) $ do
         when (U.unsafeIndex preordLL pv <= U.unsafeIndex lowlinkLL v) $ do
           UM.unsafeWrite isa pv True

@@ -24,7 +24,7 @@ rerootingDP gr toM foldChildren = dp2
 
     dp1 :: U.Vector a
     !dp1 = U.create $ do
-      dp <- UM.unsafeNew (numVerticesCSR gr)
+      dp <- UM.unsafeNew (numVerticesSG gr)
       _ <-
         fix
           ( \dfs p v -> do
@@ -40,7 +40,7 @@ rerootingDP gr toM foldChildren = dp2
 
     dp2 :: U.Vector a
     dp2 = U.create $ do
-      dp <- UM.unsafeNew (numVerticesCSR gr)
+      dp <- UM.unsafeNew (numVerticesSG gr)
       UM.write dp root (dp1 U.! root)
       fix
         ( \dfs parent !fromParent v -> do

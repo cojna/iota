@@ -15,12 +15,14 @@ type Vertex = Int
 type Edge = (Vertex, Vertex)
 type EdgeWith w = (Vertex, Vertex, w)
 type EdgeId = Int
-data SparseGraph w = CSR
-  { numVerticesCSR :: !Int
-  , numEdgesCSR :: !Int
-  , offsetCSR :: !(U.Vector Int)
-  , adjacentCSR :: !(U.Vector Vertex)
-  , edgeCtxCSR :: !(U.Vector w)
+
+-- | CSR (Compressed Sparse Row)
+data SparseGraph w = SparseGraph
+  { numVerticesSG :: !Int
+  , numEdgesSG :: !Int
+  , offsetSG :: !(U.Vector Int)
+  , adjacentSG :: !(U.Vector Vertex)
+  , edgeCtxSG :: !(U.Vector w)
   }
 
 data SparseGraphBuilder s w = SparseGraphBuilder
@@ -37,24 +39,24 @@ buildSparseGraph ::
   Int ->
   (forall s. SparseGraphBuilder s w -> ST s ()) ->
   SparseGraph w
-buildSparseGraph numVerticesCSR ubNumE run = runST $ do
+buildSparseGraph numVerticesSG ubNumE run = runST $ do
   bufferSGB <- newBuffer ubNumE
-  outDegSGB <- UM.replicate numVerticesCSR 0
-  run SparseGraphBuilder{numVerticesSGB = numVerticesCSR, ..}
-  numEdgesCSR <- lengthBuffer bufferSGB
-  offsetCSR <- U.scanl' (+) 0 <$> U.unsafeFreeze outDegSGB
-  moffset <- U.thaw offsetCSR
-  madj <- UM.unsafeNew numEdgesCSR
-  mectx <- UM.unsafeNew numEdgesCSR
+  outDegSGB <- UM.replicate numVerticesSG 0
+  run SparseGraphBuilder{numVerticesSGB = numVerticesSG, ..}
+  numEdgesSG <- lengthBuffer bufferSGB
+  offsetSG <- U.scanl' (+) 0 <$> U.unsafeFreeze outDegSGB
+  moffset <- U.thaw offsetSG
+  madj <- UM.unsafeNew numEdgesSG
+  mectx <- UM.unsafeNew numEdgesSG
   edges <- unsafeFreezeBuffer bufferSGB
   U.forM_ edges $ \(src, dst, w) -> do
     pos <- UM.unsafeRead moffset src
     UM.unsafeWrite moffset src (pos + 1)
     UM.unsafeWrite madj pos dst
     UM.unsafeWrite mectx pos w
-  adjacentCSR <- U.unsafeFreeze madj
-  edgeCtxCSR <- U.unsafeFreeze mectx
-  return CSR{..}
+  adjacentSG <- U.unsafeFreeze madj
+  edgeCtxSG <- U.unsafeFreeze mectx
+  return SparseGraph{..}
 {-# INLINE buildSparseGraph #-}
 
 addDirectedEdge ::
@@ -108,12 +110,12 @@ buildDirectedGraph ::
   Int ->
   U.Vector Edge ->
   SparseGraph ()
-buildDirectedGraph numVerticesCSR ubNumE edges =
-  buildSparseGraph numVerticesCSR ubNumE $ \builder -> do
+buildDirectedGraph numVerticesSG ubNumE edges =
+  buildSparseGraph numVerticesSG ubNumE $ \builder -> do
     U.mapM_ (addDirectedEdge_ builder) edges
 
 {- |
->>> numEdgesCSR . buildUndirectedGraph 2 1 $ U.fromList [(0, 1)]
+>>> numEdgesSG . buildUndirectedGraph 2 1 $ U.fromList [(0, 1)]
 2
 -}
 buildUndirectedGraph ::
@@ -123,8 +125,8 @@ buildUndirectedGraph ::
   Int ->
   U.Vector Edge ->
   SparseGraph ()
-buildUndirectedGraph numVerticesCSR ubNumE edges =
-  buildSparseGraph numVerticesCSR (2 * ubNumE) $ \builder -> do
+buildUndirectedGraph numVerticesSG ubNumE edges =
+  buildSparseGraph numVerticesSG (2 * ubNumE) $ \builder -> do
     U.mapM_ (addUndirectedEdge_ builder) edges
 
 buildDirectedGraphW ::
@@ -135,8 +137,8 @@ buildDirectedGraphW ::
   Int ->
   U.Vector (EdgeWith w) ->
   SparseGraph w
-buildDirectedGraphW numVerticesCSR ubNumE edges =
-  buildSparseGraph numVerticesCSR ubNumE $ \builder -> do
+buildDirectedGraphW numVerticesSG ubNumE edges =
+  buildSparseGraph numVerticesSG ubNumE $ \builder -> do
     U.mapM_ (addDirectedEdge builder) edges
 
 buildUndirectedGraphW ::
@@ -147,22 +149,22 @@ buildUndirectedGraphW ::
   Int ->
   U.Vector (EdgeWith w) ->
   SparseGraph w
-buildUndirectedGraphW numVerticesCSR ubNumE edges =
-  buildSparseGraph numVerticesCSR (2 * ubNumE) $ \builder -> do
+buildUndirectedGraphW numVerticesSG ubNumE edges =
+  buildSparseGraph numVerticesSG (2 * ubNumE) $ \builder -> do
     U.mapM_ (addUndirectedEdge builder) edges
 
 adj :: SparseGraph w -> Vertex -> U.Vector Vertex
-adj CSR{..} v = U.unsafeSlice o (o' - o) adjacentCSR
+adj SparseGraph{..} v = U.unsafeSlice o (o' - o) adjacentSG
   where
-    o = U.unsafeIndex offsetCSR v
-    o' = U.unsafeIndex offsetCSR (v + 1)
+    o = U.unsafeIndex offsetSG v
+    o' = U.unsafeIndex offsetSG (v + 1)
 {-# INLINE adj #-}
 
 iadj :: SparseGraph w -> Vertex -> U.Vector (EdgeId, Vertex)
-iadj CSR{..} v = U.imap ((,) . (+ o)) $ U.unsafeSlice o (o' - o) adjacentCSR
+iadj SparseGraph{..} v = U.imap ((,) . (+ o)) $ U.unsafeSlice o (o' - o) adjacentSG
   where
-    o = U.unsafeIndex offsetCSR v
-    o' = U.unsafeIndex offsetCSR (v + 1)
+    o = U.unsafeIndex offsetSG v
+    o' = U.unsafeIndex offsetSG (v + 1)
 {-# INLINE iadj #-}
 
 adjW ::
@@ -170,13 +172,13 @@ adjW ::
   SparseGraph w ->
   Vertex ->
   U.Vector (Vertex, w)
-adjW CSR{..} v =
+adjW SparseGraph{..} v =
   U.zip
-    (U.unsafeSlice o (o' - o) adjacentCSR)
-    (U.unsafeSlice o (o' - o) edgeCtxCSR)
+    (U.unsafeSlice o (o' - o) adjacentSG)
+    (U.unsafeSlice o (o' - o) edgeCtxSG)
   where
-    o = U.unsafeIndex offsetCSR v
-    o' = U.unsafeIndex offsetCSR (v + 1)
+    o = U.unsafeIndex offsetSG v
+    o' = U.unsafeIndex offsetSG (v + 1)
 {-# INLINE adjW #-}
 
 iadjW ::
@@ -184,29 +186,29 @@ iadjW ::
   SparseGraph w ->
   Vertex ->
   U.Vector (EdgeId, Vertex, w)
-iadjW CSR{..} v =
+iadjW SparseGraph{..} v =
   U.izipWith
     (\i u w -> (i + o, u, w))
-    (U.unsafeSlice o (o' - o) adjacentCSR)
-    (U.unsafeSlice o (o' - o) edgeCtxCSR)
+    (U.unsafeSlice o (o' - o) adjacentSG)
+    (U.unsafeSlice o (o' - o) edgeCtxSG)
   where
-    o = U.unsafeIndex offsetCSR v
-    o' = U.unsafeIndex offsetCSR (v + 1)
+    o = U.unsafeIndex offsetSG v
+    o' = U.unsafeIndex offsetSG (v + 1)
 {-# INLINE iadjW #-}
 
 outEdges :: SparseGraph w -> Vertex -> U.Vector EdgeId
-outEdges CSR{..} v = U.generate (o' - o) (+ o)
+outEdges SparseGraph{..} v = U.generate (o' - o) (+ o)
   where
-    o = U.unsafeIndex offsetCSR v
-    o' = U.unsafeIndex offsetCSR (v + 1)
+    o = U.unsafeIndex offsetSG v
+    o' = U.unsafeIndex offsetSG (v + 1)
 {-# INLINE outEdges #-}
 
 outDegree :: SparseGraph w -> Vertex -> Int
-outDegree CSR{..} v =
-  U.unsafeIndex offsetCSR (v + 1)
-    - U.unsafeIndex offsetCSR v
+outDegree SparseGraph{..} v =
+  U.unsafeIndex offsetSG (v + 1)
+    - U.unsafeIndex offsetSG v
 {-# INLINE outDegree #-}
 
 outDegrees :: SparseGraph w -> U.Vector Int
-outDegrees CSR{..} = U.zipWith (-) (U.tail offsetCSR) offsetCSR
+outDegrees SparseGraph{..} = U.zipWith (-) (U.tail offsetSG) offsetSG
 {-# INLINE outDegrees #-}
