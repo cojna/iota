@@ -27,6 +27,15 @@ instance (Semigroup a, U.Unbox a) => Semigroup (Doubling a) where
         )
         next0
   {-# INLINE (<>) #-}
+  stimes n x0
+    | n > 0 = go x0 x0 (n - 1)
+    | otherwise = error "stimes: n must be positive"
+    where
+      go !acc !x !i
+        | i == 0 = acc
+        | even i = go acc (x <> x) (quot i 2)
+        | otherwise = go (acc <> x) (x <> x) (quot i 2)
+  {-# INLINE stimes #-}
 
 -- | /O(Mlog N)/
 doublingStepN ::
