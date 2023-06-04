@@ -84,3 +84,23 @@ totient n = n `quot` product ps * product (map (subtract 1) ps)
 -}
 divisors :: Int -> [Int]
 divisors n = L.sort . map product . mapM (scanl (*) 1) . L.group $ primeFactors n
+
+{- |
+>>> moebius 1
+1
+>>> moebius 2
+-1
+>>> moebius 3
+-1
+>>> moebius (2 * 2)
+0
+>>> moebius (2 * 3)
+1
+>>> moebius (2 * 2 * 3)
+0
+-}
+moebius :: Int -> Int
+moebius n = product . map f . L.group $ primeFactors n
+  where
+    f [_] = -1
+    f _ = 0

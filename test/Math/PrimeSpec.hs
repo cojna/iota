@@ -44,6 +44,19 @@ spec = do
       divisors 1 `shouldBe` [1]
     it "length (divisors 735134400) == 1344" $
       length (divisors 735134400) `shouldBe` 1344
+  describe "moebius" $ do
+    it "moebius 1 == 1" $
+      moebius 1 `shouldBe` 1
+    it "moebius 2 == -1" $
+      moebius 2 `shouldBe` (-1)
+    it "moebius 3 == -1" $
+      moebius 3 `shouldBe` (-1)
+    it "moebius (2 * 2) == 0" $
+      moebius (2 * 2) `shouldBe` 0
+    it "moebius (2 * 3) == 1" $
+      moebius (2 * 3) `shouldBe` 1
+    it "moebius (2 * 2 * 3) == 0" $
+      moebius (2 * 2 * 3) `shouldBe` 0
 
 prop_primeFactorsFactorize :: Positive Int -> Bool
 prop_primeFactorsFactorize (getPositive -> x) =
