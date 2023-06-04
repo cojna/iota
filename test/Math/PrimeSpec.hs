@@ -3,6 +3,7 @@
 
 module Math.PrimeSpec (main, spec) where
 
+import qualified Data.IntMap.Strict as IM
 import Math.Prime
 import Test.Prelude
 
@@ -44,6 +45,26 @@ spec = do
       divisors 1 `shouldBe` [1]
     it "length (divisors 735134400) == 1344" $
       length (divisors 735134400) `shouldBe` 1344
+  describe "moebius" $ do
+    it "moebius 1 == 1" $
+      moebius 1 `shouldBe` 1
+    it "moebius 2 == -1" $
+      moebius 2 `shouldBe` (-1)
+    it "moebius 3 == -1" $
+      moebius 3 `shouldBe` (-1)
+    it "moebius (2 * 2) == 0" $
+      moebius (2 * 2) `shouldBe` 0
+    it "moebius (2 * 3) == 1" $
+      moebius (2 * 3) `shouldBe` 1
+    it "moebius (2 * 2 * 3) == 0" $
+      moebius (2 * 2 * 3) `shouldBe` 0
+  describe "moebiusInversion" $ do
+    it "moebiusInvesion 12 (length.divisors)" $
+      moebiusInversion 12 (length . divisors)
+        `shouldBe` IM.fromList [(1, 1), (2, 1), (3, 1), (4, 1), (6, 1), (12, 1)]
+    it "moebiusInvesion 999999999997 (length.divisors)" $
+      moebiusInversion 999999999997 (length . divisors)
+        `shouldBe` IM.fromList [(1, 1), (5507, 1), (181587071, 1), (999999999997, 1)]
 
 prop_primeFactorsFactorize :: Positive Int -> Bool
 prop_primeFactorsFactorize (getPositive -> x) =

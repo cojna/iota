@@ -3,6 +3,7 @@
 
 module Math.Prime where
 
+import qualified Data.IntMap as IM
 import qualified Data.List as L
 
 smallPrimes :: (Integral i) => [i]
@@ -84,3 +85,44 @@ totient n = n `quot` product ps * product (map (subtract 1) ps)
 -}
 divisors :: Int -> [Int]
 divisors n = L.sort . map product . mapM (scanl (*) 1) . L.group $ primeFactors n
+
+{- |
+>>> moebius 1
+1
+>>> moebius 2
+-1
+>>> moebius 3
+-1
+>>> moebius (2 * 2)
+0
+>>> moebius (2 * 3)
+1
+>>> moebius (2 * 2 * 3)
+0
+-}
+moebius :: Int -> Int
+moebius n = product . map f . L.group $ primeFactors n
+  where
+    f [_] = -1
+    f _ = 0
+
+{- |
+>>> moebiusInversion 12 (length.divisors)
+fromList [(1,1),(2,1),(3,1),(4,1),(6,1),(12,1)]
+>>> moebiusInversion 999999999997 (length.divisors)
+fromList [(1,1),(5507,1),(181587071,1),(999999999997,1)]
+>>> IM.size $ moebiusInversion 735134400 (length.divisors)
+1344
+-}
+moebiusInversion :: (Num a) => Int -> (Int -> a) -> IM.IntMap a
+moebiusInversion n f = L.foldl' step (IM.fromAscList [(d, f d) | d <- ds]) ds
+  where
+    !ds = divisors n
+    step g d =
+      let !gd = g IM.! d
+       in IM.mapWithKey
+            ( \k v ->
+                if k > d && rem k d == 0 then v - gd else v
+            )
+            g
+{-# INLINE moebiusInversion #-}
