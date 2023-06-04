@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BinaryLiterals #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Math.Prime.Sieve where
@@ -18,6 +19,7 @@ import Data.Primitive (
   writeByteArray,
  )
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Word (Word64, Word8)
 
 withPrimes :: Int -> (U.Vector Int -> a) -> a
@@ -49,3 +51,29 @@ sieve n = runST $ do
     when (p + 2 <= sqrtLim) $ do
       loop (p + 2)
   Sieve <$> unsafeFreezeByteArray isp
+
+buildMoebiusTable :: Int -> U.Vector Int
+buildMoebiusTable n = U.create $ do
+  isp <- UM.replicate (n + 1) True
+  ms <- UM.replicate (n + 1) 1
+  UM.write isp 0 False
+  UM.write isp 1 False
+  fix
+    ( \outer p -> when (p <= n) $ do
+        UM.unsafeRead isp p >>= \case
+          False -> pure ()
+          True -> do
+            UM.unsafeWrite ms p (-1)
+            fix
+              ( \inner q -> when (q <= n) $ do
+                  UM.unsafeWrite isp q False
+                  if rem (quot q p) p == 0
+                    then UM.unsafeWrite ms q 0
+                    else UM.unsafeModify ms negate q
+                  inner $ q + p
+              )
+              (2 * p)
+        outer (p + 1)
+    )
+    2
+  return ms
