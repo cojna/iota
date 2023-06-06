@@ -37,12 +37,12 @@ moAlgorithm add delete acc0 blockSize lrs = do
   result <- UM.unsafeNew (U.length lrs)
   U.foldM'_
     ( \(MoState l r acc) (qi, (ql, qr)) -> do
-        !addR <- MS.foldM' add acc $ stream r qr
-        !deleteR <- MS.foldM' delete addR $ streamR qr r
-        !addL <- MS.foldM' add deleteR $ streamR ql l
-        !deleteL <- MS.foldM' delete addL $ stream l ql
-        UM.unsafeWrite result qi deleteL
-        return $! MoState ql qr deleteL
+        MS.foldM' add acc (streamR ql l)
+          >>= flip (MS.foldM' add) (stream r qr)
+          >>= flip (MS.foldM' delete) (streamR qr r)
+          >>= flip (MS.foldM' delete) (stream l ql)
+          >>= UM.unsafeWrite result qi
+        MoState ql qr <$> UM.unsafeRead result qi
     )
     (MoState 0 0 acc0)
     (moSort blockSize lrs)
