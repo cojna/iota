@@ -19,7 +19,7 @@ import Unsafe.Coerce
 import Data.Vector.Sort.Radix (radixSort64)
 import My.Prelude (stream, streamR)
 
--- | /O((N+Q)sqrt N)/
+-- | /O(N * sqrt Q)/
 moAlgorithm ::
   (U.Unbox a, PrimMonad m) =>
   -- | add
@@ -28,7 +28,7 @@ moAlgorithm ::
   (a -> Int -> m a) ->
   -- | initial value
   a ->
-  -- | block size (sqrt N)
+  -- | block size (N/sqrt Q)
   Int ->
   -- | query [l, r)
   U.Vector (Int, Int) ->
@@ -49,8 +49,10 @@ moAlgorithm add delete acc0 blockSize lrs = do
   U.unsafeFreeze result
 {-# INLINE moAlgorithm #-}
 
-moBlockSize :: Int -> Int
-moBlockSize = ceiling . sqrt @Double . fromIntegral
+moBlockSize :: Int -> Int -> Int
+moBlockSize n q =
+  ceiling @Double $
+    fromIntegral n / sqrt (fromIntegral q)
 
 data MoState a = MoState !Int !Int !a deriving (Eq)
 
