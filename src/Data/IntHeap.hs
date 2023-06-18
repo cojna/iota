@@ -17,9 +17,7 @@ instance Show IntHeap where
 instance IsList IntHeap where
   type Item IntHeap = Int
   fromList = fromListIH
-  toList =
-    concatMap @[] (\(k, x) -> replicate x k)
-      . coerce (IM.toList @Int)
+  toList = toListIH
 
 emptyIH :: IntHeap
 emptyIH = coerce (IM.empty @Int)
@@ -83,6 +81,34 @@ fromDescListIH =
 fromDistinctDescListIH :: [Int] -> IntHeap
 fromDistinctDescListIH =
   coerce (IM.fromDistinctAscList @Int . map (flip (,) 1) . reverse)
+
+{- | /O(n)/
+
+>>> toListIH (fromListIH [0,1,0,2])
+[0,0,1,2]
+-}
+toListIH :: IntHeap -> [Int]
+toListIH = toAscListIH
+
+{- | /O(n)/
+
+>>> toAscListIH (fromListIH [0,1,0,2])
+[0,0,1,2]
+-}
+toAscListIH :: IntHeap -> [Int]
+toAscListIH =
+  concatMap @[] (\(k, x) -> replicate x k)
+    . coerce (IM.toAscList @Int)
+
+{- | /O(n)/
+
+>>> toDescListIH (fromListIH [0,1,0,2])
+[2,1,0,0]
+-}
+toDescListIH :: IntHeap -> [Int]
+toDescListIH =
+  concatMap @[] (\(k, x) -> replicate x k)
+    . coerce (IM.toDescList @Int)
 
 -- | /O(min(n,W))/
 insertIH :: Int -> IntHeap -> IntHeap
