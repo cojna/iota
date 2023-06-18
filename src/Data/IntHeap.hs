@@ -16,16 +16,105 @@ instance Show IntHeap where
 
 instance IsList IntHeap where
   type Item IntHeap = Int
-  fromList = L.foldl' (flip insertIH) emptyIH
-  toList =
-    concatMap @[] (\(k, x) -> replicate x k)
-      . coerce (IM.toList @Int)
+  fromList = fromListIH
+  toList = toListIH
 
 emptyIH :: IntHeap
 emptyIH = coerce (IM.empty @Int)
 
 singletonIH :: Int -> IntHeap
 singletonIH = coerce (flip (IM.singleton @Int) 1)
+
+{- | /O(1)/
+
+>>> replicateIH 3 1
+[1,1,1]
+>>> nullIH $ replicateIH 0 1
+True
+>>> nullIH $ replicateIH (-1) 1
+True
+-}
+replicateIH :: Int -> Int -> IntHeap
+replicateIH = coerce ((IM.filter (> 0) .) . flip (IM.singleton @Int))
+
+{- | /O(n min(n,W))/
+
+>>> fromListIH [0,1,2,1,0]
+[0,0,1,1,2]
+-}
+fromListIH :: [Int] -> IntHeap
+fromListIH = L.foldl' (flip insertIH) emptyIH
+
+{- | /O(n)/
+
+>>> fromAscListIH [0,0,1,2]
+[0,0,1,2]
+-}
+fromAscListIH :: [Int] -> IntHeap
+fromAscListIH =
+  IntHeap
+    . IM.fromDistinctAscList
+    . map (\g -> (head g, length g))
+    . L.group
+
+{- | /O(n)/
+
+>>> fromDistinctAscListIH [0,1,2]
+[0,1,2]
+-}
+fromDistinctAscListIH :: [Int] -> IntHeap
+fromDistinctAscListIH =
+  coerce (IM.fromDistinctAscList @Int . map (flip (,) 1))
+
+{- | /O(n)/
+
+>>> fromDescListIH [2,1,0,0]
+[0,0,1,2]
+-}
+fromDescListIH :: [Int] -> IntHeap
+fromDescListIH =
+  IntHeap
+    . IM.fromDistinctAscList
+    . reverse
+    . map (\g -> (head g, length g))
+    . L.group
+
+{- | /O(n)/
+
+>>> fromDistinctDescListIH [2,1,0]
+[0,1,2]
+-}
+fromDistinctDescListIH :: [Int] -> IntHeap
+fromDistinctDescListIH =
+  coerce (IM.fromDistinctAscList @Int . map (flip (,) 1) . reverse)
+
+{- | /O(n)/
+
+>>> toListIH (fromListIH [0,1,0,2])
+[0,0,1,2]
+-}
+toListIH :: IntHeap -> [Int]
+toListIH = toAscListIH
+
+{- | /O(n)/
+
+>>> toAscListIH (fromListIH [0,1,0,2])
+[0,0,1,2]
+-}
+toAscListIH :: IntHeap -> [Int]
+toAscListIH =
+  concatMap @[] (\(k, x) -> replicate x k)
+    . coerce (IM.toAscList @Int)
+
+{- | /O(n)/
+
+>>> toDescListIH (fromListIH [0,1,0,2])
+[2,1,0,0]
+-}
+toDescListIH :: IntHeap -> [Int]
+toDescListIH =
+  concatMap @[] (\(k, x) -> replicate x k)
+    . coerce (IM.toDescList @Int)
 
 -- | /O(min(n,W))/
 insertIH :: Int -> IntHeap -> IntHeap
@@ -175,6 +264,39 @@ deleteMaxIH =
 
 {- | /O(min(n,W))/
 
+>>> deleteFindMinIH (fromList [0, 0, 1, 2])
+(0,[0,1,2])
+>>> deleteFindMinIH emptyIH
+deleteFindMin: empty map has no minimal element
+-}
+deleteFindMinIH :: IntHeap -> (Int, IntHeap)
+deleteFindMinIH = coerce (found . IM.deleteFindMin)
+  where
+    found :: ((Int, Int), IM.IntMap Int) -> (Int, IM.IntMap Int)
+    found ((k, x), m)
+      | x > 1 = case IM.insert k (x - 1) m of
+        m' -> (k, m')
+      | otherwise = (k, m)
+
+{- | /O(min(n,W))/
+
+>>> deleteFindMaxIH (fromList [0, 1, 2, 2])
+(2,[0,1,2])
+
+>>> deleteFindMaxIH emptyIH
+deleteFindMax: empty map has no maximal element
+-}
+deleteFindMaxIH :: IntHeap -> (Int, IntHeap)
+deleteFindMaxIH = coerce (found . IM.deleteFindMax)
+  where
+    found :: ((Int, Int), IM.IntMap Int) -> (Int, IM.IntMap Int)
+    found ((k, x), m)
+      | x > 1 = case IM.insert k (x - 1) m of
+        m' -> (k, m')
+      | otherwise = (k, m)
+
+{- | /O(min(n,W))/
+
 >>> minViewIH (fromList [0, 0, 1, 2])
 Just (0,[0,1,2])
 
@@ -187,7 +309,7 @@ minViewIH = coerce (maybe Nothing just . IM.minViewWithKey)
     just :: ((Int, Int), IM.IntMap Int) -> Maybe (Int, IntHeap)
     just ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-          m' -> coerce (Just (k, m'))
+        m' -> coerce (Just (k, m'))
       | otherwise = coerce (Just (k, m))
 
 {- | /O(min(n,W))/
@@ -204,31 +326,31 @@ maxViewIH = coerce (maybe Nothing just . IM.maxViewWithKey)
     just :: ((Int, Int), IM.IntMap Int) -> Maybe (Int, IntHeap)
     just ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-          m' -> coerce (Just (k, m'))
+        m' -> coerce (Just (k, m'))
       | otherwise = coerce (Just (k, m))
 
 {- | /O(min(n,W))/
 
->>> split 1 (fromList [0, 0, 1, 2])
+>>> splitIH 1 (fromList [0, 0, 1, 2])
 ([0,0],[2])
->>> split 0 (fromList [0, 0, 1, 2])
+>>> splitIH 0 (fromList [0, 0, 1, 2])
 ([],[1,2])
->>> split (-1) (fromList [0, 0, 1, 2])
+>>> splitIH (-1) (fromList [0, 0, 1, 2])
 ([],[0,0,1,2])
 -}
-split :: Int -> IntHeap -> (IntHeap, IntHeap)
-split = coerce (IM.split @Int)
+splitIH :: Int -> IntHeap -> (IntHeap, IntHeap)
+splitIH = coerce (IM.split @Int)
 
 {- | /O(min(n,W))/
 
->>> splitLookup 1 (fromList [0, 0, 1, 2])
+>>> splitLookupIH 1 (fromList [0, 0, 1, 2])
 ([0,0],[1],[2])
->>> splitLookup 0 (fromList [0, 0, 1, 2])
+>>> splitLookupIH 0 (fromList [0, 0, 1, 2])
 ([],[0,0],[1,2])
->>> splitLookup (-1) (fromList [0, 0, 1, 2])
+>>> splitLookupIH (-1) (fromList [0, 0, 1, 2])
 ([],[],[0,0,1,2])
 -}
-splitLookup :: Int -> IntHeap -> (IntHeap, [Int], IntHeap)
-splitLookup k h = case coerce (IM.splitLookup @Int) k h of
+splitLookupIH :: Int -> IntHeap -> (IntHeap, [Int], IntHeap)
+splitLookupIH k h = case coerce (IM.splitLookup @Int) k h of
   (l, Just cnt, r) -> (l, replicate cnt k, r)
   (l, Nothing, r) -> (l, [], r)
