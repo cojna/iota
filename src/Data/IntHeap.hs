@@ -232,6 +232,39 @@ deleteMaxIH =
 
 {- | /O(min(n,W))/
 
+>>> deleteFindMinIH (fromList [0, 0, 1, 2])
+(0,[0,1,2])
+>>> deleteFindMinIH emptyIH
+deleteFindMin: empty map has no minimal element
+-}
+deleteFindMinIH :: IntHeap -> (Int, IntHeap)
+deleteFindMinIH = coerce (found . IM.deleteFindMin)
+  where
+    found :: ((Int, Int), IM.IntMap Int) -> (Int, IM.IntMap Int)
+    found ((k, x), m)
+      | x > 1 = case IM.insert k (x - 1) m of
+        m' -> (k, m')
+      | otherwise = (k, m)
+
+{- | /O(min(n,W))/
+
+>>> deleteFindMaxIH (fromList [0, 1, 2, 2])
+(2,[0,1,2])
+
+>>> deleteFindMaxIH emptyIH
+deleteFindMax: empty map has no maximal element
+-}
+deleteFindMaxIH :: IntHeap -> (Int, IntHeap)
+deleteFindMaxIH = coerce (found . IM.deleteFindMax)
+  where
+    found :: ((Int, Int), IM.IntMap Int) -> (Int, IM.IntMap Int)
+    found ((k, x), m)
+      | x > 1 = case IM.insert k (x - 1) m of
+        m' -> (k, m')
+      | otherwise = (k, m)
+
+{- | /O(min(n,W))/
+
 >>> minViewIH (fromList [0, 0, 1, 2])
 Just (0,[0,1,2])
 
