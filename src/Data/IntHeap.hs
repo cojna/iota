@@ -25,7 +25,8 @@ emptyIH = coerce (IM.empty @Int)
 singletonIH :: Int -> IntHeap
 singletonIH = coerce (flip (IM.singleton @Int) 1)
 
-{- |
+{- | /O(1)/
+
 >>> replicateIH 3 1
 [1,1,1]
 >>> nullIH $ replicateIH 0 1
@@ -36,14 +37,16 @@ True
 replicateIH :: Int -> Int -> IntHeap
 replicateIH = coerce ((IM.filter (> 0) .) . flip (IM.singleton @Int))
 
-{- |
+{- | /O(n min(n,W))/
+
 >>> fromListIH [0,1,2,1,0]
 [0,0,1,1,2]
 -}
 fromListIH :: [Int] -> IntHeap
 fromListIH = L.foldl' (flip insertIH) emptyIH
 
-{- |
+{- | /O(n)/
+
 >>> fromAscListIH [0,0,1,2]
 [0,0,1,2]
 -}
@@ -54,7 +57,8 @@ fromAscListIH =
     . map (\g -> (head g, length g))
     . L.group
 
-{- |
+{- | /O(n)/
+
 >>> fromDistinctAscListIH [0,1,2]
 [0,1,2]
 -}
@@ -62,7 +66,8 @@ fromDistinctAscListIH :: [Int] -> IntHeap
 fromDistinctAscListIH =
   coerce (IM.fromDistinctAscList @Int . map (flip (,) 1))
 
-{- |
+{- | /O(n)/
+
 >>> fromDescListIH [2,1,0,0]
 [0,0,1,2]
 -}
@@ -74,7 +79,8 @@ fromDescListIH =
     . map (\g -> (head g, length g))
     . L.group
 
-{- |
+{- | /O(n)/
+
 >>> fromDistinctDescListIH [2,1,0]
 [0,1,2]
 -}
