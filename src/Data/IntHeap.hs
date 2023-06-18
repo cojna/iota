@@ -209,26 +209,26 @@ maxViewIH = coerce (maybe Nothing just . IM.maxViewWithKey)
 
 {- | /O(min(n,W))/
 
->>> split 1 (fromList [0, 0, 1, 2])
+>>> splitIH 1 (fromList [0, 0, 1, 2])
 ([0,0],[2])
->>> split 0 (fromList [0, 0, 1, 2])
+>>> splitIH 0 (fromList [0, 0, 1, 2])
 ([],[1,2])
->>> split (-1) (fromList [0, 0, 1, 2])
+>>> splitIH (-1) (fromList [0, 0, 1, 2])
 ([],[0,0,1,2])
 -}
-split :: Int -> IntHeap -> (IntHeap, IntHeap)
-split = coerce (IM.split @Int)
+splitIH :: Int -> IntHeap -> (IntHeap, IntHeap)
+splitIH = coerce (IM.split @Int)
 
 {- | /O(min(n,W))/
 
->>> splitLookup 1 (fromList [0, 0, 1, 2])
+>>> splitLookupIH 1 (fromList [0, 0, 1, 2])
 ([0,0],[1],[2])
->>> splitLookup 0 (fromList [0, 0, 1, 2])
+>>> splitLookupIH 0 (fromList [0, 0, 1, 2])
 ([],[0,0],[1,2])
->>> splitLookup (-1) (fromList [0, 0, 1, 2])
+>>> splitLookupIH (-1) (fromList [0, 0, 1, 2])
 ([],[],[0,0,1,2])
 -}
-splitLookup :: Int -> IntHeap -> (IntHeap, [Int], IntHeap)
-splitLookup k h = case coerce (IM.splitLookup @Int) k h of
+splitLookupIH :: Int -> IntHeap -> (IntHeap, [Int], IntHeap)
+splitLookupIH k h = case coerce (IM.splitLookup @Int) k h of
   (l, Just cnt, r) -> (l, replicate cnt k, r)
   (l, Nothing, r) -> (l, [], r)
