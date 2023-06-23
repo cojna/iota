@@ -16,6 +16,9 @@ extra-source-files:
 # common to point users to the README.md file.
 description:         Please see the README on Github at <https://github.com/cojna/iota/blob/master/README.md>
 
+default-extensions:
+  - Haskell2010
+
 dependencies:
 # core
 - base
