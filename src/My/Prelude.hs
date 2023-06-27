@@ -204,18 +204,18 @@ decode32x2 xy =
 {-# INLINE decode32x2 #-}
 
 uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
-uvectorN = vectorN
+uvectorN = gvectorN
 {-# INLINE uvectorN #-}
 
 bvectorN :: Int -> PrimParser a -> PrimParser (V.Vector a)
-bvectorN = vectorN
+bvectorN = gvectorN
 {-# INLINE bvectorN #-}
 
-vectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
-vectorN n f = do
+gvectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
+gvectorN n f = do
   (e, o) <- viewPrimParser
   pure $ G.unfoldrN n (pure . runPrimParser f e) o
-{-# INLINE vectorN #-}
+{-# INLINE gvectorN #-}
 
 streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
 streamN n f = do
