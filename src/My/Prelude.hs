@@ -223,5 +223,22 @@ streamN n f = do
   pure $ MS.unfoldrN n (pure . runPrimParser f e) o
 {-# INLINE streamN #-}
 
+uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
+uvector = gvector
+{-# INLINE uvector #-}
+
+gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
+gvector f = do
+  (e, o) <- viewPrimParser
+  pure $
+    G.unfoldr
+      ( \p -> case runPrimParser f e p of
+          (x, p')
+            | p' < e -> Just (x, p')
+            | otherwise -> Nothing
+      )
+      o
+{-# INLINE gvector #-}
+
 runSolver :: (a -> IO ()) -> PrimParser a -> IO ()
 runSolver = withInputHandle stdin
