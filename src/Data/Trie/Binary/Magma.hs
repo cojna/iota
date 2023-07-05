@@ -93,7 +93,7 @@ binWith u t0@(Tip w0 b0) t1@(Bin a1 _ _) = Bin (magma (u w0 b0) a1) t0 t1
 binWith u t0@(Tip w0 b0) t1@(Tip w1 b1) = Bin (magma (u w0 b0) (u w1 b1)) t0 t1
 binWith _ t0@Tip{} Nil = t0
 binWith _ t0@Nil t1@(Bin a1 _ _) = Bin a1 t0 t1
-binWith _ t0@Nil Tip{} = t0
+binWith _ Nil t1@Tip{} = t1
 binWith _ Nil Nil = Nil
 
 alterWith ::
