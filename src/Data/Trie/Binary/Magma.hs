@@ -19,6 +19,7 @@ import GHC.TypeLits
 
 > data A = Done !Word | Partial !Word
 >
+> -- non-associative
 > instance Magma A where
 >     magma = m
 >       where
