@@ -112,15 +112,25 @@ radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
 {-# INLINE radixSort #-}
 
 -- * Bits utils
-infixl 8 `shiftRL`, `unsafeShiftRL`
+infixl 8 `shiftRL`, `unsafeShiftRL`, !>>>.
 
 shiftRL :: Int -> Int -> Int
 shiftRL = unsafeShiftRL
 {-# INLINE shiftRL #-}
 
+{- |
+>>> unsafeShiftR (-1) 1
+-1
+>>> unsafeShiftRL (-1) 1
+9223372036854775807
+-}
 unsafeShiftRL :: Int -> Int -> Int
 unsafeShiftRL (I# x#) (I# i#) = I# (uncheckedIShiftRL# x# i#)
 {-# INLINE unsafeShiftRL #-}
+
+(!>>>.) :: Int -> Int -> Int
+(!>>>.) = unsafeShiftRL
+{-# INLINE (!>>>.) #-}
 
 -- * Parser utils
 uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
