@@ -163,10 +163,26 @@ binarySearch :: Int -> Int -> (Int -> Bool) -> Int
 binarySearch low high p = runIdentity $ binarySearchM low high (return . p)
 {-# INLINE binarySearch #-}
 
+{- |
+>>> lowerBound (U.fromList "122333") '2'
+1
+>>> lowerBound (U.fromList "122333") '0'
+0
+>>> lowerBound (U.fromList "122333") '9'
+6
+-}
 lowerBound :: (Ord a, G.Vector v a) => v a -> a -> Int
 lowerBound !vec !key = binarySearch 0 (G.length vec) ((key <=) . G.unsafeIndex vec)
 {-# INLINE lowerBound #-}
 
+{- |
+>>> upperBound (U.fromList "122333") '2'
+3
+>>> upperBound (U.fromList "122333") '0'
+0
+>>> upperBound (U.fromList "122333") '9'
+6
+-}
 upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
 upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
 {-# INLINE upperBound #-}
