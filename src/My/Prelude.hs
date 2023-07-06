@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MagicHash #-}
 
 module My.Prelude where
@@ -10,6 +11,8 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.Foldable as F
 import Data.Functor.Identity
 import qualified Data.Vector as V
+import qualified Data.Vector.Fusion.Bundle as Bundle
+import qualified Data.Vector.Fusion.Bundle.Size as Bundle
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import Data.Vector.Fusion.Util
 import qualified Data.Vector.Generic as G
@@ -113,6 +116,42 @@ radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
         UM.unsafeWrite res i x
       return res
 {-# INLINE radixSort #-}
+
+{- |
+>>> runLengthEncode $ U.fromList "abbccc"
+[('a',1),('b',2),('c',3)]
+>>> runLengthEncode $ U.fromList ""
+[]
+-}
+runLengthEncode ::
+  (Eq a, G.Vector v a, G.Vector v (a, Int)) =>
+  v a ->
+  v (a, Int)
+runLengthEncode =
+  G.unstream
+    . Bundle.inplace streamRLE Bundle.toMax
+    . G.stream
+{-# INLINE runLengthEncode #-}
+
+streamRLE :: (Eq a, Monad m) => MS.Stream m a -> MS.Stream m (a, Int)
+streamRLE (MS.Stream step s0) = MS.Stream step' (Nothing, s0)
+  where
+    step' (Nothing, s) = do
+      r <- step s
+      case r of
+        MS.Yield x s' -> return $ MS.Skip (Just (x, 1), s')
+        MS.Skip s' -> return $ MS.Skip (Nothing, s')
+        MS.Done -> return MS.Done
+    step' (Just (x, !i), s) = do
+      r <- step s
+      case r of
+        MS.Yield y s'
+          | x == y -> return $ MS.Skip (Just (x, i + 1), s')
+          | otherwise -> return $ MS.Yield (x, i) (Just (y, 1), s')
+        MS.Skip s' -> return $ MS.Skip (Just (x, i), s')
+        MS.Done -> return $ MS.Yield (x, i) (Nothing, s)
+    {-# INLINE [0] step' #-}
+{-# INLINE [1] streamRLE #-}
 
 -- * Bits utils
 infixl 8 `shiftRL`, `unsafeShiftRL`, !>>>.
