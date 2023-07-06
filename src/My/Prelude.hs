@@ -20,6 +20,7 @@ import System.IO
 
 import Data.PrimParser
 
+-- * Stream utils
 rep :: (Monad m) => Int -> (Int -> m ()) -> m ()
 rep n = flip MS.mapM_ (stream 0 n)
 {-# INLINE rep #-}
@@ -63,6 +64,54 @@ stream' !l !r !d = MS.Stream step l
     {-# INLINE [0] step #-}
 {-# INLINE [1] stream' #-}
 
+-- * Vector utils
+
+{- |
+>>> lowerBound (U.fromList "122333") '2'
+1
+>>> lowerBound (U.fromList "122333") '0'
+0
+>>> lowerBound (U.fromList "122333") '9'
+6
+-}
+lowerBound :: (Ord a, G.Vector v a) => v a -> a -> Int
+lowerBound !vec !key = binarySearch 0 (G.length vec) ((key <=) . G.unsafeIndex vec)
+{-# INLINE lowerBound #-}
+
+{- |
+>>> upperBound (U.fromList "122333") '2'
+3
+>>> upperBound (U.fromList "122333") '0'
+0
+>>> upperBound (U.fromList "122333") '9'
+6
+-}
+upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
+upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
+{-# INLINE upperBound #-}
+
+radixSort :: U.Vector Int -> U.Vector Int
+radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
+  where
+    mask k x = unsafeShiftRL x k .&. 0xffff
+    step v k = U.create $ do
+      pos <- UM.unsafeNew 0x10001
+      UM.set pos 0
+      U.forM_ v $ \x -> do
+        UM.unsafeModify pos (+ 1) (mask k x + 1)
+      rep 0xffff $ \i -> do
+        fi <- UM.unsafeRead pos i
+        UM.unsafeModify pos (+ fi) (i + 1)
+      res <- UM.unsafeNew $ U.length v
+      U.forM_ v $ \x -> do
+        let !masked = mask k x
+        i <- UM.unsafeRead pos masked
+        UM.unsafeWrite pos masked $ i + 1
+        UM.unsafeWrite res i x
+      return res
+{-# INLINE radixSort #-}
+
+-- * Bits utils
 infixl 8 `shiftRL`, `unsafeShiftRL`
 
 shiftRL :: Int -> Int -> Int
@@ -73,6 +122,45 @@ unsafeShiftRL :: Int -> Int -> Int
 unsafeShiftRL (I# x#) (I# i#) = I# (uncheckedIShiftRL# x# i#)
 {-# INLINE unsafeShiftRL #-}
 
+-- * Parser utils
+uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
+uvectorN = gvectorN
+{-# INLINE uvectorN #-}
+
+bvectorN :: Int -> PrimParser a -> PrimParser (V.Vector a)
+bvectorN = gvectorN
+{-# INLINE bvectorN #-}
+
+gvectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
+gvectorN n f = do
+  (e, o) <- viewPrimParser
+  pure $ G.unfoldrN n (pure . runPrimParser f e) o
+{-# INLINE gvectorN #-}
+
+streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
+streamN n f = do
+  (e, o) <- viewPrimParser
+  pure $ MS.unfoldrN n (pure . runPrimParser f e) o
+{-# INLINE streamN #-}
+
+uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
+uvector = gvector
+{-# INLINE uvector #-}
+
+gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
+gvector f = do
+  (e, o) <- viewPrimParser
+  pure $
+    G.unfoldr
+      ( \p -> case runPrimParser f e p of
+          (x, p')
+            | p' < e -> Just (x, p')
+            | otherwise -> Nothing
+      )
+      o
+{-# INLINE gvector #-}
+
+-- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unlinesB f = G.foldr' ((<>) . (<> endlB) . f) mempty
 
@@ -139,6 +227,7 @@ putBuilder = liftIO . B.hPutBuilder stdout
 putBuilderLn :: (MonadIO m) => B.Builder -> m ()
 putBuilderLn b = putBuilder b *> putBuilder (B.char7 '\n')
 
+-- * Misc
 neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
 neighbor4 h w xy f =
   when (x /= 0) (f $ xy - w)
@@ -163,51 +252,6 @@ binarySearch :: Int -> Int -> (Int -> Bool) -> Int
 binarySearch low high p = runIdentity $ binarySearchM low high (return . p)
 {-# INLINE binarySearch #-}
 
-{- |
->>> lowerBound (U.fromList "122333") '2'
-1
->>> lowerBound (U.fromList "122333") '0'
-0
->>> lowerBound (U.fromList "122333") '9'
-6
--}
-lowerBound :: (Ord a, G.Vector v a) => v a -> a -> Int
-lowerBound !vec !key = binarySearch 0 (G.length vec) ((key <=) . G.unsafeIndex vec)
-{-# INLINE lowerBound #-}
-
-{- |
->>> upperBound (U.fromList "122333") '2'
-3
->>> upperBound (U.fromList "122333") '0'
-0
->>> upperBound (U.fromList "122333") '9'
-6
--}
-upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
-upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
-{-# INLINE upperBound #-}
-
-radixSort :: U.Vector Int -> U.Vector Int
-radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
-  where
-    mask k x = unsafeShiftRL x k .&. 0xffff
-    step v k = U.create $ do
-      pos <- UM.unsafeNew 0x10001
-      UM.set pos 0
-      U.forM_ v $ \x -> do
-        UM.unsafeModify pos (+ 1) (mask k x + 1)
-      rep 0xffff $ \i -> do
-        fi <- UM.unsafeRead pos i
-        UM.unsafeModify pos (+ fi) (i + 1)
-      res <- UM.unsafeNew $ U.length v
-      U.forM_ v $ \x -> do
-        let !masked = mask k x
-        i <- UM.unsafeRead pos masked
-        UM.unsafeWrite pos masked $ i + 1
-        UM.unsafeWrite res i x
-      return res
-{-# INLINE radixSort #-}
-
 encode32x2 :: Int -> Int -> Int
 encode32x2 x y = unsafeShiftL x 32 .|. y
 {-# INLINE encode32x2 #-}
@@ -218,43 +262,6 @@ decode32x2 xy =
       !y = xy .&. 0xffffffff
    in (x, y)
 {-# INLINE decode32x2 #-}
-
-uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
-uvectorN = gvectorN
-{-# INLINE uvectorN #-}
-
-bvectorN :: Int -> PrimParser a -> PrimParser (V.Vector a)
-bvectorN = gvectorN
-{-# INLINE bvectorN #-}
-
-gvectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
-gvectorN n f = do
-  (e, o) <- viewPrimParser
-  pure $ G.unfoldrN n (pure . runPrimParser f e) o
-{-# INLINE gvectorN #-}
-
-streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
-streamN n f = do
-  (e, o) <- viewPrimParser
-  pure $ MS.unfoldrN n (pure . runPrimParser f e) o
-{-# INLINE streamN #-}
-
-uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
-uvector = gvector
-{-# INLINE uvector #-}
-
-gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
-gvector f = do
-  (e, o) <- viewPrimParser
-  pure $
-    G.unfoldr
-      ( \p -> case runPrimParser f e p of
-          (x, p')
-            | p' < e -> Just (x, p')
-            | otherwise -> Nothing
-      )
-      o
-{-# INLINE gvector #-}
 
 runSolver :: (a -> IO ()) -> PrimParser a -> IO ()
 runSolver = withInputHandle stdin
