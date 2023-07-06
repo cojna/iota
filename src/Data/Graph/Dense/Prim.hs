@@ -8,7 +8,7 @@ import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import My.Prelude (rep, stream)
+import My.Prelude (rep, (..<))
 
 -- | /O(V^2)/
 primDense ::
@@ -47,7 +47,7 @@ primDense n root gr
                     True -> return acc
               )
               (inf, -1)
-            $ stream 0 n
+            $ 0 ..< n
         UM.write used v True
         rep n $ \u -> do
           UM.unsafeRead used u >>= \case

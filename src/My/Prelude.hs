@@ -22,47 +22,50 @@ import Data.PrimParser
 
 -- * Stream utils
 rep :: (Monad m) => Int -> (Int -> m ()) -> m ()
-rep n = flip MS.mapM_ (stream 0 n)
+rep n = flip MS.mapM_ (0 ..< n)
 {-# INLINE rep #-}
 
 rep1 :: (Monad m) => Int -> (Int -> m ()) -> m ()
-rep1 n = flip MS.mapM_ (stream 1 (n + 1))
+rep1 n = flip MS.mapM_ (1 ..< n + 1)
 {-# INLINE rep1 #-}
 
 rev :: (Monad m) => Int -> (Int -> m ()) -> m ()
-rev n = flip MS.mapM_ (streamR 0 n)
+rev n = flip MS.mapM_ (n >.. 0)
 {-# INLINE rev #-}
 
 rev1 :: (Monad m) => Int -> (Int -> m ()) -> m ()
-rev1 n = flip MS.mapM_ (streamR 1 (n + 1))
+rev1 n = flip MS.mapM_ (n + 1 >.. 1)
 {-# INLINE rev1 #-}
 
-stream :: (Monad m) => Int -> Int -> MS.Stream m Int
-stream !l !r = MS.Stream step l
+infix 4 ..<
+(..<) :: (Monad m) => Int -> Int -> MS.Stream m Int
+(..<) !l !r = MS.Stream step l
   where
     step x
       | x < r = return $ MS.Yield x (x + 1)
       | otherwise = return MS.Done
     {-# INLINE [0] step #-}
-{-# INLINE [1] stream #-}
+{-# INLINE [1] (..<) #-}
 
-streamR :: (Monad m) => Int -> Int -> MS.Stream m Int
-streamR !l !r = MS.Stream step (r - 1)
+infix 4 >..
+(>..) :: (Monad m) => Int -> Int -> MS.Stream m Int
+(>..) !r !l = MS.Stream step (r - 1)
   where
     step x
       | x >= l = return $ MS.Yield x (x - 1)
       | otherwise = return MS.Done
     {-# INLINE [0] step #-}
-{-# INLINE [1] streamR #-}
+{-# INLINE [1] (>..) #-}
 
-stream' :: (Monad m) => Int -> Int -> Int -> MS.Stream m Int
-stream' !l !r !d = MS.Stream step l
+-- | ascending
+stride :: (Monad m) => Int -> Int -> Int -> MS.Stream m Int
+stride !l !r !d = MS.Stream step l
   where
     step x
       | x < r = return $ MS.Yield x (x + d)
       | otherwise = return MS.Done
     {-# INLINE [0] step #-}
-{-# INLINE [1] stream' #-}
+{-# INLINE [1] stride #-}
 
 -- * Vector utils
 

@@ -11,7 +11,7 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.Graph.Sparse
-import My.Prelude (stream)
+import My.Prelude ((..<))
 
 type HLDIndex = Int
 
@@ -105,7 +105,7 @@ buildHLD root gr@SparseGraph{..}
                       else pure acc
                 )
                 acc0
-                $ stream (o + 1) (offsetSG U.! (v + 1))
+                $ (o + 1) ..< offsetSG U.! (v + 1)
           )
           0
           root

@@ -19,9 +19,9 @@ import Data.GaloisField (GF (GF), natValAsInt, reifyNat)
 import Math.Prime (primeFactors)
 import My.Prelude (
   rep,
-  stream,
-  streamR,
   unsafeShiftRL,
+  (..<),
+  (>..),
  )
 
 {- | Number Theoretic Transform
@@ -111,14 +111,14 @@ butterfly ::
   UM.MVector (PrimState m) (GF p) ->
   m ()
 butterfly mvec = do
-  flip MS.mapM_ (stream 1 (h + 1)) $ \ph -> do
+  flip MS.mapM_ (1 ..< (h + 1)) $ \ph -> do
     let !w = unsafeShiftL 1 (ph - 1)
         !p = unsafeShiftL 1 (h - ph)
     void $
       MS.foldlM'
         ( \acc s -> do
             let offset = unsafeShiftL s (h - ph + 1)
-            flip MS.mapM_ (stream offset (offset + p)) $ \i -> do
+            flip MS.mapM_ (offset ..< (offset + p)) $ \i -> do
               l <- UM.unsafeRead mvec i
               r <- (* acc) <$!> UM.unsafeRead mvec (i + p)
               UM.unsafeWrite mvec (i + p) $ l - r
@@ -126,7 +126,7 @@ butterfly mvec = do
             return $! acc * U.unsafeIndex siesNR (countTrailingZeros (complement s))
         )
         1
-        (stream 0 w)
+        (0 ..< w)
   where
     n = UM.length mvec
     !h = head [i | i <- [0 ..], n <= unsafeShiftL 1 i]
@@ -139,13 +139,13 @@ invButterfly ::
   UM.MVector (PrimState m) (GF p) ->
   m ()
 invButterfly mvec = void $ do
-  flip MS.mapM_ (streamR 1 (h + 1)) $ \ph -> do
+  flip MS.mapM_ ((h + 1) >.. 1) $ \ph -> do
     let !w = unsafeShiftL 1 (ph - 1)
         !p = unsafeShiftL 1 (h - ph)
     MS.foldlM'
       ( \acc s -> do
           let offset = unsafeShiftL s (h - ph + 1)
-          flip MS.mapM_ (stream offset (offset + p)) $ \i -> do
+          flip MS.mapM_ (offset ..< (offset + p)) $ \i -> do
             l <- UM.unsafeRead mvec i
             r <- UM.unsafeRead mvec (i + p)
             UM.unsafeWrite mvec (i + p) $ acc * (l - r)
@@ -153,7 +153,7 @@ invButterfly mvec = void $ do
           return $! acc * U.unsafeIndex sesNR (countTrailingZeros (complement s))
       )
       1
-      (stream 0 w)
+      (0 ..< w)
   where
     n = UM.length mvec
     !h = head [i | i <- [0 ..], n <= unsafeShiftL 1 i]

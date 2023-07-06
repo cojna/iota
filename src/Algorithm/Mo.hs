@@ -22,7 +22,7 @@ import Unsafe.Coerce
 --
 
 import Data.Vector.Sort.Radix (radixSort64)
-import My.Prelude (stream, streamR)
+import My.Prelude ((..<), (>..))
 
 -- | /O(N * sqrt Q)/
 moAlgorithm ::
@@ -44,10 +44,10 @@ moAlgorithm n q add delete acc0 qs = do
   result <- UM.unsafeNew q
   U.foldM'_
     ( \(MoState l r acc) (MoQuery ql qr qi) -> do
-        MS.foldM' add acc (streamR ql l)
-          >>= flip (MS.foldM' add) (stream r qr)
-          >>= flip (MS.foldM' delete) (streamR qr r)
-          >>= flip (MS.foldM' delete) (stream l ql)
+        MS.foldM' add acc (l >.. ql)
+          >>= flip (MS.foldM' add) (r ..< qr)
+          >>= flip (MS.foldM' delete) (r >.. qr)
+          >>= flip (MS.foldM' delete) (l ..< ql)
           >>= UM.unsafeWrite result qi
         MoState ql qr <$> UM.unsafeRead result qi
     )
