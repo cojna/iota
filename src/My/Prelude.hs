@@ -44,6 +44,11 @@ rev1 n = flip MS.mapM_ (n + 1 >.. 1)
 {-# INLINE rev1 #-}
 
 infix 4 ..<
+
+{- |
+>>> runIdentity $ MS.toList (0..<5)
+[0,1,2,3,4]
+-}
 (..<) :: (Monad m) => Int -> Int -> MS.Stream m Int
 (..<) !l !r = MS.Stream step l
   where
@@ -54,6 +59,11 @@ infix 4 ..<
 {-# INLINE [1] (..<) #-}
 
 infix 4 >..
+
+{- |
+>>> runIdentity $ MS.toList (5>..0)
+[4,3,2,1,0]
+-}
 (>..) :: (Monad m) => Int -> Int -> MS.Stream m Int
 (>..) !r !l = MS.Stream step (r - 1)
   where
@@ -63,7 +73,10 @@ infix 4 >..
     {-# INLINE [0] step #-}
 {-# INLINE [1] (>..) #-}
 
--- | ascending
+{- |
+>>> runIdentity $ MS.toList (stride 0 10 3)
+[0,3,6,9]
+-}
 stride :: (Monad m) => Int -> Int -> Int -> MS.Stream m Int
 stride !l !r !d = MS.Stream step l
   where
