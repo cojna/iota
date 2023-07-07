@@ -73,7 +73,19 @@ stride !l !r !d = MS.Stream step l
     {-# INLINE [0] step #-}
 {-# INLINE [1] stride #-}
 
+liftMS :: (Monad m) => MS.Stream Id a -> MS.Stream m a
+liftMS = MS.trans (return . unId)
+{-# INLINE liftMS #-}
+
 -- * Vector utils
+
+asUVector :: U.Vector a -> U.Vector a
+asUVector = id
+{-# INLINE asUVector #-}
+
+asBVector :: V.Vector a -> V.Vector a
+asBVector = id
+{-# INLINE asBVector #-}
 
 {- |
 >>> lowerBound (U.fromList "122333") '2'
@@ -240,6 +252,36 @@ streamAccumM f s0 (MS.Stream step x0) = MS.Stream step' (s0, x0)
         MS.Done -> return MS.Done
     {-# INLINE [0] step' #-}
 {-# INLINE [1] streamAccumM #-}
+
+stream :: (G.Vector v a) => v a -> MS.Stream Id a
+stream = MBundle.elements . G.stream
+{-# INLINE stream #-}
+
+streamM :: (G.Vector v a, Monad m) => v a -> MS.Stream m a
+streamM = MS.trans (return . unId) . MBundle.elements . G.stream
+{-# INLINE streamM #-}
+
+{- |
+>>> asUVector . unstream 10 . stream $ U.fromList "abc"
+"abc"
+-}
+unstream :: (G.Vector v a) => Int -> MS.Stream Id a -> v a
+unstream ub =
+  G.unstream
+    . flip MBundle.fromStream (Bundle.Max ub)
+{-# INLINE unstream #-}
+
+unstreamM ::
+  (PrimMonad m, G.Vector v a) =>
+  Int ->
+  MS.Stream m a ->
+  m (v a)
+unstreamM ub s =
+  GM.munstream
+    (MBundle.fromStream s (Bundle.Max ub))
+    >>= G.unsafeFreeze
+{-# INLINE [1] unstreamM #-}
+
 -- * Bits utils
 infixl 8 `shiftRL`, `unsafeShiftRL`, !>>>.
 
