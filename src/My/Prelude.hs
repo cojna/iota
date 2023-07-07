@@ -4,6 +4,7 @@
 
 module My.Prelude where
 
+import Control.Monad.Primitive
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
@@ -12,10 +13,12 @@ import qualified Data.Foldable as F
 import Data.Functor.Identity
 import qualified Data.Vector as V
 import qualified Data.Vector.Fusion.Bundle as Bundle
+import qualified Data.Vector.Fusion.Bundle.Monadic as MBundle
 import qualified Data.Vector.Fusion.Bundle.Size as Bundle
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import Data.Vector.Fusion.Util
 import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import GHC.Exts
@@ -153,6 +156,90 @@ streamRLE (MS.Stream step s0) = MS.Stream step' (Nothing, s0)
     {-# INLINE [0] step' #-}
 {-# INLINE [1] streamRLE #-}
 
+{- |
+>>> forAccum (0 :: Int) (U.fromList "abc") $ \acc c -> (acc + 1, (acc, c))
+[(0,'a'),(1,'b'),(2,'c')]
+-}
+forAccum ::
+  (G.Vector v a, G.Vector v b) =>
+  s ->
+  v a ->
+  (s -> a -> (s, b)) ->
+  v b
+forAccum x v f = mapAccum f x v
+{-# INLINE forAccum #-}
+
+mapAccum ::
+  (G.Vector v a, G.Vector v b) =>
+  (s -> a -> (s, b)) ->
+  s ->
+  v a ->
+  v b
+mapAccum f x =
+  G.unstream
+    . Bundle.inplace
+      (streamAccumM (\s a -> pure (f s a)) x)
+      Bundle.toMax
+    . G.stream
+{-# INLINE mapAccum #-}
+
+forAccumM ::
+  (PrimMonad m, G.Vector v a, G.Vector v b) =>
+  s ->
+  v a ->
+  (s -> a -> m (s, b)) ->
+  m (v b)
+forAccumM s v f = mapAccumM f s v
+{-# INLINE forAccumM #-}
+
+forAccumM_ ::
+  (Monad m, G.Vector v b) =>
+  a ->
+  v b ->
+  (a -> b -> m a) ->
+  m ()
+forAccumM_ x v f = void $ G.foldM'_ f x v
+{-# INLINE forAccumM_ #-}
+
+mapAccumM ::
+  (PrimMonad m, G.Vector v a, G.Vector v b) =>
+  (s -> a -> m (s, b)) ->
+  s ->
+  v a ->
+  m (v b)
+mapAccumM f x =
+  (>>= G.unsafeFreeze)
+    . GM.munstream
+    . bundleAccumM f x
+    . Bundle.lift
+    . G.stream
+{-# INLINE mapAccumM #-}
+
+bundleAccumM ::
+  (Monad m) =>
+  (s -> a -> m (s, b)) ->
+  s ->
+  MBundle.Bundle m v a ->
+  MBundle.Bundle m v b
+bundleAccumM f x bundle =
+  MBundle.fromStream
+    (streamAccumM f x (MBundle.elements bundle))
+    (MBundle.size bundle)
+{-# INLINE [1] bundleAccumM #-}
+
+streamAccumM :: (Monad m) => (s -> a -> m (s, b)) -> s -> MS.Stream m a -> MS.Stream m b
+streamAccumM f s0 (MS.Stream step x0) = MS.Stream step' (s0, x0)
+  where
+    step' (!s, x) = do
+      r <- step x
+      case r of
+        MS.Yield a x' -> do
+          (s', b) <- f s a
+          return $ MS.Yield b (s', x')
+        MS.Skip x' -> return $ MS.Skip (s, x')
+        MS.Done -> return MS.Done
+    {-# INLINE [0] step' #-}
+{-# INLINE [1] streamAccumM #-}
 -- * Bits utils
 infixl 8 `shiftRL`, `unsafeShiftRL`, !>>>.
 
