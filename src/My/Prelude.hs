@@ -240,6 +240,52 @@ mapAccumM f x =
     . G.stream
 {-# INLINE mapAccumM #-}
 
+forAccumMaybe ::
+  (G.Vector v a, G.Vector v b) =>
+  s ->
+  v a ->
+  (s -> a -> (s, Maybe b)) ->
+  v b
+forAccumMaybe x v f = mapAccumMaybe f x v
+{-# INLINE forAccumMaybe #-}
+
+mapAccumMaybe ::
+  (G.Vector v a, G.Vector v b) =>
+  (s -> a -> (s, Maybe b)) ->
+  s ->
+  v a ->
+  v b
+mapAccumMaybe f x =
+  G.unstream
+    . Bundle.inplace
+      (streamAccumMaybeM (\s a -> pure (f s a)) x)
+      Bundle.toMax
+    . G.stream
+{-# INLINE mapAccumMaybe #-}
+
+forAccumMaybeM ::
+  (PrimMonad m, G.Vector v a, G.Vector v b) =>
+  s ->
+  v a ->
+  (s -> a -> m (s, Maybe b)) ->
+  m (v b)
+forAccumMaybeM s v f = mapAccumMaybeM f s v
+{-# INLINE forAccumMaybeM #-}
+
+mapAccumMaybeM ::
+  (PrimMonad m, G.Vector v a, G.Vector v b) =>
+  (s -> a -> m (s, Maybe b)) ->
+  s ->
+  v a ->
+  m (v b)
+mapAccumMaybeM f x =
+  (>>= G.unsafeFreeze)
+    . GM.munstream
+    . bundleAccumMaybeM f x
+    . Bundle.lift
+    . G.stream
+{-# INLINE mapAccumMaybeM #-}
+
 bundleAccumM ::
   (Monad m) =>
   (s -> a -> m (s, b)) ->
@@ -251,6 +297,18 @@ bundleAccumM f x bundle =
     (streamAccumM f x (MBundle.elements bundle))
     (MBundle.size bundle)
 {-# INLINE [1] bundleAccumM #-}
+
+bundleAccumMaybeM ::
+  (Monad m) =>
+  (s -> a -> m (s, Maybe b)) ->
+  s ->
+  MBundle.Bundle m v a ->
+  MBundle.Bundle m v b
+bundleAccumMaybeM f x bundle =
+  MBundle.fromStream
+    (streamAccumMaybeM f x (MBundle.elements bundle))
+    (MBundle.size bundle)
+{-# INLINE [1] bundleAccumMaybeM #-}
 
 streamAccumM :: (Monad m) => (s -> a -> m (s, b)) -> s -> MS.Stream m a -> MS.Stream m b
 streamAccumM f s0 (MS.Stream step x0) = MS.Stream step' (s0, x0)
@@ -265,6 +323,22 @@ streamAccumM f s0 (MS.Stream step x0) = MS.Stream step' (s0, x0)
         MS.Done -> return MS.Done
     {-# INLINE [0] step' #-}
 {-# INLINE [1] streamAccumM #-}
+
+streamAccumMaybeM :: (Monad m) => (s -> a -> m (s, Maybe b)) -> s -> MS.Stream m a -> MS.Stream m b
+streamAccumMaybeM f s0 (MS.Stream step x0) = MS.Stream step' (s0, x0)
+  where
+    step' (!s, x) = do
+      r <- step x
+      case r of
+        MS.Yield a x' -> do
+          (s', mb) <- f s a
+          return $ case mb of
+            Just b -> MS.Yield b (s', x')
+            Nothing -> MS.Skip (s', x')
+        MS.Skip x' -> return $ MS.Skip (s, x')
+        MS.Done -> return MS.Done
+    {-# INLINE [0] step' #-}
+{-# INLINE [1] streamAccumMaybeM #-}
 
 stream :: (G.Vector v a) => v a -> MS.Stream Id a
 stream = MBundle.elements . G.stream
