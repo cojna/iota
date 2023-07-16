@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.BitSet
 import Data.Graph.Dense
-import My.Prelude
+import My.Prelude (rep, rev, (..<), (>..))
 
 data TSPResult a = TSPResult
   { resultTSP :: !a
@@ -52,7 +52,7 @@ runTSP gr = runST $ do
               return $ min acc (dpv + matDG gr pv v)
           )
           inf
-          (streamR 0 n)
+          (n >.. 0)
           >>= UM.unsafeWrite dp (ixTSP visited v)
 
   !res <-
@@ -62,7 +62,7 @@ runTSP gr = runST $ do
           return $ min acc (dv + matDG gr v origin)
       )
       inf
-      $ stream 0 n
+      $ 0 ..< n
 
   TSPResult res inf <$> U.unsafeFreeze dp
   where
@@ -101,12 +101,12 @@ reconstructTSP gr TSPResult{freezedTSP = dp, resultTSP} = U.create $ do
                 maybe (error "reconstructTSP") id
                   . unId
                   . MS.findIndex (isPrev visited nv dnv)
-                  $ stream 0 n
+                  $ 0 ..< n
           UM.write path pos v
           pure (deleteBS v visited, v, dist visited v)
       )
       (visitedAll, origin, resultTSP)
-      (streamR 1 (n + 1))
+      ((n + 1) >.. 1)
   return path
   where
     !n = numVerticesDG gr - 1
