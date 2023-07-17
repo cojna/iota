@@ -12,6 +12,7 @@ import Control.Monad
 import Data.Bits
 import Data.Coerce
 import qualified Data.Foldable as F
+import qualified Data.List as L
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -35,7 +36,7 @@ instance Show BitSet where
 instance IsList BitSet where
   type Item BitSet = Int
   fromList = BitSet . F.foldl' (\acc x -> acc .|. unsafeShiftL 1 x) 0
-  toList bs = filter (`memberBS` bs) [0 .. 63]
+  toList = toListBS
 
 emptyBS :: BitSet
 emptyBS = BitSet 0
@@ -196,6 +197,17 @@ strictPowersetBS s0 = MS.Stream step s0
         !s' = (s - 1) .&. s0
     {-# INLINE [0] step #-}
 {-# INLINE [1] strictPowersetBS #-}
+
+{- |
+>>> toListBS [0,1,63]
+[0,1,63]
+>>> toListBS [0]
+[0]
+>>> toListBS []
+[]
+-}
+toListBS :: BitSet -> [Int]
+toListBS = L.unfoldr minViewBS
 
 newtype instance UM.MVector s BitSet = MV_BitSet (UM.MVector s Int)
 newtype instance U.Vector BitSet = V_BitSet (U.Vector Int)
