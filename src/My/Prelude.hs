@@ -441,7 +441,7 @@ concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 concatB f = G.foldr ((<>) . f) mempty
 
 {- |
->>> B.toLazyByteString . matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+>>> matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
 "1 2 3\n4 5 6\n"
 -}
 matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
@@ -451,9 +451,9 @@ matrixB h w f mat =
     [G.slice (i * w) w mat | i <- [0 .. h - 1]]
 
 {- |
->>> B.toLazyByteString . gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
+>>> gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
 ".#.\n#.#\n"
->>> B.toLazyByteString . gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+>>> gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
 "123\n456\n"
 -}
 gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
@@ -469,9 +469,9 @@ yesnoB :: Bool -> B.Builder
 yesnoB = bool (B.string7 "No") (B.string7 "Yes")
 
 {- |
->>> B.toLazyByteString . pairB B.intDec B.intDec $ (0, 1)
+>>> pairB B.intDec B.intDec $ (0, 1)
 "0 1"
->>> B.toLazyByteString . pairB B.intDec (pairB B.intDec B.intDec) $ (0, (1, 2))
+>>> pairB B.intDec (pairB B.intDec B.intDec) $ (0, (1, 2))
 "0 1 2"
 -}
 pairB :: (a -> B.Builder) -> (b -> B.Builder) -> (a, b) -> B.Builder
