@@ -30,7 +30,7 @@ dependencies:
 - time
 # full
 - primitive
-- vector
+- vector >= 0.13
 
 library:
   source-dirs: src
