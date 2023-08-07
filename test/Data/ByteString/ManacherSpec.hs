@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -40,7 +39,7 @@ naiveRadius bs center = go 0
     !n = B.length bs
     go !r
       | center - r >= 0
-        , center + r < n
-        , B.unsafeIndex bs (center - r) == B.unsafeIndex bs (center + r) =
-        go (r + 1)
+      , center + r < n
+      , B.unsafeIndex bs (center - r) == B.unsafeIndex bs (center + r) =
+          go (r + 1)
       | otherwise = r

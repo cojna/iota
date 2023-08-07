@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Math.SternBrocot where
 
 sternBrocot :: (Frac -> Ordering) -> Frac

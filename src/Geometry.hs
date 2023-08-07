@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Geometry where
@@ -42,7 +40,7 @@ cross (P x0 y0) (P x1 y1) = x0 * y1 - y0 * x1
 {-# INLINE cross #-}
 
 conjugate :: (Num a) => Point a -> Point a
-conjugate (P x y) = P x (- y)
+conjugate (P x y) = P x (-y)
 {-# INLINE conjugate #-}
 
 area :: (Num a) => Point a -> Point a -> Point a -> a

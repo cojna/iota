@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Data.Graph.Sparse.Lowlink where
@@ -51,7 +50,8 @@ buildLowlink gr = runST $ do
         )
         nothing
         root
-  Lowlink <$> U.unsafeFreeze low
+  Lowlink
+    <$> U.unsafeFreeze low
     <*> U.unsafeFreeze preord
     <*> U.unsafeFreeze parent
   where
@@ -84,6 +84,6 @@ bridges gr = U.imapMaybe isBridge parentLL
     !Lowlink{..} = buildLowlink gr
     isBridge v pv
       | pv /= nothing
-        , U.unsafeIndex preordLL pv < U.unsafeIndex lowlinkLL v =
-        Just (pv, v)
+      , U.unsafeIndex preordLL pv < U.unsafeIndex lowlinkLL v =
+          Just (pv, v)
       | otherwise = Nothing

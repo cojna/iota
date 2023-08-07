@@ -1,8 +1,5 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Data.SegTree.PrimalSpec (main, spec) where
@@ -170,7 +167,7 @@ data SegTreeQuery a
   | SegQuery !Int !Int
   deriving (Show)
 
-instance Arbitrary a => Arbitrary (SegTreeQuery a) where
+instance (Arbitrary a) => Arbitrary (SegTreeQuery a) where
   arbitrary = do
     arbitrary >>= \case
       True -> SegUpdate <$> arbitrary <*> arbitrary

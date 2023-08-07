@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Math.Modulus where
 
 import Control.Monad
@@ -26,7 +24,7 @@ powMod :: (Integral a) => a -> Int -> a -> a
 powMod x n m
   | n > 0 = go 1 x n
   | n == 0 = 1
-  | otherwise = go 1 (recipMod x m) (- n)
+  | otherwise = go 1 (recipMod x m) (-n)
   where
     go !acc !y !i
       | i .&. 1 == 0 = go acc (y * y `rem` m) (unsafeShiftR i 1)

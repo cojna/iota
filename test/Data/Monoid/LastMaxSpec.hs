@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.LastMaxSpec (main, spec) where
@@ -17,5 +16,5 @@ spec = do
   describe "LastMax Int" $
     monoidSpec (Proxy :: Proxy (LastMax Int))
 
-instance Arbitrary a => Arbitrary (LastMax a) where
+instance (Arbitrary a) => Arbitrary (LastMax a) where
   arbitrary = (coerce :: a -> LastMax a) <$> arbitrary

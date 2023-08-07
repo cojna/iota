@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.IntHeap where
@@ -275,7 +274,7 @@ deleteFindMinIH = coerce (found . IM.deleteFindMin)
     found :: ((Int, Int), IM.IntMap Int) -> (Int, IM.IntMap Int)
     found ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-        m' -> (k, m')
+          m' -> (k, m')
       | otherwise = (k, m)
 
 {- | /O(min(n,W))/
@@ -292,7 +291,7 @@ deleteFindMaxIH = coerce (found . IM.deleteFindMax)
     found :: ((Int, Int), IM.IntMap Int) -> (Int, IM.IntMap Int)
     found ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-        m' -> (k, m')
+          m' -> (k, m')
       | otherwise = (k, m)
 
 {- | /O(min(n,W))/
@@ -309,7 +308,7 @@ minViewIH = coerce (maybe Nothing just . IM.minViewWithKey)
     just :: ((Int, Int), IM.IntMap Int) -> Maybe (Int, IntHeap)
     just ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-        m' -> coerce (Just (k, m'))
+          m' -> coerce (Just (k, m'))
       | otherwise = coerce (Just (k, m))
 
 {- | /O(min(n,W))/
@@ -326,7 +325,7 @@ maxViewIH = coerce (maybe Nothing just . IM.maxViewWithKey)
     just :: ((Int, Int), IM.IntMap Int) -> Maybe (Int, IntHeap)
     just ((k, x), m)
       | x > 1 = case IM.insert k (x - 1) m of
-        m' -> coerce (Just (k, m'))
+          m' -> coerce (Just (k, m'))
       | otherwise = coerce (Just (k, m))
 
 {- | /O(min(n,W))/

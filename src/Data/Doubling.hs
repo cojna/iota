@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.Doubling where
 
 import Data.Bits
@@ -93,8 +91,8 @@ doublingStepNQuery n x0 v0 (DoublingTable table)
   where
     step (x, v) i
       | unsafeShiftR n i .&. 1 == 1 =
-        let (xi, vi) = getDoubling (V.unsafeIndex table i) `U.unsafeIndex` x
-            !v' = v <> vi
-         in (xi, v')
+          let (xi, vi) = getDoubling (V.unsafeIndex table i) `U.unsafeIndex` x
+              !v' = v <> vi
+           in (xi, v')
       | otherwise = (x, v)
 {-# INLINE doublingStepNQuery #-}

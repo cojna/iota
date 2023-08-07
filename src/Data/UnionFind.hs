@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-
 module Data.UnionFind where
 
 import Control.Monad
@@ -11,14 +8,14 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 newtype UnionFind s = UF {getUnionFind :: UM.MVector s Int}
 
-newUnionFind :: PrimMonad m => Int -> m (UnionFind (PrimState m))
+newUnionFind :: (PrimMonad m) => Int -> m (UnionFind (PrimState m))
 newUnionFind n = UF <$> UM.replicate n (-1)
 {-# INLINE newUnionFind #-}
 
-freezeUnionFind :: PrimMonad m => UnionFind (PrimState m) -> m (U.Vector Int)
+freezeUnionFind :: (PrimMonad m) => UnionFind (PrimState m) -> m (U.Vector Int)
 freezeUnionFind = U.freeze . getUnionFind
 
-findUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
+findUF :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> m Int
 findUF uf x0 = go x0 return
   where
     go !x k = do
@@ -30,7 +27,7 @@ findUF uf x0 = go x0 return
           k ppx
 {-# INLINE findUF #-}
 
-sizeUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> m Int
+sizeUF :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> m Int
 sizeUF uf = fix $ \loop x -> do
   px <- UM.unsafeRead (getUnionFind uf) x
   if px < 0
@@ -38,7 +35,7 @@ sizeUF uf = fix $ \loop x -> do
     else loop px
 {-# INLINE sizeUF #-}
 
-uniteUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
+uniteUF :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> Int -> m Bool
 uniteUF uf x y = do
   px <- findUF uf x
   py <- findUF uf y
@@ -57,15 +54,15 @@ uniteUF uf x y = do
       return True
 {-# INLINE uniteUF #-}
 
-uniteUF_ :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m ()
+uniteUF_ :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> Int -> m ()
 uniteUF_ uf x y = void $ uniteUF uf x y
 {-# INLINE uniteUF_ #-}
 
-equivUF :: PrimMonad m => UnionFind (PrimState m) -> Int -> Int -> m Bool
+equivUF :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> Int -> m Bool
 equivUF uf x y = (==) `liftM` findUF uf x `ap` findUF uf y
 {-# INLINE equivUF #-}
 
 -- | O(n)
-countGroupUF :: PrimMonad m => UnionFind (PrimState m) -> m Int
+countGroupUF :: (PrimMonad m) => UnionFind (PrimState m) -> m Int
 countGroupUF uf = U.length . U.filter (< 0) <$> freezeUnionFind uf
 {-# INLINE countGroupUF #-}

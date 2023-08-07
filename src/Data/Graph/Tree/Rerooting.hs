@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module Data.Graph.Tree.Rerooting where
 
 import Data.Function

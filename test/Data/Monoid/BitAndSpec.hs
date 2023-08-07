@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.BitAndSpec (main, spec) where
@@ -17,5 +16,5 @@ spec = do
   describe "BitAnd Int" $
     monoidSpec (Proxy :: Proxy (BitAnd Int))
 
-instance Arbitrary a => Arbitrary (BitAnd a) where
+instance (Arbitrary a) => Arbitrary (BitAnd a) where
   arbitrary = (coerce :: a -> BitAnd a) <$> arbitrary

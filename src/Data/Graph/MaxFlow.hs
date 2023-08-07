@@ -1,7 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Data.Graph.MaxFlow where
@@ -25,7 +22,6 @@ type Vertex = Int
 {- |
 Dinic /O(V^2E)/
 
->>> :set -XTypeApplications
 >>> :{
 maxFlow @Int 5 0 4 $ \builder -> do
     addEdgeMFB builder (0, 1, 10)
@@ -129,35 +125,35 @@ dfsMF v0 sink flow0 MaxFlow{..} = dfs v0 flow0 return
     dfs !v !flow k
       | v == sink = k flow
       | otherwise = fix $ \loop -> do
-        e <- UM.unsafeRead iterMF v
-        if e < U.unsafeIndex offsetMF (v + 1)
-          then do
-            UM.unsafeWrite iterMF v (e + 1)
-            let nv = U.unsafeIndex dstMF e
-            cap <- UM.unsafeRead residualMF e
-            lv <- UM.unsafeRead levelMF v
-            lnv <- UM.unsafeRead levelMF nv
-            if cap > 0 && lv < lnv
-              then do
-                dfs nv (min flow cap) $ \f -> do
-                  if f > 0
-                    then do
-                      UM.unsafeModify residualMF (subtract f) e
-                      UM.unsafeModify
-                        residualMF
-                        (+ f)
-                        (U.unsafeIndex revEdgeMF e)
-                      k f
-                    else loop
-              else loop
-          else k 0
+          e <- UM.unsafeRead iterMF v
+          if e < U.unsafeIndex offsetMF (v + 1)
+            then do
+              UM.unsafeWrite iterMF v (e + 1)
+              let nv = U.unsafeIndex dstMF e
+              cap <- UM.unsafeRead residualMF e
+              lv <- UM.unsafeRead levelMF v
+              lnv <- UM.unsafeRead levelMF nv
+              if cap > 0 && lv < lnv
+                then do
+                  dfs nv (min flow cap) $ \f -> do
+                    if f > 0
+                      then do
+                        UM.unsafeModify residualMF (subtract f) e
+                        UM.unsafeModify
+                          residualMF
+                          (+ f)
+                          (U.unsafeIndex revEdgeMF e)
+                        k f
+                      else loop
+                else loop
+            else k 0
 {-# INLINE dfsMF #-}
 
 data MaxFlowBuilder s cap = MaxFlowBuilder
   { numVerticesMFB :: !Int
   , inDegreeMFB :: UM.MVector s Int
-  , -- | default buffer size: /1024 * 1024/
-    edgesMFB :: Buffer s (Vertex, Vertex, cap)
+  , edgesMFB :: Buffer s (Vertex, Vertex, cap)
+  -- ^ default buffer size: /1024 * 1024/
   }
 
 newMaxFlowBuilder ::

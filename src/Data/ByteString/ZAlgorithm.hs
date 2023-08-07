@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.ByteString.ZAlgorithm where
 
 import Control.Monad

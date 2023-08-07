@@ -1,7 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module Data.SegTree where
 
 import Control.Monad
@@ -347,7 +343,8 @@ pullSegTree ::
   Int ->
   m ()
 pullSegTree st k = do
-  (<>) <$> UM.unsafeRead (getSegTree st) (2 * k)
+  (<>)
+    <$> UM.unsafeRead (getSegTree st) (2 * k)
     <*> UM.unsafeRead (getSegTree st) (2 * k + 1)
     >>= UM.unsafeWrite (getSegTree st) k
 {-# INLINE pullSegTree #-}

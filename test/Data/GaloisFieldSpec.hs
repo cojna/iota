@@ -1,7 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.GaloisFieldSpec (main, spec) where
@@ -11,7 +8,7 @@ import Test.Prelude
 import Test.Prop.Fractional
 import Test.Prop.Num
 
-instance KnownNat p => Arbitrary (GF p) where
+instance (KnownNat p) => Arbitrary (GF p) where
   arbitrary = mkGF <$> (arbitrary :: Gen Int)
 
 main :: IO ()

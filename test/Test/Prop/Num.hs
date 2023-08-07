@@ -1,5 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Test.Prop.Num (
@@ -18,7 +16,8 @@ numSpec _ = do
     prop "(x + y) + z == x + (y + z)" $ prop_addAssociative @a
     prop "x + y == y + x" $ prop_addCommutative @a
   describe "-" $
-    prop "x + (0 - x) == 0" $ prop_subInverse @a
+    prop "x + (0 - x) == 0" $
+      prop_subInverse @a
   describe "*" $ do
     prop "x * 1 == 1 * x == x" $ prop_mulUnit @a
     prop "(x * y) * z == x * (y * z)" $ prop_mulAssociative @a

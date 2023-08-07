@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.Vector.Compress where
 
 import Data.Bits

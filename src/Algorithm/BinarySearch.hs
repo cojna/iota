@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Algorithm.BinarySearch where
 
 import Control.Monad
@@ -57,10 +55,10 @@ lowerBoundIntegerM low0 high0 p = go low0 high0
     go !low !high
       | high <= low = return high
       | otherwise = do
-        pmid <- p mid
-        if pmid
-          then go low mid
-          else go (mid + 1) high
+          pmid <- p mid
+          if pmid
+            then go low mid
+            else go (mid + 1) high
       where
         h = toInteger high
         l = toInteger low

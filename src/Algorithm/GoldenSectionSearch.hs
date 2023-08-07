@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Algorithm.GoldenSectionSearch where
 
 import Data.Coerce

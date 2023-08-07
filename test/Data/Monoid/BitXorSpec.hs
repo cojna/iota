@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.BitXorSpec (main, spec) where
@@ -17,5 +16,5 @@ spec = do
   describe "BitXor Int" $
     monoidSpec (Proxy :: Proxy (BitXor Int))
 
-instance Arbitrary a => Arbitrary (BitXor a) where
+instance (Arbitrary a) => Arbitrary (BitXor a) where
   arbitrary = (coerce :: a -> BitXor a) <$> arbitrary

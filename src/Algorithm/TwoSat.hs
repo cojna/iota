@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes #-}
-
 module Algorithm.TwoSat where
 
 import Control.Monad.Primitive

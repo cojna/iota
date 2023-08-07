@@ -1,10 +1,6 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -63,7 +59,7 @@ infixl 6 +%, -%
   where
     go# a# b# u# v#
       | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
-        q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
+          q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
       | otherwise = I# ((x# *# (u# +# MOD#)) `remInt#` MOD#)
 {-# INLINE (/%) #-}
 
@@ -71,7 +67,7 @@ infixl 6 +%, -%
 x ^% n
   | n > 0 = go 1 x n
   | n == 0 = 1
-  | otherwise = go 1 (1 /% x) (- n)
+  | otherwise = go 1 (1 /% x) (-n)
   where
     go !acc !y !m
       | m .&. 1 == 0 = go acc (y *% y) (unsafeShiftR m 1)

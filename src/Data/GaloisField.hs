@@ -1,13 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 
@@ -31,17 +25,17 @@ pattern GF# :: Int# -> GF p
 pattern GF# x# = GF (I# x#)
 {-# COMPLETE GF# #-}
 
-mkGF :: forall p. KnownNat p => Int -> GF p
+mkGF :: forall p. (KnownNat p) => Int -> GF p
 mkGF x = GF (x `mod` natValAsInt (Proxy @p))
 
-validateGF :: forall p. KnownNat p => GF p -> Bool
+validateGF :: forall p. (KnownNat p) => GF p -> Bool
 validateGF (GF x) = 0 <= x && x < natValAsInt (Proxy @p)
 
-natValAsInt :: KnownNat n => proxy n -> Int
+natValAsInt :: (KnownNat n) => proxy n -> Int
 natValAsInt = fromIntegral . natVal
 {-# INLINE natValAsInt #-}
 
-natValAsWord :: KnownNat n => proxy n -> Word
+natValAsWord :: (KnownNat n) => proxy n -> Word
 natValAsWord = fromIntegral . natVal
 {-# INLINE natValAsWord #-}
 
@@ -49,7 +43,7 @@ natValAsWord = fromIntegral . natVal
 >>> reifyNat (998244353 :: Int) natValAsInt
 998244353
 -}
-reifyNat :: (Integral i) => i -> (forall n. KnownNat n => Proxy n -> a) -> a
+reifyNat :: (Integral i) => i -> (forall n. (KnownNat n) => Proxy n -> a) -> a
 reifyNat n f = case someNatVal (fromIntegral n) of
   Just (SomeNat proxy) -> f proxy
   Nothing -> error "reifyNat failed"
@@ -96,7 +90,7 @@ instance (KnownNat p) => Fractional (GF p) where
       !(I# m#) = natValAsInt (Proxy @p)
       go# a# b# u# v#
         | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
-          q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
+            q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
         | otherwise = GF# ((x# *# (u# +# m#)) `remInt#` m#)
   fromRational _ = undefined
 

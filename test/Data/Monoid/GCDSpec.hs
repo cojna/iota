@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.GCDSpec (main, spec) where
@@ -17,5 +16,5 @@ spec = do
   describe "GCD Word" $
     monoidSpec (Proxy :: Proxy (GCD Word))
 
-instance Arbitrary a => Arbitrary (GCD a) where
+instance (Arbitrary a) => Arbitrary (GCD a) where
   arbitrary = (coerce :: a -> GCD a) <$> arbitrary

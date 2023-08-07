@@ -1,10 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -111,13 +107,13 @@ withNatProxy = ($ (Proxy @n))
 
 naiveZeta :: (Poset (f Int)) => (Int -> f Int) -> U.Vector Int -> U.Vector Int
 naiveZeta f xs = U.generate n $ \v ->
-  sum [xs U.! u | u <- [0 .. n -1], f v .<. f u]
+  sum [xs U.! u | u <- [0 .. n - 1], f v .<. f u]
   where
     n = U.length xs
 
 naiveMoebius :: (Poset (f Int)) => (Int -> f Int) -> U.Vector Int -> U.Vector Int
 naiveMoebius f xs = U.generate n $ \v ->
-  sum [moebius (f v) (f u) * xs U.! u | u <- [0 .. n -1]]
+  sum [moebius (f v) (f u) * xs U.! u | u <- [0 .. n - 1]]
   where
     n = U.length xs
 
@@ -170,7 +166,7 @@ type Primes = U.Vector Int
 naiveZetaDivOrd :: U.Vector Int -> U.Vector Int
 naiveZetaDivOrd xs = U.generate n $ \v ->
   if v > 0
-    then sum [xs U.! u | u <- [1 .. n -1], DivOrd v .<. DivOrd u]
+    then sum [xs U.! u | u <- [1 .. n - 1], DivOrd v .<. DivOrd u]
     else xs U.! 0
   where
     n = U.length xs
@@ -178,7 +174,7 @@ naiveZetaDivOrd xs = U.generate n $ \v ->
 naiveMoebiusDivOrd :: U.Vector Int -> U.Vector Int
 naiveMoebiusDivOrd xs = U.generate n $ \v ->
   if v > 0
-    then sum [moebius (DivOrd v) (DivOrd u) * xs U.! u | u <- [1 .. n -1]]
+    then sum [moebius (DivOrd v) (DivOrd u) * xs U.! u | u <- [1 .. n - 1]]
     else xs U.! 0
   where
     n = U.length xs

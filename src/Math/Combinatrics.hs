@@ -1,12 +1,6 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Math.Combinatrics where
@@ -31,7 +25,7 @@ type HasCombCache (p :: Nat) = (HasFactCache p, HasRecipFactCache p)
 
 {- | /O(1)/
 
->>> :set -XTypeApplications -XDataKinds
+>>> :set -XDataKinds
 >>> withFactCache @1000000007 10 $ fact 10
 3628800
 -}
@@ -82,9 +76,9 @@ combNaive n@(I# ni#) r@(I# ri#)
     r# = int2Word# ri#
     go# acc# i#
       | isTrue# (leWord# i# r#) =
-        case timesWord2# acc# (minusWord# n# (minusWord# i# 1##)) of
-          (# x#, y# #) -> case quotRemWord2# x# y# i# of
-            (# z#, _ #) -> go# z# (plusWord# i# 1##)
+          case timesWord2# acc# (minusWord# n# (minusWord# i# 1##)) of
+            (# x#, y# #) -> case quotRemWord2# x# y# i# of
+              (# z#, _ #) -> go# z# (plusWord# i# 1##)
       | otherwise = I# (word2Int# acc#)
 
 buildFactCache :: forall p. (KnownNat p) => Int -> FactCache p
@@ -95,7 +89,7 @@ buildFactCache n =
   where
     size = min n (natValAsInt (Proxy @p) - 1)
 
-withFactCache :: forall p r. (KnownNat p) => Int -> (HasFactCache p => r) -> r
+withFactCache :: forall p r. (KnownNat p) => Int -> ((HasFactCache p) => r) -> r
 withFactCache n x = let ?factCache = cache in x
   where
     !cache = buildFactCache n
@@ -109,13 +103,13 @@ buildRecipFactCache n =
   where
     size = min n (natValAsInt (Proxy @p) - 1)
 
-withRecipFactCache :: forall p r. (HasFactCache p, KnownNat p) => Int -> (HasRecipFactCache p => r) -> r
+withRecipFactCache :: forall p r. (HasFactCache p, KnownNat p) => Int -> ((HasRecipFactCache p) => r) -> r
 withRecipFactCache n x = let ?recipFactCache = cache in x
   where
     !cache = buildRecipFactCache n
 {-# INLINE withRecipFactCache #-}
 
-withCombCache :: forall p r. (KnownNat p) => Int -> (HasCombCache p => r) -> r
+withCombCache :: forall p r. (KnownNat p) => Int -> ((HasCombCache p) => r) -> r
 withCombCache n x = withFactCache n $ withRecipFactCache n x
 {-# INLINE withCombCache #-}
 
@@ -143,7 +137,8 @@ combSmallTable = U.create $ do
     UM.unsafeWrite dp (ix i i) (GF 1)
   rep1 (n - 1) $ \x -> do
     rep1 (x - 1) $ \y -> do
-      (+) <$> UM.unsafeRead dp (ix (x - 1) (y - 1))
+      (+)
+        <$> UM.unsafeRead dp (ix (x - 1) (y - 1))
         <*> UM.unsafeRead dp (ix (x - 1) y)
         >>= UM.unsafeWrite dp (ix x y)
   return dp

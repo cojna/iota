@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Data.Graph.Tree.LCA where
@@ -15,10 +14,10 @@ import Data.Graph.Sparse
 import Data.SparseTable
 
 data LCA = LCA
-  { -- | first index in Euler Tour
-    firstIndexLCA :: U.Vector Int
-  , -- | Euler Tour RMQ (depth, vertex)
-    rmqLCA :: RMQ (Int, Vertex)
+  { firstIndexLCA :: U.Vector Int
+  -- ^ first index in Euler Tour
+  , rmqLCA :: RMQ (Int, Vertex)
+  -- ^ Euler Tour RMQ (depth, vertex)
   }
 
 buildLCA :: (U.Unbox w) => SparseGraph w -> Vertex -> LCA

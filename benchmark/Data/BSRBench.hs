@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Data.BSRBench (benchMain) where
 
 import Criterion (Benchmark, bench, bgroup, whnf)

@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Data.Graph.MaxFlowSpec (main, spec) where
 
 import Data.Graph.MaxFlow

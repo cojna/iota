@@ -1,5 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.Lattice where
@@ -69,8 +67,8 @@ instance (Integral a) => Poset (DivOrd a) where
   moebius (DivOrd x) (DivOrd y)
     | not $ DivOrd x .<. DivOrd y = 0
     | otherwise =
-      product . map mu . L.group $
-        primeFactors (quot y x)
+        product . map mu . L.group $
+          primeFactors (quot y x)
     where
       mu [_] = -1
       mu _ = 0

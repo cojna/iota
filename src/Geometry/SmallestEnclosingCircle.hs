@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE FlexibleContexts #-}
-
 module Geometry.SmallestEnclosingCircle where
 
 import Data.Function
@@ -41,10 +38,10 @@ naiveSmallestEnclosingCircle ps =
   where
     centers =
       [fmap (0.5 *) (p0 + p1) | p0 <- ps, p1 <- ps]
-      ++ [ circumcenter p0 p1 p2
-         | p0 <- ps
-         , p1 <- ps
-         , p2 <- ps
-         , abs (area p0 p1 p2) > 0
-         ]
+        ++ [ circumcenter p0 p1 p2
+           | p0 <- ps
+           , p1 <- ps
+           , p2 <- ps
+           , abs (area p0 p1 p2) > 0
+           ]
     radius c = maximum [norm (p - c) | p <- ps]

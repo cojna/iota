@@ -1,9 +1,5 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MagicHash #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Math.Matrix where
 
@@ -60,7 +56,7 @@ createSqMat proxy fill = runST $ do
   SqMat n <$!> unsafeFreezeByteArray mba
 {-# INLINE createSqMat #-}
 
-reifyMatDim :: (Integral i) => i -> (forall n. KnownNat n => Proxy n -> a) -> a
+reifyMatDim :: (Integral i) => i -> (forall n. (KnownNat n) => Proxy n -> a) -> a
 reifyMatDim n f = case someNatVal (fromIntegral n) of
   Just (SomeNat proxy) -> f proxy
   Nothing -> error $ "reifyMatDim: " <> show (toInteger n)
@@ -73,7 +69,8 @@ streamSqMat (SqMat n ba) = MS.generateM (n * n) $ return . indexByteArray ba
 unstreamSqMat :: forall n a. (KnownNat n, Prim a) => MS.Stream Id a -> SqMat n a
 unstreamSqMat s = createSqMat Proxy $ \_ mba -> do
   MS.mapM_ (\(i, x) -> writeByteArray mba i x) $
-    MS.trans (return . unId) $ MS.indexed s
+    MS.trans (return . unId) $
+      MS.indexed s
 {-# INLINE [1] unstreamSqMat #-}
 
 {-# RULES

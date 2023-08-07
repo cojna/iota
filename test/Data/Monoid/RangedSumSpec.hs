@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.RangedSumSpec (main, spec) where
@@ -16,5 +15,5 @@ spec = do
   describe "RangedSum Int" $
     monoidSpec (Proxy :: Proxy (RangedSum Int))
 
-instance Arbitrary a => Arbitrary (RangedSum a) where
+instance (Arbitrary a) => Arbitrary (RangedSum a) where
   arbitrary = RangedSum <$> arbitrary <*> arbitrary
