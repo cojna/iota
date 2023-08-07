@@ -29,7 +29,7 @@ dependencies:
 - process
 - time
 # full
-- primitive
+- primitive >= 0.8
 - vector >= 0.13
 
 library:
