@@ -1,6 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Data.Graph.MinCostFlow where
@@ -86,16 +84,16 @@ runMinCostFlow source sink flow mcf@MinCostFlow{..} = go 0 flow
     go !res !f
       | f == 0 = return (res, flow)
       | otherwise = do
-        canFlow <- dijkstraMCF source sink mcf
-        if canFlow
-          then do
-            rep numVerticesMCF $ \v -> do
-              dv <- UM.unsafeRead distMCF v
-              UM.unsafeModify potentialMCF (+ dv) v
-            flowed <- updateResidualMCF sink f mcf
-            hsink <- UM.unsafeRead potentialMCF sink
-            go (hsink * flowed + res) (f - flowed)
-          else return (res, flow - f)
+          canFlow <- dijkstraMCF source sink mcf
+          if canFlow
+            then do
+              rep numVerticesMCF $ \v -> do
+                dv <- UM.unsafeRead distMCF v
+                UM.unsafeModify potentialMCF (+ dv) v
+              flowed <- updateResidualMCF sink f mcf
+              hsink <- UM.unsafeRead potentialMCF sink
+              go (hsink * flowed + res) (f - flowed)
+            else return (res, flow - f)
 
 -- | cost 48bit / vertex 16bit
 encodeMCF :: Cost -> Vertex -> Word64
@@ -172,8 +170,8 @@ updateResidualMCF sink flow MinCostFlow{..} = go sink flow return
 data MinCostFlowBuilder s = MinCostFlowBuilder
   { numVerticesMCFB :: !Int
   , inDegreeMCFB :: UM.MVector s Int
-  , -- | default buffer size: /1024 * 1024/
-    edgesMCFB :: Buffer s (Vertex, Vertex, Cost, Capacity)
+  , edgesMCFB :: Buffer s (Vertex, Vertex, Cost, Capacity)
+  -- ^ default buffer size: /1024 * 1024/
   }
 
 newMinCostFlowBuilder ::
@@ -225,7 +223,7 @@ buildMinCostFlow MinCostFlowBuilder{..} = do
     UM.unsafeWrite mdstMCF srcOffset dst
     UM.unsafeWrite mdstMCF dstOffset src
     UM.unsafeWrite mcostMCF srcOffset cost
-    UM.unsafeWrite mcostMCF dstOffset (- cost)
+    UM.unsafeWrite mcostMCF dstOffset (-cost)
     UM.unsafeWrite mrevEdgeMCF srcOffset dstOffset
     UM.unsafeWrite mrevEdgeMCF dstOffset srcOffset
     UM.unsafeWrite residualMCF srcOffset capacity

@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE FlexibleContexts #-}
-
 module Data.Vector.Utils where
 
 import qualified Data.Vector.Generic as G

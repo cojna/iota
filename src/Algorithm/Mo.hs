@@ -1,6 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE TypeFamilies #-}
 
 {- |
@@ -8,7 +6,6 @@
 -}
 module Algorithm.Mo where
 
-import Control.Monad
 import Control.Monad.Primitive
 import Data.Bits
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
@@ -122,48 +119,14 @@ decodeMoQuery w =
     (fromIntegral w .&. 0xfffff)
 {-# INLINE decodeMoQuery #-}
 
+instance U.IsoUnbox MoQuery Word64 where
+  toURepr = encodeMoQuery
+  {-# INLINE toURepr #-}
+  fromURepr = decodeMoQuery
+  {-# INLINE fromURepr #-}
+
 newtype instance UM.MVector s MoQuery = MV_MoQuery (UM.MVector s Word64)
 newtype instance U.Vector MoQuery = V_MoQuery (U.Vector Word64)
+deriving via (MoQuery `U.As` Word64) instance GM.MVector U.MVector MoQuery
+deriving via (MoQuery `U.As` Word64) instance G.Vector U.Vector MoQuery
 instance U.Unbox MoQuery
-instance GM.MVector UM.MVector MoQuery where
-  basicLength (MV_MoQuery v) = GM.basicLength v
-  {-# INLINE basicLength #-}
-  basicUnsafeSlice i n (MV_MoQuery v) = MV_MoQuery $ GM.basicUnsafeSlice i n v
-  {-# INLINE basicUnsafeSlice #-}
-  basicOverlaps (MV_MoQuery v1) (MV_MoQuery v2) = GM.basicOverlaps v1 v2
-  {-# INLINE basicOverlaps #-}
-  basicUnsafeNew n = MV_MoQuery `liftM` GM.basicUnsafeNew n
-  {-# INLINE basicUnsafeNew #-}
-  basicInitialize (MV_MoQuery v) = GM.basicInitialize v
-  {-# INLINE basicInitialize #-}
-  basicUnsafeReplicate n x = MV_MoQuery `liftM` GM.basicUnsafeReplicate n (encodeMoQuery x)
-  {-# INLINE basicUnsafeReplicate #-}
-  basicUnsafeRead (MV_MoQuery v) i = decodeMoQuery `liftM` GM.basicUnsafeRead v i
-  {-# INLINE basicUnsafeRead #-}
-  basicUnsafeWrite (MV_MoQuery v) i x = GM.basicUnsafeWrite v i (encodeMoQuery x)
-  {-# INLINE basicUnsafeWrite #-}
-  basicClear (MV_MoQuery v) = GM.basicClear v
-  {-# INLINE basicClear #-}
-  basicSet (MV_MoQuery v) x = GM.basicSet v (encodeMoQuery x)
-  {-# INLINE basicSet #-}
-  basicUnsafeCopy (MV_MoQuery v1) (MV_MoQuery v2) = GM.basicUnsafeCopy v1 v2
-  {-# INLINE basicUnsafeCopy #-}
-  basicUnsafeMove (MV_MoQuery v1) (MV_MoQuery v2) = GM.basicUnsafeMove v1 v2
-  {-# INLINE basicUnsafeMove #-}
-  basicUnsafeGrow (MV_MoQuery v) n = MV_MoQuery `liftM` GM.basicUnsafeGrow v n
-  {-# INLINE basicUnsafeGrow #-}
-
-instance G.Vector U.Vector MoQuery where
-  basicUnsafeFreeze (MV_MoQuery v) = V_MoQuery `liftM` G.basicUnsafeFreeze v
-  {-# INLINE basicUnsafeFreeze #-}
-  basicUnsafeThaw (V_MoQuery v) = MV_MoQuery `liftM` G.basicUnsafeThaw v
-  {-# INLINE basicUnsafeThaw #-}
-  basicLength (V_MoQuery v) = G.basicLength v
-  {-# INLINE basicLength #-}
-  basicUnsafeSlice i n (V_MoQuery v) = V_MoQuery $ G.basicUnsafeSlice i n v
-  {-# INLINE basicUnsafeSlice #-}
-  basicUnsafeIndexM (V_MoQuery v) i = decodeMoQuery `liftM` G.basicUnsafeIndexM v i
-  {-# INLINE basicUnsafeIndexM #-}
-  basicUnsafeCopy (MV_MoQuery mv) (V_MoQuery v) = G.basicUnsafeCopy mv v
-  elemseq _ = seq
-  {-# INLINE elemseq #-}

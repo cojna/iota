@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE TypeApplications #-}
-
 {- |
  = Segment Tree
  == Reference
@@ -19,7 +16,6 @@ import Unsafe.Coerce
 newtype SegTree mv s a = SegTree {getSegTree :: mv s a}
 
 {- |
->>> :set -XTypeApplications
 >>> import Data.Semigroup (Min)
 >>> import qualified Data.Vector.Unboxed.Mutable as  UM
 >>> newSegTree @(Min Int) @UM.MVector 123
@@ -172,7 +168,6 @@ mappendAll segtree = GM.unsafeRead (getSegTree segtree) 1
 
 {- | max r s.t. f (mappendFromTo seg l r) == True
 
->>> :set -XTypeApplications
 >>> import Data.Semigroup (Min)
 >>> import qualified Data.Vector.Unboxed.Mutable as  UM
 >>> seg <- newSegTree @(Min Int) @UM.MVector 10
@@ -277,6 +272,6 @@ lowerBoundTo segtree r p = do
 extendToPowerOfTwo :: Int -> Int
 extendToPowerOfTwo x
   | x > 1 =
-    unsafeCoerce @Word @Int $
-      unsafeShiftR (complement zeroBits) (countLeadingZeros (x - 1)) + 1
+      unsafeCoerce @Word @Int $
+        unsafeShiftR (complement zeroBits) (countLeadingZeros (x - 1)) + 1
   | otherwise = 1

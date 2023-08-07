@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Math.Utils where
 
 import Data.Bits
@@ -24,10 +22,10 @@ floorSqrt :: Int -> Int
 floorSqrt n
   | n <= 1 = n
   | otherwise =
-    let !k = 32 - unsafeShiftR (countLeadingZeros (n - 1)) 1
-        !x0 = unsafeShiftL 1 k
-        !x1 = unsafeShiftR (x0 + unsafeShiftR n k) 1
-     in go x0 x1
+      let !k = 32 - unsafeShiftR (countLeadingZeros (n - 1)) 1
+          !x0 = unsafeShiftL 1 k
+          !x1 = unsafeShiftR (x0 + unsafeShiftR n k) 1
+       in go x0 x1
   where
     go !x !x'
       | x' < x = go x' (unsafeShiftR (x' + quot n x') 1)

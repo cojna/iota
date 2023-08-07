@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Geometry.ConvexHullSpec (main, spec) where
 
 import qualified Data.Vector as V
@@ -35,13 +33,13 @@ spec = do
       let n :: Int
           n = 100
           maxX = fromIntegral n - 1
-          points = shuffleList [P (fromIntegral x) 0 | x <- [0 .. n -1]]
+          points = shuffleList [P (fromIntegral x) 0 | x <- [0 .. n - 1]]
       convexHull @(EPS Double) points `shouldBe` [P 0 0, P maxX 0]
     it "convexHull on y-axis" $ do
       let n :: Int
           n = 100
           maxY = fromIntegral n - 1
-          points = shuffleList [P 0 (fromIntegral y) | y <- [0 .. n -1]]
+          points = shuffleList [P 0 (fromIntegral y) | y <- [0 .. n - 1]]
       convexHull @(EPS Double) points `shouldBe` [P 0 0, P 0 maxY]
     it "convexHull dense square" $ do
       let n :: Int
@@ -50,8 +48,8 @@ spec = do
           points =
             shuffleList
               [ P (fromIntegral x) (fromIntegral y)
-              | x <- [0 .. n -1]
-              , y <- [0 .. n -1]
+              | x <- [0 .. n - 1]
+              , y <- [0 .. n - 1]
               ]
       convexHull @(EPS Double) points `shouldBe` [P 0 0, P lim 0, P lim lim, P 0 lim]
     describe "convexHull . convexHull = convexHull" $ do

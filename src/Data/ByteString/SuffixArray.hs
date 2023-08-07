@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.ByteString.SuffixArray where
 
 import Control.Monad

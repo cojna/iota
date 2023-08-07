@@ -1,6 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Data.SegTree.RangeUpdateRangeMinSpec where
 
 import Data.Monoid.LastMin

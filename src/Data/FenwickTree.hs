@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.FenwickTree where
 
 import Control.Monad
@@ -10,8 +8,6 @@ import Data.Function
 import Data.Monoid
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
-
-import Data.Vector.Unboxed.Instances ()
 
 newtype FenwickTree s a = FenwickTree {getFenwickTree :: UM.MVector s a}
 
@@ -33,7 +29,7 @@ buildFenwickTree vec = do
   UM.write ft 0 mempty
   U.unsafeCopy (UM.tail ft) vec
   flip fix 1 $ \loop !i -> when (i <= n) $ do
-    let j = i + (i .&. (- i))
+    let j = i + (i .&. (-i))
     when (j <= n) $ do
       fti <- UM.unsafeRead ft i
       UM.unsafeModify ft (<> fti) j
@@ -54,8 +50,8 @@ mappendTo (FenwickTree ft) = go mempty
   where
     go !acc !i
       | i > 0 = do
-        xi <- UM.unsafeRead ft i
-        go (acc <> xi) (i - (i .&. (- i)))
+          xi <- UM.unsafeRead ft i
+          go (acc <> xi) (i - (i .&. (-i)))
       | otherwise = return acc
 {-# INLINE mappendTo #-}
 
@@ -69,7 +65,7 @@ mappendAt ::
 mappendAt (FenwickTree ft) k v = flip fix (k + 1) $ \loop !i -> do
   when (i < n) $ do
     UM.unsafeModify ft (<> v) i
-    loop $ i + (i .&. (- i))
+    loop $ i + (i .&. (-i))
   where
     !n = UM.length ft
 {-# INLINE mappendAt #-}
@@ -177,11 +173,11 @@ findMaxIndexLT (FenwickTree ft) w0
     go !w !step !i
       | step == 0 = return i
       | otherwise = do
-        if i + step < n
-          then do
-            u <- UM.unsafeRead ft (i + step)
-            if u < w
-              then go (w - u) (step `unsafeShiftR` 1) (i + step)
-              else go w (step `unsafeShiftR` 1) i
-          else go w (step `unsafeShiftR` 1) i
+          if i + step < n
+            then do
+              u <- UM.unsafeRead ft (i + step)
+              if u < w
+                then go (w - u) (step `unsafeShiftR` 1) (i + step)
+                else go w (step `unsafeShiftR` 1) i
+            else go w (step `unsafeShiftR` 1) i
 {-# INLINE findMaxIndexLT #-}

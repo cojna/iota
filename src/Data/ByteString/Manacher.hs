@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.ByteString.Manacher where
 
 import Control.Exception

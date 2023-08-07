@@ -1,9 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Test.Prelude (
@@ -11,9 +6,6 @@ module Test.Prelude (
   module Data.Proxy,
   module Test.Hspec,
   module Test.Hspec.QuickCheck,
-#if !MIN_VERSION_QuickCheck(2,13,0)
-  module Test.Prelude.Compat,
-#endif
   module Test.QuickCheck,
   module Test.QuickCheck.Arbitrary,
   module Test.QuickCheck.Monadic,
@@ -39,10 +31,6 @@ import Math.Prime (smallPrimes)
 import System.Timeout (timeout)
 import Test.Hspec hiding (Arg)
 import Test.Hspec.QuickCheck
-
-#if !MIN_VERSION_QuickCheck(2,13,0)
-import Test.Prelude.Compat
-#endif
 import Test.QuickCheck
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Monadic
@@ -96,7 +84,7 @@ newtype ByteStringOf (s :: Symbol) = ByteStringOf {getByteStringOf :: C.ByteStri
 instance Show (ByteStringOf s) where
   show = show . getByteStringOf
 
-instance KnownSymbol s => Arbitrary (ByteStringOf s) where
+instance (KnownSymbol s) => Arbitrary (ByteStringOf s) where
   arbitrary =
     coerce
       . fmap C.pack

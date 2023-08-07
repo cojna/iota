@@ -16,8 +16,10 @@ extra-source-files:
 # common to point users to the README.md file.
 description:         Please see the README on Github at <https://github.com/cojna/iota/blob/master/README.md>
 
+language: GHC2021
+
 default-extensions:
-  - Haskell2010
+  - NoImportQualifiedPost
 
 dependencies:
 # core
@@ -29,8 +31,8 @@ dependencies:
 - process
 - time
 # full
-- primitive
-- vector
+- primitive >= 0.8
+- vector >= 0.13
 
 library:
   source-dirs: src

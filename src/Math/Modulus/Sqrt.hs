@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Math.Modulus.Sqrt where
 
 import Data.Bits (Bits (unsafeShiftR, (.&.)))

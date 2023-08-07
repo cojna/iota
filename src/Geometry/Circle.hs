@@ -1,14 +1,12 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Geometry.Circle where
 
 import Geometry
 
 data Circle a = Circle
-  { -- | center
-    centerC :: !(Point a)
-  , -- | radius
-    radiusC :: !a
+  { centerC :: !(Point a)
+  -- ^ center
+  , radiusC :: !a
+  -- ^ radius
   }
   deriving (Eq, Show)
 

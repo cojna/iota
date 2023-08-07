@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Data.Heap.PairingHeap.MinSpec (main, spec) where
 

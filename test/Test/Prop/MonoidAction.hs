@@ -1,6 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Test.Prop.MonoidAction (monoidActionSpec) where
 
 import Data.SegTree (MonoidAction (..))

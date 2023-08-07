@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.Heap.PairingHeap.Min where
@@ -22,7 +21,7 @@ nullMinPH (MinFork _ _) = False
 nullMinPH MinEmpty = True
 {-# INLINE nullMinPH #-}
 
-insertMinPH :: Ord a => a -> MinHeap a -> MinHeap a
+insertMinPH :: (Ord a) => a -> MinHeap a -> MinHeap a
 insertMinPH = mergeMinPH . singletonMinPH
 {-# INLINE insertMinPH #-}
 
@@ -31,18 +30,18 @@ minElemPH (MinFork x _) = Just x
 minElemPH MinEmpty = Nothing
 {-# INLINE minElemPH #-}
 
-deleteMinPH :: Ord a => MinHeap a -> Maybe (MinHeap a)
+deleteMinPH :: (Ord a) => MinHeap a -> Maybe (MinHeap a)
 deleteMinPH (MinFork _ hs) = Just $! mergePairsMinPH hs
 deleteMinPH MinEmpty = Nothing
 {-# INLINE deleteMinPH #-}
 
-deleteFindMinPH :: Ord a => MinHeap a -> Maybe (a, MinHeap a)
+deleteFindMinPH :: (Ord a) => MinHeap a -> Maybe (a, MinHeap a)
 deleteFindMinPH (MinFork x hs) = case mergePairsMinPH hs of
   merged -> Just (x, merged)
 deleteFindMinPH MinEmpty = Nothing
 {-# INLINE deleteFindMinPH #-}
 
-mergeMinPH :: Ord a => MinHeap a -> MinHeap a -> MinHeap a
+mergeMinPH :: (Ord a) => MinHeap a -> MinHeap a -> MinHeap a
 mergeMinPH hx@(MinFork x hxs) hy@(MinFork y hys)
   | x <= y = MinFork x (hy : hxs)
   | otherwise = MinFork y (hx : hys)
@@ -50,7 +49,7 @@ mergeMinPH MinEmpty hy = hy
 mergeMinPH hx MinEmpty = hx
 {-# INLINE mergeMinPH #-}
 
-mergePairsMinPH :: Ord a => [MinHeap a] -> MinHeap a
+mergePairsMinPH :: (Ord a) => [MinHeap a] -> MinHeap a
 mergePairsMinPH = mconcat . mergePairs
   where
     mergePairs (x : y : xs) = case x <> y of
@@ -58,13 +57,13 @@ mergePairsMinPH = mconcat . mergePairs
     mergePairs xs = xs
 {-# INLINE mergePairsMinPH #-}
 
-instance Ord a => Eq (MinHeap a) where
+instance (Ord a) => Eq (MinHeap a) where
   (==) = (==) `on` toList
 
-instance Ord a => Ord (MinHeap a) where
+instance (Ord a) => Ord (MinHeap a) where
   compare = compare `on` toList
 
-instance Ord a => IsList (MinHeap a) where
+instance (Ord a) => IsList (MinHeap a) where
   type Item (MinHeap a) = a
   fromList = mergePairsMinPH . map singletonMinPH
   toList = L.unfoldr deleteFindMinPH
@@ -72,9 +71,9 @@ instance Ord a => IsList (MinHeap a) where
 instance (Show a, Ord a) => Show (MinHeap a) where
   show = show . toList
 
-instance Ord a => Semigroup (MinHeap a) where
+instance (Ord a) => Semigroup (MinHeap a) where
   (<>) = mergeMinPH
 
-instance Ord a => Monoid (MinHeap a) where
+instance (Ord a) => Monoid (MinHeap a) where
   mempty = emptyMinPH
   {-# INLINE mempty #-}

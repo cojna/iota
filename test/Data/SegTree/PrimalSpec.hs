@@ -1,8 +1,5 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Data.SegTree.PrimalSpec (main, spec) where
@@ -16,8 +13,6 @@ import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import Test.Prelude
-
-import Data.Vector.Unboxed.Instances ()
 
 main :: IO ()
 main = hspec spec
@@ -170,7 +165,7 @@ data SegTreeQuery a
   | SegQuery !Int !Int
   deriving (Show)
 
-instance Arbitrary a => Arbitrary (SegTreeQuery a) where
+instance (Arbitrary a) => Arbitrary (SegTreeQuery a) where
   arbitrary = do
     arbitrary >>= \case
       True -> SegUpdate <$> arbitrary <*> arbitrary

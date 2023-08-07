@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.LCMSpec (main, spec) where
@@ -17,5 +16,5 @@ spec = do
   describe "LCM (Small Word)" $
     monoidSpec (Proxy :: Proxy (LCM (Small Word)))
 
-instance Arbitrary a => Arbitrary (LCM a) where
+instance (Arbitrary a) => Arbitrary (LCM a) where
   arbitrary = (coerce :: a -> LCM a) <$> arbitrary

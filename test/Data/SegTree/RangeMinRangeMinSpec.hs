@@ -1,10 +1,7 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Data.SegTree.RangeMinRangeMinSpec where
 
-import Data.Semigroup
 import Data.SegTree.RangeMinRangeMin ()
+import Data.Semigroup
 import Test.Prelude
 import Test.Prop.MonoidAction (monoidActionSpec)
 

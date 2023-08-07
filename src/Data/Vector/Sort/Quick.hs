@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.Vector.Sort.Quick where
 
 import Control.Monad

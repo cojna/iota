@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE BinaryLiterals #-}
-
 module Math.Prime where
 
 import qualified Data.IntMap as IM
@@ -55,7 +52,7 @@ True
 >>> isPrime 999999999997
 False
 -}
-isPrime :: Integral i => i -> Bool
+isPrime :: (Integral i) => i -> Bool
 isPrime n = [n] == primeFactors n
 {-# SPECIALIZE isPrime :: Int -> Bool #-}
 

@@ -1,19 +1,8 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeInType #-}
 
 module Data.Mat3x3 where
 
-#if !MIN_VERSION_primitive(7,0,0)
-import Control.Monad (zipWithM_)
-#endif
 import Control.Monad.ST
 import Data.Function
 import Data.Primitive
@@ -34,12 +23,7 @@ instance (Prim a, Show a) => Show (Mat3x3 a) where
 instance (Prim a) => IsList (Mat3x3 a) where
   type Item (Mat3x3 a) = a
 
-#if MIN_VERSION_primitive(7,0,0)
   fromList = Mat3x3 0 . byteArrayFromListN 9
-#else
-  fromList xs = createMat3x3 $ \mba -> do
-    zipWithM_ (writeByteArray mba) [0..] xs
-#endif
   toList (Mat3x3 o ba) = map (indexByteArray ba) [o .. o + 8]
 
 appMat3x3 :: (Prim a, Num a) => Mat3x3 a -> a -> a -> a -> (a, a, a)

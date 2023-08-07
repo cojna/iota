@@ -1,6 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Data.SegTree.RangeUpdateRangeMaxSpec where
 
 import Data.Monoid.LastMax

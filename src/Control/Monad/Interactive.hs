@@ -1,6 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -122,7 +120,7 @@ instance MonadTrans Judge where
   lift m = Judge $ \_ _ k -> m >>= k
   {-# INLINE lift #-}
 
-instance PrimMonad m => PrimMonad (Judge m) where
+instance (PrimMonad m) => PrimMonad (Judge m) where
   type PrimState (Judge m) = PrimState m
   primitive = lift . primitive
   {-# INLINE primitive #-}

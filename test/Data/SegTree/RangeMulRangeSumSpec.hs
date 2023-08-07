@@ -1,6 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Data.SegTree.RangeMulRangeSumSpec where
 
 import Data.SegTree.RangeMulRangeSum ()

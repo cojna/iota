@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.ByteString.LCP where
 
 import qualified Data.ByteString as B

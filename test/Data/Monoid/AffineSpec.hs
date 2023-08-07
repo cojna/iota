@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.Monoid.AffineSpec (main, spec) where
@@ -16,5 +15,5 @@ spec = do
   describe "Affine Int" $
     monoidSpec (Proxy :: Proxy (Affine Int))
 
-instance Arbitrary a => Arbitrary (Affine a) where
+instance (Arbitrary a) => Arbitrary (Affine a) where
   arbitrary = Affine <$> arbitrary <*> arbitrary

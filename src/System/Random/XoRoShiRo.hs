@@ -1,7 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeApplications #-}
-
 -- xoroshiro128**
 -- http://vigna.di.unimi.it/xorshift/
 module System.Random.XoRoShiRo where

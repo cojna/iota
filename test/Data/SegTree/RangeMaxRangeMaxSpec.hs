@@ -1,10 +1,7 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Data.SegTree.RangeMaxRangeMaxSpec where
 
-import Data.Semigroup
 import Data.SegTree.RangeMaxRangeMax ()
+import Data.Semigroup
 import Test.Prelude
 import Test.Prop.MonoidAction (monoidActionSpec)
 

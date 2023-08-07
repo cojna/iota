@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Data.Vector.Sort.Merge where
@@ -56,36 +54,36 @@ mergeSortBy cmp mvec0 = do
     go !buf !mvec
       | n <= 16 = insertionSortBy cmp mvec
       | otherwise = do
-        let !numL = unsafeShiftR (n + 1) 1
-            !numR = n - numL
-            (!buf', !vecR) = GM.splitAt numL mvec
-            !vecL = GM.unsafeTake numL buf
-        GM.unsafeCopy vecL buf'
-        !invL <- go buf' vecL
-        !invR <- go buf' vecR
-        fix
-          ( \loop !invNum !posL !posR ->
-              if posL < numL && posR < numR
-                then do
-                  vl <- GM.unsafeRead vecL posL
-                  vr <- GM.unsafeRead vecR posR
-                  case cmp vl vr of
-                    GT -> do
-                      GM.unsafeWrite mvec (posL + posR) vr
-                      loop (invNum + numL - posL) posL (posR + 1)
-                    _ -> do
-                      GM.unsafeWrite mvec (posL + posR) vl
-                      loop invNum (posL + 1) posR
-                else do
-                  when (posL < numL) $ do
-                    GM.unsafeCopy
-                      (GM.unsafeSlice (posL + posR) (numL - posL) mvec)
-                      (GM.unsafeSlice posL (numL - posL) vecL)
-                  return invNum
-          )
-          (invL + invR)
-          0
-          0
+          let !numL = unsafeShiftR (n + 1) 1
+              !numR = n - numL
+              (!buf', !vecR) = GM.splitAt numL mvec
+              !vecL = GM.unsafeTake numL buf
+          GM.unsafeCopy vecL buf'
+          !invL <- go buf' vecL
+          !invR <- go buf' vecR
+          fix
+            ( \loop !invNum !posL !posR ->
+                if posL < numL && posR < numR
+                  then do
+                    vl <- GM.unsafeRead vecL posL
+                    vr <- GM.unsafeRead vecR posR
+                    case cmp vl vr of
+                      GT -> do
+                        GM.unsafeWrite mvec (posL + posR) vr
+                        loop (invNum + numL - posL) posL (posR + 1)
+                      _ -> do
+                        GM.unsafeWrite mvec (posL + posR) vl
+                        loop invNum (posL + 1) posR
+                  else do
+                    when (posL < numL) $ do
+                      GM.unsafeCopy
+                        (GM.unsafeSlice (posL + posR) (numL - posL) mvec)
+                        (GM.unsafeSlice posL (numL - posL) vecL)
+                    return invNum
+            )
+            (invL + invR)
+            0
+            0
       where
         !n = GM.length mvec
 {-# INLINE mergeSortBy #-}

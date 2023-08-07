@@ -1,5 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Test.Prop.Fractional (fractionalSpec, fractionalClosedSpec) where
@@ -10,7 +8,8 @@ fractionalSpec ::
   forall a. (Fractional a, Arbitrary a, Show a, Eq a) => Proxy a -> Spec
 fractionalSpec _ = do
   describe "recip" $
-    prop "x * recip x == recip x * x == 1" $ prop_mulInverse @a
+    prop "x * recip x == recip x * x == 1" $
+      prop_mulInverse @a
   describe "^^" $ do
     prop "x ^^ (n + m) == (x ^^ n) * (x ^^ m)" $ prop_addPow @a
     prop "x ^^ (n * m) == (x ^^ n) ^^ m" $ prop_mulPow @a

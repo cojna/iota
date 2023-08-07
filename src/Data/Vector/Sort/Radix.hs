@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Data.Vector.Sort.Radix where
 
 import Data.Bits

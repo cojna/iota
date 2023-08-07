@@ -1,19 +1,13 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Math.Linear.GF2 where
 
-import Control.Monad
 import Data.Bits
-import Data.Coerce
 import qualified Data.List as L
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as UM
 import GHC.Exts (IsList (Item, fromList, toList))
 
 {- |
@@ -129,48 +123,8 @@ linCombGF2x64' (GF2x64' basis) cs =
       | testBit cs i = v + b
       | otherwise = v
 
-newtype instance UM.MVector s GF2x64 = MV_GF2x64 (UM.MVector s Word)
+newtype instance U.MVector s GF2x64 = MV_GF2x64 (U.MVector s Word)
 newtype instance U.Vector GF2x64 = V_GF2x64 (U.Vector Word)
+deriving newtype instance GM.MVector U.MVector GF2x64
+deriving newtype instance G.Vector U.Vector GF2x64
 instance U.Unbox GF2x64
-instance GM.MVector UM.MVector GF2x64 where
-  basicLength (MV_GF2x64 v) = GM.basicLength v
-  {-# INLINE basicLength #-}
-  basicUnsafeSlice i n (MV_GF2x64 v) = MV_GF2x64 $ GM.basicUnsafeSlice i n v
-  {-# INLINE basicUnsafeSlice #-}
-  basicOverlaps (MV_GF2x64 v1) (MV_GF2x64 v2) = GM.basicOverlaps v1 v2
-  {-# INLINE basicOverlaps #-}
-  basicUnsafeNew n = MV_GF2x64 `liftM` GM.basicUnsafeNew n
-  {-# INLINE basicUnsafeNew #-}
-  basicInitialize (MV_GF2x64 v) = GM.basicInitialize v
-  {-# INLINE basicInitialize #-}
-  basicUnsafeReplicate n x = MV_GF2x64 `liftM` GM.basicUnsafeReplicate n (coerce x)
-  {-# INLINE basicUnsafeReplicate #-}
-  basicUnsafeRead (MV_GF2x64 v) i = coerce `liftM` GM.basicUnsafeRead v i
-  {-# INLINE basicUnsafeRead #-}
-  basicUnsafeWrite (MV_GF2x64 v) i x = GM.basicUnsafeWrite v i (coerce x)
-  {-# INLINE basicUnsafeWrite #-}
-  basicClear (MV_GF2x64 v) = GM.basicClear v
-  {-# INLINE basicClear #-}
-  basicSet (MV_GF2x64 v) x = GM.basicSet v (coerce x)
-  {-# INLINE basicSet #-}
-  basicUnsafeCopy (MV_GF2x64 v1) (MV_GF2x64 v2) = GM.basicUnsafeCopy v1 v2
-  {-# INLINE basicUnsafeCopy #-}
-  basicUnsafeMove (MV_GF2x64 v1) (MV_GF2x64 v2) = GM.basicUnsafeMove v1 v2
-  {-# INLINE basicUnsafeMove #-}
-  basicUnsafeGrow (MV_GF2x64 v) n = MV_GF2x64 `liftM` GM.basicUnsafeGrow v n
-  {-# INLINE basicUnsafeGrow #-}
-
-instance G.Vector U.Vector GF2x64 where
-  basicUnsafeFreeze (MV_GF2x64 v) = V_GF2x64 `liftM` G.basicUnsafeFreeze v
-  {-# INLINE basicUnsafeFreeze #-}
-  basicUnsafeThaw (V_GF2x64 v) = MV_GF2x64 `liftM` G.basicUnsafeThaw v
-  {-# INLINE basicUnsafeThaw #-}
-  basicLength (V_GF2x64 v) = G.basicLength v
-  {-# INLINE basicLength #-}
-  basicUnsafeSlice i n (V_GF2x64 v) = V_GF2x64 $ G.basicUnsafeSlice i n v
-  {-# INLINE basicUnsafeSlice #-}
-  basicUnsafeIndexM (V_GF2x64 v) i = coerce `liftM` G.basicUnsafeIndexM v i
-  {-# INLINE basicUnsafeIndexM #-}
-  basicUnsafeCopy (MV_GF2x64 mv) (V_GF2x64 v) = G.basicUnsafeCopy mv v
-  elemseq _ = seq
-  {-# INLINE elemseq #-}
