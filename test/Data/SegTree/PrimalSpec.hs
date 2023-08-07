@@ -14,8 +14,6 @@ import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import Test.Prelude
 
-import Data.Vector.Unboxed.Instances ()
-
 main :: IO ()
 main = hspec spec
 
