@@ -15,10 +15,6 @@ jobs:
       matrix:
         stack-lts:
           - lts-21.0  # GHC 9.4.5
-          - lts-20.26 # GHC 9.2.8
-          - lts-19.33 # GHC 9.0.2
-          - lts-15.13 # AtCoder
-          # - lts-12.26 # GCJ
       fail-fast: false
     steps:
       - name: Checkout
