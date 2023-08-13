@@ -433,27 +433,29 @@ gvector f = do
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
-unlinesB f = G.foldr' ((<>) . (<> lfB) . f) mempty
+unlinesB f = G.foldMap ((<> lfB) . f)
 
 unwordsB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unwordsB f vec
   | G.null vec = mempty
   | otherwise =
       f (G.head vec)
-        <> G.foldr' ((<>) . (spB <>) . f) mempty (G.tail vec)
+        <> G.foldMap ((spB <>) . f) (G.tail vec)
 
 concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
-concatB f = G.foldr ((<>) . f) mempty
+concatB = G.foldMap
 
 {- |
 >>> matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
 "1 2 3\n4 5 6\n"
 -}
 matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
-matrixB h w f mat =
-  F.foldMap
-    ((<> lfB) . unwordsB f)
-    [G.slice (i * w) w mat | i <- [0 .. h - 1]]
+matrixB h w f !mat =
+  U.foldMap
+    ( \i ->
+        unwordsB f (G.slice (i * w) w mat) <> lfB
+    )
+    $ U.generate h id
 
 {- |
 >>> gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
@@ -463,9 +465,11 @@ matrixB h w f mat =
 -}
 gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 gridB h w f mat =
-  F.foldMap
-    ((<> lfB) . concatB f)
-    [G.slice (i * w) w mat | i <- [0 .. h - 1]]
+  U.foldMap
+    ( \i ->
+        G.foldMap f (G.slice (i * w) w mat) <> lfB
+    )
+    $ U.generate h id
 
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
 sizedB f vec = B.intDec (G.length vec) <> lfB <> f vec
