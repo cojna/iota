@@ -1,58 +1,63 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Main (main) where
 
-import qualified Data.List as L
-import qualified Language.Haskell.Exts as H
-import Language.Haskell.TH (runIO)
+import qualified GHC.Driver.Session
+import qualified GHC.Hs
+import qualified GHC.LanguageExtensions.Type
+import qualified GHC.LanguageExtensions.Type as X
+import qualified GHC.Parser.Lexer
+import qualified GHC.Types.SrcLoc
+import qualified GHC.Utils.Error
+import qualified GHC.Utils.Outputable
+import qualified Language.Haskell.GhclibParserEx.GHC.Parser as GHC.Parser.Ex
+import qualified Language.Haskell.GhclibParserEx.GHC.Settings.Config as GHC.Settings.Config.Ex
 import System.Directory (getCurrentDirectory)
 import System.Environment (getArgs)
-import System.IO.Temp (withTempDirectory)
+import System.Exit (
+  ExitCode (ExitFailure, ExitSuccess),
+  exitFailure,
+ )
+import System.IO (hPutStrLn, stderr)
+import System.IO.Temp (withSystemTempDirectory)
 import System.Process (rawSystem)
+import "template-haskell" Language.Haskell.TH (runIO)
 
 main :: IO ()
 main = do
   (name : opts) <- getArgs
-  let path = modulePath name
-  code <- readFile path
-  processed <- withTempDirectory "." "iota-cpp" $ \tmpDir -> do
-    let originalPath = tmpDir ++ "/define-removed.hs"
-    let processedPath = tmpDir ++ "/cpp-processed.hs"
-    writeFile originalPath $ removeDefineMacros code
-    _exitCode <-
-      rawSystem
-        "stack"
-        ["ghc", "--", "-E", originalPath, "-o", processedPath]
-    removeMacros <$> readFile processedPath
-  let extensions = case H.readExtensions processed of
-        Just (_, exts) -> exts
-        Nothing -> []
-  let parseOption =
-        H.defaultParseMode
-          { H.parseFilename = path
-          , H.extensions = extensions
-          }
-  case H.parseModuleWithMode parseOption processed of
-    H.ParseOk ast -> case opts of
-      [] -> putStrLn $ pretty ast
-      [dst] -> do
-        appendFile dst $ header name
-        appendFile dst $ pretty ast
-      _ -> pure ()
-    failed -> print failed
+  let path = moduleAbsPath name
+  withCPPProcessed path $ \processedPath -> do
+    code <- readFile processedPath
+    case parseFile path code of
+      GHC.Parser.Lexer.POk _ ast -> do
+        case opts of
+          [] -> putStrLn $ renderDecls ast
+          [dst] -> do
+            appendFile dst
+              $ mconcat
+                [ header name
+                , renderDecls ast
+                ]
+          _ -> pure ()
+      GHC.Parser.Lexer.PFailed ps -> do
+        hPutStrLn stderr $ renderParseErrors ps
+        exitFailure
 
 installPath :: FilePath
 installPath = $(do dir <- runIO getCurrentDirectory; [e|dir|])
 
-modulePath :: String -> FilePath
-modulePath name =
+moduleAbsPath :: String -> FilePath
+moduleAbsPath name =
   mconcat
     [ installPath
     , "/src/"
-    , map convert name
-    , ".hs"
+    , moduleRelPath name
     ]
+
+moduleRelPath :: String -> FilePath
+moduleRelPath name = map convert name <> ".hs"
   where
     convert '.' = '/'
     convert c = c
@@ -67,21 +72,65 @@ header name =
     , "-- " ++ name
     , replicate (lineWidth - 1) '-'
     ]
-#if MIN_VERSION_haskell_src_exts(1,18,0)
-pretty :: H.Module l -> String
-pretty (H.Module _ _ _ _ decls) = unlines
-#else
-pretty :: H.Module -> String
-pretty (H.Module _ _ _ _ _ _ decls) = unlines
-#endif
-    $ map (H.prettyPrintWithMode pphsMode) decls
-pretty _ = ""
 
-removeDefineMacros :: String -> String
-removeDefineMacros = unlines . filter (not . L.isPrefixOf "#define") . lines
+extensions :: [GHC.LanguageExtensions.Type.Extension]
+extensions =
+  [ X.DerivingVia
+  , X.LambdaCase
+  , X.MagicHash
+  , X.MultiWayIf
+  , X.OverloadedStrings
+  , X.PatternSynonyms
+  , X.RecordWildCards
+  , X.TypeFamilies
+  , X.TypeInType
+  , X.UnboxedTuples
+  , X.UnboxedSums
+  , X.ViewPatterns
+  , X.ImplicitParams
+  ]
 
-removeMacros :: String -> String
-removeMacros = unlines . filter (not . L.isPrefixOf "#") . lines
+dynFlags :: GHC.Driver.Session.DynFlags
+dynFlags =
+  foldl
+    GHC.Driver.Session.xopt_set
+    ( GHC.Driver.Session.defaultDynFlags
+        GHC.Settings.Config.Ex.fakeSettings
+        GHC.Settings.Config.Ex.fakeLlvmConfig
+    )
+    extensions
 
-pphsMode :: H.PPHsMode
-pphsMode = H.defaultMode{H.layout = H.PPNoLayout}
+withCPPProcessed :: FilePath -> (FilePath -> IO ()) -> IO ()
+withCPPProcessed path f = do
+  withSystemTempDirectory "iota" $ \tmpDir -> do
+    let processedPath = tmpDir ++ "/cpp-processed.hs"
+    exitCode <-
+      rawSystem
+        "stack"
+        ["ghc", "--", "-E", path, "-o", processedPath]
+    case exitCode of
+      ExitSuccess -> f processedPath
+      ExitFailure _ -> exitFailure
+
+parseFile ::
+  FilePath ->
+  String ->
+  GHC.Parser.Lexer.ParseResult (GHC.Types.SrcLoc.Located GHC.Hs.HsModule)
+parseFile = flip GHC.Parser.Ex.parseFile dynFlags
+
+renderDecls :: GHC.Types.SrcLoc.Located GHC.Hs.HsModule -> String
+renderDecls =
+  GHC.Utils.Outputable.renderWithContext
+    (GHC.Driver.Session.initDefaultSDocContext dynFlags)
+    . GHC.Utils.Outputable.vcat
+    . map GHC.Utils.Outputable.ppr
+    . GHC.Hs.hsmodDecls
+    . GHC.Types.SrcLoc.unLoc
+
+renderParseErrors :: GHC.Parser.Lexer.PState -> String
+renderParseErrors =
+  GHC.Utils.Outputable.renderWithContext
+    (GHC.Driver.Session.initDefaultSDocContext dynFlags)
+    . GHC.Utils.Error.pprMessages
+    . snd
+    . GHC.Parser.Lexer.getPsMessages

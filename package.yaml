@@ -47,7 +47,8 @@ executables:
       - -Wall
     dependencies:
       - directory
-      - haskell-src-exts
+      - ghc-lib-parser
+      - ghc-lib-parser-ex
       - process
       - template-haskell
       - temporary
