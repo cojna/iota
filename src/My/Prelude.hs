@@ -7,6 +7,8 @@ import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
 import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Prim as BP
+import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Foldable as F
 import Data.Functor.Identity
 import qualified Data.Vector as V
@@ -19,6 +21,9 @@ import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import Data.Word
+import Foreign.Ptr
+import Foreign.Storable
 import GHC.Exts
 import System.IO
 
@@ -122,21 +127,26 @@ upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
 upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
 {-# INLINE upperBound #-}
 
+{- |
+>>> radixSort $ U.fromList [3,1,4,1,5,9]
+[1,1,3,4,5,9]
+>>> radixSort $ U.fromList [-3,-1,-4,1,5,9]
+[1,5,9,-4,-3,-1]
+-}
 radixSort :: U.Vector Int -> U.Vector Int
 radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
-    mask k x = unsafeShiftRL x k .&. 0xffff
     step v k = U.create $ do
       pos <- UM.unsafeNew 0x10001
       UM.set pos 0
       U.forM_ v $ \x -> do
-        UM.unsafeModify pos (+ 1) (mask k x + 1)
+        UM.unsafeModify pos (+ 1) ((x !>>>. k) .&. 0xffff + 1)
       rep 0xffff $ \i -> do
         fi <- UM.unsafeRead pos i
         UM.unsafeModify pos (+ fi) (i + 1)
       res <- UM.unsafeNew $ U.length v
       U.forM_ v $ \x -> do
-        let !masked = mask k x
+        let !masked = (x !>>>. k) .&. 0xffff
         i <- UM.unsafeRead pos masked
         UM.unsafeWrite pos masked $ i + 1
         UM.unsafeWrite res i x
@@ -400,13 +410,13 @@ bvectorN = gvectorN
 gvectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
 gvectorN n f = do
   (e, o) <- viewPrimParser
-  pure $ G.unfoldrN n (pure . runPrimParser f e) o
+  pure $ G.unfoldrExactN n (runPrimParser f e) o
 {-# INLINE gvectorN #-}
 
 streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
 streamN n f = do
   (e, o) <- viewPrimParser
-  pure $ MS.unfoldrN n (pure . runPrimParser f e) o
+  pure $ MS.unfoldrExactN n (runPrimParser f e) o
 {-# INLINE streamN #-}
 
 uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
@@ -416,8 +426,8 @@ uvector = gvector
 gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
 gvector f = do
   (e, o) <- viewPrimParser
-  pure $
-    G.unfoldr
+  pure
+    $ G.unfoldr
       ( \p -> case runPrimParser f e p of
           (x, p')
             | p' < e -> Just (x, p')
@@ -428,27 +438,29 @@ gvector f = do
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
-unlinesB f = G.foldr' ((<>) . (<> endlB) . f) mempty
+unlinesB f = G.foldMap ((<> lfB) . f)
 
 unwordsB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unwordsB f vec
   | G.null vec = mempty
   | otherwise =
       f (G.head vec)
-        <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
+        <> G.foldMap ((spB <>) . f) (G.tail vec)
 
 concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
-concatB f = G.foldr ((<>) . f) mempty
+concatB = G.foldMap
 
 {- |
 >>> matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
 "1 2 3\n4 5 6\n"
 -}
 matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
-matrixB h w f mat =
-  F.foldMap
-    ((<> endlB) . unwordsB f)
-    [G.slice (i * w) w mat | i <- [0 .. h - 1]]
+matrixB h w f !mat =
+  U.foldMap
+    ( \i ->
+        unwordsB f (G.slice (i * w) w mat) <> lfB
+    )
+    $ U.generate h id
 
 {- |
 >>> gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
@@ -458,15 +470,31 @@ matrixB h w f mat =
 -}
 gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 gridB h w f mat =
-  F.foldMap
-    ((<> endlB) . concatB f)
-    [G.slice (i * w) w mat | i <- [0 .. h - 1]]
+  U.foldMap
+    ( \i ->
+        G.foldMap f (G.slice (i * w) w mat) <> lfB
+    )
+    $ U.generate h id
 
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
-sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
+sizedB f vec = B.intDec (G.length vec) <> lfB <> f vec
 
+{- |
+>>> yesnoB True
+"Yes"
+>>> yesnoB False
+"No"
+-}
 yesnoB :: Bool -> B.Builder
-yesnoB = bool (B.string7 "No") (B.string7 "Yes")
+yesnoB = BP.primBounded $ BP.boundedPrim 4 $ \flg ptr -> do
+  if flg
+    then do
+      poke (castPtr ptr) (0x00736559 :: Word32)
+      return $! plusPtr ptr 3
+    else do
+      poke (castPtr ptr) (0x6f4e :: Word16)
+      return $! plusPtr ptr 2
+{-# INLINE yesnoB #-}
 
 {- |
 >>> pairB B.intDec B.intDec $ (0, 1)
@@ -475,7 +503,7 @@ yesnoB = bool (B.string7 "No") (B.string7 "Yes")
 "0 1 2"
 -}
 pairB :: (a -> B.Builder) -> (b -> B.Builder) -> (a, b) -> B.Builder
-pairB f g (x, y) = f x <> B.char7 ' ' <> g y
+pairB f g (x, y) = f x <> spB <> g y
 
 showB :: (Show a) => a -> B.Builder
 showB = B.string7 . show
@@ -483,15 +511,25 @@ showB = B.string7 . show
 showLnB :: (Show a) => a -> B.Builder
 showLnB = B.string7 . flip shows "\n"
 
-endlB :: B.Builder
-endlB = B.char7 '\n'
-{-# INLINE endlB #-}
+{- |
+>>> lfB
+"\n"
+-}
+lfB :: B.Builder
+lfB = B.word8 0x0a
+
+{- |
+>>> spB
+" "
+-}
+spB :: B.Builder
+spB = B.word8 0x20
 
 putBuilder :: (MonadIO m) => B.Builder -> m ()
 putBuilder = liftIO . B.hPutBuilder stdout
 
 putBuilderLn :: (MonadIO m) => B.Builder -> m ()
-putBuilderLn b = putBuilder b *> putBuilder (B.char7 '\n')
+putBuilderLn b = putBuilder b *> putBuilder lfB
 
 -- * Misc
 neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
