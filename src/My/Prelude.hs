@@ -433,14 +433,14 @@ gvector f = do
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
-unlinesB f = G.foldr' ((<>) . (<> endlB) . f) mempty
+unlinesB f = G.foldr' ((<>) . (<> lfB) . f) mempty
 
 unwordsB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unwordsB f vec
   | G.null vec = mempty
   | otherwise =
       f (G.head vec)
-        <> G.foldr' ((<>) . (B.char7 ' ' <>) . f) mempty (G.tail vec)
+        <> G.foldr' ((<>) . (spB <>) . f) mempty (G.tail vec)
 
 concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 concatB f = G.foldr ((<>) . f) mempty
@@ -452,7 +452,7 @@ concatB f = G.foldr ((<>) . f) mempty
 matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 matrixB h w f mat =
   F.foldMap
-    ((<> endlB) . unwordsB f)
+    ((<> lfB) . unwordsB f)
     [G.slice (i * w) w mat | i <- [0 .. h - 1]]
 
 {- |
@@ -464,11 +464,11 @@ matrixB h w f mat =
 gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
 gridB h w f mat =
   F.foldMap
-    ((<> endlB) . concatB f)
+    ((<> lfB) . concatB f)
     [G.slice (i * w) w mat | i <- [0 .. h - 1]]
 
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
-sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
+sizedB f vec = B.intDec (G.length vec) <> lfB <> f vec
 
 {- |
 >>> yesnoB True
@@ -494,7 +494,7 @@ yesnoB = BP.primBounded $ BP.boundedPrim 4 $ \flg ptr -> do
 "0 1 2"
 -}
 pairB :: (a -> B.Builder) -> (b -> B.Builder) -> (a, b) -> B.Builder
-pairB f g (x, y) = f x <> B.char7 ' ' <> g y
+pairB f g (x, y) = f x <> spB <> g y
 
 showB :: (Show a) => a -> B.Builder
 showB = B.string7 . show
@@ -502,15 +502,25 @@ showB = B.string7 . show
 showLnB :: (Show a) => a -> B.Builder
 showLnB = B.string7 . flip shows "\n"
 
-endlB :: B.Builder
-endlB = B.char7 '\n'
-{-# INLINE endlB #-}
+{- |
+>>> lfB
+"\n"
+-}
+lfB :: B.Builder
+lfB = B.word8 0x0a
+
+{- |
+>>> spB
+" "
+-}
+spB :: B.Builder
+spB = B.word8 0x20
 
 putBuilder :: (MonadIO m) => B.Builder -> m ()
 putBuilder = liftIO . B.hPutBuilder stdout
 
 putBuilderLn :: (MonadIO m) => B.Builder -> m ()
-putBuilderLn b = putBuilder b *> putBuilder (B.char7 '\n')
+putBuilderLn b = putBuilder b *> putBuilder lfB
 
 -- * Misc
 neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
