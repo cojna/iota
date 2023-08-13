@@ -7,6 +7,8 @@ import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
 import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Prim as BP
+import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Foldable as F
 import Data.Functor.Identity
 import qualified Data.Vector as V
@@ -19,6 +21,9 @@ import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import Data.Word
+import Foreign.Ptr
+import Foreign.Storable
 import GHC.Exts
 import System.IO
 
@@ -465,8 +470,22 @@ gridB h w f mat =
 sizedB :: (G.Vector v a) => (v a -> B.Builder) -> v a -> B.Builder
 sizedB f vec = B.intDec (G.length vec) <> endlB <> f vec
 
+{- |
+>>> yesnoB True
+"Yes"
+>>> yesnoB False
+"No"
+-}
 yesnoB :: Bool -> B.Builder
-yesnoB = bool (B.string7 "No") (B.string7 "Yes")
+yesnoB = BP.primBounded $ BP.boundedPrim 4 $ \flg ptr -> do
+  if flg
+    then do
+      poke (castPtr ptr) (0x00736559 :: Word32)
+      return $! plusPtr ptr 3
+    else do
+      poke (castPtr ptr) (0x6f4e :: Word16)
+      return $! plusPtr ptr 2
+{-# INLINE yesnoB #-}
 
 {- |
 >>> pairB B.intDec B.intDec $ (0, 1)
