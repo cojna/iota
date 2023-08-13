@@ -127,21 +127,26 @@ upperBound :: (Ord a, G.Vector v a) => v a -> a -> Int
 upperBound !vec !key = binarySearch 0 (G.length vec) ((key <) . G.unsafeIndex vec)
 {-# INLINE upperBound #-}
 
+{- |
+>>> radixSort $ U.fromList [3,1,4,1,5,9]
+[1,1,3,4,5,9]
+>>> radixSort $ U.fromList [-3,-1,-4,1,5,9]
+[1,5,9,-4,-3,-1]
+-}
 radixSort :: U.Vector Int -> U.Vector Int
 radixSort v0 = F.foldl' step v0 [0, 16, 32, 48]
   where
-    mask k x = unsafeShiftRL x k .&. 0xffff
     step v k = U.create $ do
       pos <- UM.unsafeNew 0x10001
       UM.set pos 0
       U.forM_ v $ \x -> do
-        UM.unsafeModify pos (+ 1) (mask k x + 1)
+        UM.unsafeModify pos (+ 1) ((x !>>>. k) .&. 0xffff + 1)
       rep 0xffff $ \i -> do
         fi <- UM.unsafeRead pos i
         UM.unsafeModify pos (+ fi) (i + 1)
       res <- UM.unsafeNew $ U.length v
       U.forM_ v $ \x -> do
-        let !masked = mask k x
+        let !masked = (x !>>>. k) .&. 0xffff
         i <- UM.unsafeRead pos masked
         UM.unsafeWrite pos masked $ i + 1
         UM.unsafeWrite res i x
