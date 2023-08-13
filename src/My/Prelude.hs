@@ -400,13 +400,13 @@ bvectorN = gvectorN
 gvectorN :: (G.Vector v a) => Int -> PrimParser a -> PrimParser (v a)
 gvectorN n f = do
   (e, o) <- viewPrimParser
-  pure $ G.unfoldrN n (pure . runPrimParser f e) o
+  pure $ G.unfoldrExactN n (runPrimParser f e) o
 {-# INLINE gvectorN #-}
 
 streamN :: Int -> PrimParser a -> PrimParser (MS.Stream Id a)
 streamN n f = do
   (e, o) <- viewPrimParser
-  pure $ MS.unfoldrN n (pure . runPrimParser f e) o
+  pure $ MS.unfoldrExactN n (runPrimParser f e) o
 {-# INLINE streamN #-}
 
 uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
@@ -416,8 +416,8 @@ uvector = gvector
 gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
 gvector f = do
   (e, o) <- viewPrimParser
-  pure $
-    G.unfoldr
+  pure
+    $ G.unfoldr
       ( \p -> case runPrimParser f e p of
           (x, p')
             | p' < e -> Just (x, p')
