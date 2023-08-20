@@ -39,6 +39,7 @@ main = do
               $ mconcat
                 [ header name
                 , renderDecls ast
+                , "\n"
                 ]
           _ -> pure ()
       GHC.Parser.Lexer.PFailed ps -> do
