@@ -10,6 +10,14 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Buffer
 import Data.Graph.Sparse
 
+{- |
+>>> topSort $ buildDirectedGraph 4 4 $ U.fromList [(0,1),(0,2),(1,3),(2,3)]
+Just [0,1,2,3]
+>>> topSort $ buildDirectedGraph 2 0 U.empty
+Just [0,1]
+>>> topSort $ buildDirectedGraph 2 2 $ U.fromList [(0,1),(1,0)]
+Nothing
+-}
 topSort :: SparseGraph w -> Maybe (U.Vector Int)
 topSort gr = runST $ do
   let n = numVerticesSG gr
