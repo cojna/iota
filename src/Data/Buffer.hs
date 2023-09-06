@@ -2,7 +2,6 @@
 
 module Data.Buffer where
 
-import Control.Applicative
 import Control.Exception (assert)
 import Control.Monad.Primitive
 import qualified Data.Vector.Unboxed as U
@@ -34,16 +33,16 @@ newBufferAsQueue n = Buffer <$> UM.replicate 2 0 <*> UM.unsafeNew n <*> pure n
 type Deque s a = Buffer s a
 newBufferAsDeque :: (U.Unbox a, PrimMonad m) => Int -> m (Buffer (PrimState m) a)
 newBufferAsDeque n =
-  Buffer <$> UM.replicate 2 n
+  Buffer
+    <$> UM.replicate 2 n
     <*> UM.unsafeNew (2 * n)
     <*> pure (2 * n)
 
 lengthBuffer :: (PrimMonad m) => Buffer (PrimState m) a -> m Int
-lengthBuffer Buffer{bufferVars} =
-  liftA2
-    (-)
-    (UM.unsafeRead bufferVars _bufferBackPos)
-    (UM.unsafeRead bufferVars _bufferFrontPos)
+lengthBuffer Buffer{bufferVars} = do
+  f <- UM.unsafeRead bufferVars _bufferFrontPos
+  b <- UM.unsafeRead bufferVars _bufferBackPos
+  pure $! b - f
 {-# INLINE lengthBuffer #-}
 
 clearBuffer :: (PrimMonad m) => Buffer (PrimState m) a -> m ()

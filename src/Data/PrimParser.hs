@@ -1,10 +1,13 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Data.PrimParser where
 
+#if __GLASGOW_HASKELL__ < 906
 import Control.Applicative
+#endif
 import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
@@ -57,8 +60,8 @@ withByteString bs k f = case B.toForeignPtr bs of
 
 unsafeWithByteString :: B.ByteString -> PrimParser a -> a
 unsafeWithByteString bs f =
-  B.accursedUnutterablePerformIO $
-    withByteString bs return f
+  B.accursedUnutterablePerformIO
+    $ withByteString bs return f
 
 withInputHandle :: Handle -> (a -> IO r) -> PrimParser a -> IO r
 withInputHandle h k f = do
@@ -187,8 +190,8 @@ upperC = PrimParser $ \_ p ->
 memchrP# :: Addr# -> Addr# -> Word8 -> Addr#
 memchrP# e p w8 =
   let !(Ptr pos) =
-        B.accursedUnutterablePerformIO $
-          B.memchr (Ptr p) w8 (fromIntegral (I# (minusAddr# e p)))
+        B.accursedUnutterablePerformIO
+          $ B.memchr (Ptr p) w8 (fromIntegral (I# (minusAddr# e p)))
    in pos
 
 memchrNthP# :: Int# -> Addr# -> Addr# -> Word8 -> Addr#
