@@ -5,7 +5,7 @@ module Control.Memo.Fix where
 
 import Control.Monad.State
 #if MIN_VERSION_mtl(2,3,0)
-import Data.Function (fix)
+import Data.Function
 #endif
 import Data.Functor (($>))
 import qualified Data.IntMap.Strict as IM

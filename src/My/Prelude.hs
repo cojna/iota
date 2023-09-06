@@ -1,7 +1,11 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 
 module My.Prelude where
 
+#if MIN_VERSION_mtl(2,3,0)
+import Control.Monad
+#endif
 import Control.Monad.Primitive
 import Control.Monad.State.Strict
 import Data.Bits
