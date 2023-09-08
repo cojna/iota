@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -97,7 +98,9 @@ dynFlags =
     GHC.Driver.Session.xopt_set
     ( GHC.Driver.Session.defaultDynFlags
         GHC.Settings.Config.Ex.fakeSettings
+#if __GLASGOW_HASKELL__ < 906
         GHC.Settings.Config.Ex.fakeLlvmConfig
+#endif
     )
     extensions
 
