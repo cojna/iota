@@ -13,6 +13,15 @@ type Vertex = Int
  dist[v] == maxBound iff v is unreachable
 
  dist[v] == minBound iff v in negative cycle
+
+>>> bellmanFord 2 0 (U.singleton (0, 1, -1))
+[0,-1]
+>>> bellmanFord 2 0 U.empty
+[0,9223372036854775807]
+>>> bellmanFord 1 0 (U.singleton (0, 0, -1))
+[-9223372036854775808]
+>>> bellmanFord 2 0 (U.fromList [(0, 1, -1), (1, 0, -1)])
+[-9223372036854775808,-9223372036854775808]
 -}
 bellmanFord :: Int -> Vertex -> U.Vector (Vertex, Vertex, Int) -> U.Vector Int
 bellmanFord n root edges = U.create $ do
