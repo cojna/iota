@@ -1,8 +1,10 @@
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 module My.Prelude where
 
 import Control.Monad.Primitive
+import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
@@ -11,6 +13,7 @@ import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Foldable as F
 import Data.Functor.Identity
+import Data.Primitive
 import qualified Data.Vector as V
 import qualified Data.Vector.Fusion.Bundle as Bundle
 import qualified Data.Vector.Fusion.Bundle.Monadic as MBundle
@@ -435,6 +438,30 @@ gvector f = do
       )
       o
 {-# INLINE gvector #-}
+
+byteArrayN :: Int -> PrimParser ByteArray
+byteArrayN n@(I# n#) = PrimParser $ \_ p ->
+  let !ba = runST $ do
+        buf <- newByteArray n
+        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
+        freezeByteArray buf 0 n
+   in (# plusAddr# p n#, ba #)
+{-# INLINE byteArrayN #-}
+
+byteArrayHW :: Int -> Int -> PrimParser ByteArray
+byteArrayHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
+  let !ba = runST $ do
+        buf <- newByteArray (h * w)
+        fix
+          ( \loop !src !i -> when (i < h) $ do
+              copyPtrToMutableByteArray @_ @Word8 buf (i * w) src w
+              loop (plusPtr src (w + 1)) (i + 1)
+          )
+          (Ptr p)
+          0
+        freezeByteArray buf 0 (h * w)
+   in (# plusAddr# p (h# *# (w# +# 1#)), ba #)
+{-# INLINE byteArrayHW #-}
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
