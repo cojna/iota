@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module Data.Semiring where

@@ -57,8 +57,8 @@ withByteString bs k f = case B.toForeignPtr bs of
 
 unsafeWithByteString :: B.ByteString -> PrimParser a -> a
 unsafeWithByteString bs f =
-  B.accursedUnutterablePerformIO $
-    withByteString bs return f
+  B.accursedUnutterablePerformIO
+    $ withByteString bs return f
 
 withInputHandle :: Handle -> (a -> IO r) -> PrimParser a -> IO r
 withInputHandle h k f = do
@@ -154,6 +154,12 @@ double = PrimParser $ \e p ->
     (# p', x #) -> (# plusAddr# p' 1#, x #)
 {-# INLINE double #-}
 
+byte :: PrimParser Word8
+byte = PrimParser $ \_ p ->
+  case indexWord8OffAddr# p 0# of
+    w8 -> (# plusAddr# p 1#, W8# w8 #)
+{-# INLINE byte #-}
+
 char :: PrimParser Char
 char = PrimParser $ \_ p ->
   case indexWord8OffAddr# p 0# of
@@ -165,6 +171,12 @@ charSp = PrimParser $ \_ p ->
   case indexWord8OffAddr# p 0# of
     w8 -> (# plusAddr# p 2#, B.w2c (W8# w8) #)
 {-# INLINE charSp #-}
+
+charLn :: PrimParser Char
+charLn = PrimParser $ \_ p ->
+  case indexWord8OffAddr# p 0# of
+    w8 -> (# plusAddr# p 2#, B.w2c (W8# w8) #)
+{-# INLINE charLn #-}
 
 digitC :: PrimParser Int
 digitC = PrimParser $ \_ p ->
@@ -187,8 +199,8 @@ upperC = PrimParser $ \_ p ->
 memchrP# :: Addr# -> Addr# -> Word8 -> Addr#
 memchrP# e p w8 =
   let !(Ptr pos) =
-        B.accursedUnutterablePerformIO $
-          B.memchr (Ptr p) w8 (fromIntegral (I# (minusAddr# e p)))
+        B.accursedUnutterablePerformIO
+          $ B.memchr (Ptr p) w8 (fromIntegral (I# (minusAddr# e p)))
    in pos
 
 memchrNthP# :: Int# -> Addr# -> Addr# -> Word8 -> Addr#
