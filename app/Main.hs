@@ -84,7 +84,6 @@ extensions =
   , X.PatternSynonyms
   , X.RecordWildCards
   , X.TypeFamilies
-  , X.TypeInType
   , X.UnboxedTuples
   , X.UnboxedSums
   , X.ViewPatterns
