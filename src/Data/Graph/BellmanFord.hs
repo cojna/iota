@@ -10,7 +10,7 @@ type Vertex = Int
 
 {- | Bellman-Ford O(VE)
 
- dist[n] == maxBound iff v is unreachable
+ dist[v] == maxBound iff v is unreachable
 
  dist[v] == minBound iff v in negative cycle
 -}
