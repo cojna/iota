@@ -26,13 +26,13 @@ spec = do
       $ unsafeWithByteString "abcdef" (byteArrayN 6)
       `shouldBe` [97, 98, 99, 100, 101, 102]
   describe "byteArrayHW" $ do
-    it "byteArrayHW 3 2 \"ab\ncd\nef\n\" == \"abcdef\""
-      $ unsafeWithByteString "ab\ncd\nef\n" (byteArrayHW 3 2)
+    it "byteArrayHW 3 2 \"ab\\ncd\\nef\\n\" == \"abcdef\""
+      $ unsafeWithByteString "ab\ncd\nef\\n" (byteArrayHW 3 2)
       `shouldBe` [97, 98, 99, 100, 101, 102]
-    it "byteArrayHW 3 2 \"ab\ncd\nef\" == \"abcdef\""
+    it "byteArrayHW 3 2 \"ab\\ncd\\nef\" == \"abcdef\""
       $ unsafeWithByteString "ab\ncd\nef" (byteArrayHW 3 2)
       `shouldBe` [97, 98, 99, 100, 101, 102]
-    it "byteArrayHW 2 2 \"ab\ncd\nef\n\" == \"abcdef\""
+    it "byteArrayHW 2 2 \"ab\\ncd\\nef\\n\" == \"abcdef\""
       $ unsafeWithByteString "ab\ncd\n" (byteArrayHW 2 2)
       `shouldBe` [97, 98, 99, 100]
   describe "unwordsB" $ do
