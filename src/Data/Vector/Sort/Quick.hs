@@ -5,8 +5,9 @@ import Control.Monad.Primitive
 import Data.Bits
 import Data.Function
 import qualified Data.Vector.Generic.Mutable as GM
+import System.Random
 
-import System.Random.XoRoShiRo
+import System.Random.Utils
 
 {- | Random Pivot Quick Sort
 
@@ -29,19 +30,24 @@ quickSortBy ::
   mv (PrimState m) a ->
   m ()
 quickSortBy cmp mv0 = do
-  rng <- newRNGWithSeed $ fromIntegral (GM.length mv0)
-  fix
-    ( \loop !mvec ->
-        if GM.length mvec > 32
-          then do
-            i <- (`mod` GM.length mvec) <$> nextInt rng
-            pivot <- GM.read mvec i
-            cut <- pivotPartitionBy cmp mvec pivot
-            loop (GM.take cut mvec)
-            loop (GM.drop cut mvec)
-          else insertionSortBy cmp mvec
-    )
-    mv0
+  rng0 <- newStdGenPrim
+  void
+    $ fix
+      ( \loop !mvec !rng ->
+          if GM.length mvec > 32
+            then do
+              case genWord64R (fromIntegral $ GM.length mvec - 1) rng of
+                (w64, rng') -> do
+                  pivot <- GM.read mvec (fromIntegral w64)
+                  cut <- pivotPartitionBy cmp mvec pivot
+                  loop (GM.take cut mvec) rng'
+                    >>= loop (GM.drop cut mvec)
+            else do
+              insertionSortBy cmp mvec
+              return rng
+      )
+      mv0
+      rng0
 {-# INLINE quickSortBy #-}
 
 {- | Random Pivot Quick Select
@@ -66,28 +72,26 @@ quickSelectBy ::
   mv (PrimState m) a ->
   Int ->
   m a
-quickSelectBy cmp mv0 k0 = do
-  rng <-
-    newRNGWithSeed
-      -- FNV-1a
-      . foldl (\h x -> xor h x * 0x100000001b3) 0xcbf29ce484222325
-      $ map fromIntegral [k0, GM.length mv0]
+quickSelectBy cmp mv0 k0 =  do
+  rng0 <- newStdGenPrim
   fix
-    ( \loop !mvec !k -> do
+    ( \loop !mvec !k !rng -> do
         if GM.length mvec > 32
           then do
-            i <- (`mod` GM.length mvec) <$> nextInt rng
-            pivot <- GM.read mvec i
-            cut <- pivotPartitionBy cmp mvec pivot
-            if k < cut
-              then loop (GM.take cut mvec) k
-              else loop (GM.drop cut mvec) (k - cut)
+            case genWord64R (fromIntegral $ GM.length mvec - 1) rng of
+                (w64, rng') -> do
+                  pivot <- GM.read mvec (fromIntegral w64)
+                  cut <- pivotPartitionBy cmp mvec pivot
+                  if k < cut
+                    then loop (GM.take cut mvec) k rng'
+                    else loop (GM.drop cut mvec) (k - cut) rng'
           else do
             insertionSortBy cmp mvec
             GM.unsafeRead mvec k
     )
     mv0
     k0
+    rng0
 {-# INLINE quickSelectBy #-}
 
 pivotPartitionBy ::
