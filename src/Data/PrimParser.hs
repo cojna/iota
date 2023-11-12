@@ -154,6 +154,12 @@ double = PrimParser $ \e p ->
     (# p', x #) -> (# plusAddr# p' 1#, x #)
 {-# INLINE double #-}
 
+byte :: PrimParser Word8
+byte = PrimParser $ \_ p ->
+  case indexWord8OffAddr# p 0# of
+    w8 -> (# plusAddr# p 1#, W8# w8 #)
+{-# INLINE byte #-}
+
 char :: PrimParser Char
 char = PrimParser $ \_ p ->
   case indexWord8OffAddr# p 0# of
