@@ -30,17 +30,26 @@ appMat3x3 :: (Prim a, Num a) => Mat3x3 a -> a -> a -> a -> (a, a, a)
 appMat3x3 (Mat3x3 o ba) x y z = (x', y', z')
   where
     !x' =
-      x * indexByteArray ba (o + 0)
-        + y * indexByteArray ba (o + 1)
-        + z * indexByteArray ba (o + 2)
+      x
+        * indexByteArray ba (o + 0)
+        + y
+        * indexByteArray ba (o + 1)
+        + z
+        * indexByteArray ba (o + 2)
     !y' =
-      x * indexByteArray ba (o + 3)
-        + y * indexByteArray ba (o + 4)
-        + z * indexByteArray ba (o + 5)
+      x
+        * indexByteArray ba (o + 3)
+        + y
+        * indexByteArray ba (o + 4)
+        + z
+        * indexByteArray ba (o + 5)
     !z' =
-      x * indexByteArray ba (o + 6)
-        + y * indexByteArray ba (o + 7)
-        + z * indexByteArray ba (o + 8)
+      x
+        * indexByteArray ba (o + 6)
+        + y
+        * indexByteArray ba (o + 7)
+        + z
+        * indexByteArray ba (o + 8)
 
 rep3 :: (Int -> ST s ()) -> ST s ()
 rep3 f = f 0 *> f 1 *> f 2
@@ -64,23 +73,29 @@ genMat3x3 f = createMat3x3 $ \mba -> do
 
 instance (Prim a, Num a) => Num (Mat3x3 a) where
   (Mat3x3 ox xs) + (Mat3x3 oy ys) = createMat3x3 $ \mba -> rep9 $ \i -> do
-    writeByteArray @a mba i $
-      indexByteArray xs (ox + i) + indexByteArray ys (oy + i)
+    writeByteArray @a mba i
+      $ indexByteArray xs (ox + i)
+      + indexByteArray ys (oy + i)
   (Mat3x3 ox xs) - (Mat3x3 oy ys) = createMat3x3 $ \mba -> rep9 $ \i -> do
-    writeByteArray @a mba i $
-      indexByteArray xs (ox + i) - indexByteArray ys (oy + i)
+    writeByteArray @a mba i
+      $ indexByteArray xs (ox + i)
+      - indexByteArray ys (oy + i)
   (Mat3x3 ox xs) * (Mat3x3 oy ys) = createMat3x3 $ \mba -> do
     rep3 $ \i -> do
       let !ox' = ox + 3 * i
       rep3 $ \j -> do
         let !oy' = oy + j
-        writeByteArray @a mba (3 * i + j) $
-          indexByteArray xs ox' * indexByteArray ys oy'
-            + indexByteArray xs (ox' + 1) * indexByteArray ys (oy' + 3)
-            + indexByteArray xs (ox' + 2) * indexByteArray ys (oy' + 6)
+        writeByteArray @a mba (3 * i + j)
+          $ indexByteArray xs ox'
+          * indexByteArray ys oy'
+          + indexByteArray xs (ox' + 1)
+          * indexByteArray ys (oy' + 3)
+          + indexByteArray xs (ox' + 2)
+          * indexByteArray ys (oy' + 6)
   negate (Mat3x3 ox xs) = createMat3x3 $ \mba -> rep9 $ \i -> do
-    writeByteArray @a mba i . negate $
-      indexByteArray xs (ox + i)
+    writeByteArray @a mba i
+      . negate
+      $ indexByteArray xs (ox + i)
   abs = id
   signum = const 1
   fromInteger x = createMat3x3 $ \mba -> do
@@ -101,8 +116,12 @@ instance (Prim a) => GM.MVector UM.MVector (Mat3x3 a) where
   {-# INLINE basicUnsafeSlice #-}
   basicOverlaps (MV_Mat3x3 ox nx xs) (MV_Mat3x3 oy ny ys) =
     sameMutableByteArray xs ys
-      && ox < oy + ny
-      && oy < ox + nx
+      && ox
+      < oy
+      + ny
+      && oy
+      < ox
+      + nx
   {-# INLINE basicOverlaps #-}
   basicUnsafeNew n = MV_Mat3x3 0 (9 * n) <$> newByteArray (sizeOf @a undefined * 9 * n)
   {-# INLINE basicUnsafeNew #-}
