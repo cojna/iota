@@ -5,11 +5,18 @@ import qualified Data.List as L
 import qualified Data.Vector.Generic as G
 import Geometry
 import Geometry.Circle
-import System.Random.XoRoShiRo
+import System.Random.Utils
 
 smallestEnclosingCircle ::
   (Floating a, Ord a, G.Vector v (Point a)) => v (Point a) -> Circle a
-smallestEnclosingCircle = welzl [] . G.toList . shuffle
+smallestEnclosingCircle =
+  welzl []
+    . G.toList
+    . G.modify
+      ( \mps -> do
+          rng <- newStdGenPrim
+          shuffle rng mps
+      )
   where
     welzl [p0, p1, p2] _ =
       -- not equal to the smallest enclosing circle
@@ -31,8 +38,8 @@ naiveSmallestEnclosingCircle [p] = Circle p 0.0
 naiveSmallestEnclosingCircle [p0, p1] =
   Circle (fmap (0.5 *) (p0 + p1)) (norm (p1 - p0) * 0.5)
 naiveSmallestEnclosingCircle ps =
-  snd $
-    L.minimumBy
+  snd
+    $ L.minimumBy
       (compare `on` fst)
       [(r, Circle c r) | c <- centers, let !r = radius c]
   where

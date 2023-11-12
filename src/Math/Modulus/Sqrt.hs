@@ -1,9 +1,12 @@
 module Math.Modulus.Sqrt where
 
+import Control.Monad.ST
 import Data.Bits (Bits (unsafeShiftR, (.&.)))
 import Data.Function (fix)
+import System.Random.Stateful
+
 import Math.Modulus (powMod)
-import System.Random.XoRoShiRo (nextInt, withRNG)
+import System.Random.Utils
 
 {- | Legendre symbol (Euler's criterion)
 
@@ -50,13 +53,15 @@ sqrtMod a p = case legendreSymbol a p of
 cipolla :: Int -> Int -> Int
 cipolla a p = fst $ pow (ns, 1) (quot (p + 1) 2)
   where
-    !ns = withRNG $ \rng -> do
+    ns :: Int
+    !ns = runST $ withGlobalStdGen_ $ \rng ->
       fix $ \loop -> do
-        !x <- flip mod p <$> nextInt rng
+        x <- uniformRM (0, p - 1) rng
         case legendreSymbol (x *% x -% a) p of
           0 -> loop
           1 -> loop
           _ -> pure x
+
     !ww = ns *% ns -% a
 
     mul (x0, y0) (x1, y1) = (x', y')

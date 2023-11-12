@@ -2,18 +2,23 @@ module Geometry.ConvexHullSpec (main, spec) where
 
 import qualified Data.Vector as V
 
+import System.Random
+
 import Data.EPS
 import Geometry
 import Geometry.ConvexHull
 import Geometry.Instances ()
-import qualified System.Random.XoRoShiRo as Random
+import qualified System.Random.Utils as Random
 import Test.Prelude hiding (shuffle)
 
 main :: IO ()
 main = hspec spec
 
 shuffleList :: [a] -> [a]
-shuffleList = V.toList . Random.shuffle . V.fromList
+shuffleList xs =
+  V.toList
+    . V.modify (Random.shuffle (mkStdGen 123456789))
+    $ V.fromList xs
 
 spec :: Spec
 spec = do

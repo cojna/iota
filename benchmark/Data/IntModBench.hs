@@ -10,7 +10,7 @@ import Data.GaloisField
 import Data.IntMod
 import qualified Data.Vector.Unboxed as U
 import GHC.Exts
-import System.Random.XoRoShiRo
+import System.Random hiding (randoms)
 
 benchMain :: Benchmark
 benchMain =
@@ -54,8 +54,9 @@ benchMain =
   where
     n = 10000
     randoms :: U.Vector Int
-    randoms = withRNG $ \rng ->
-      U.replicateM n (getIntMod . intMod <$> nextInt rng)
+    randoms =
+      U.map fromIntegral
+        $ U.unfoldrExactN n (genWord64R (modulus - 1)) (mkStdGen 123456789)
 
 #define MOD 1000000007
 
