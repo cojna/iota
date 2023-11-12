@@ -27,13 +27,6 @@ memoFix ::
   a
 memoFix n f = fix $ \memo -> (V.generate n (f memo) V.!)
 
-hoge :: (Monad m) => (Int -> m Integer) -> Int -> m Integer
-hoge = \fib -> \case
-  0 -> pure 0
-  1 -> pure 1
-  i -> (+) <$> fib (i - 1) <*> fib (i - 2)
-{-# INLINE hoge #-}
-
 {- |
 >>> :set -XLambdaCase
 >>> :{
