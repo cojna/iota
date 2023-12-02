@@ -6,7 +6,9 @@ module Data.ByteString.RollingHashSpec where
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
+
 import Data.ByteString.RollingHash
+import Data.RollingHash
 import Test.Prelude
 
 main :: IO ()
@@ -28,13 +30,16 @@ spec = do
 
 prop_naive :: PrintableString -> Bool
 prop_naive (C.pack . getPrintableString -> bs) =
-  rollingHash bs == rollingHashNaiveWith 2047 bs
+  getRollingHash (rollingHash bs) == rollingHashNaiveWith 2047 bs
 
 prop_naiveWithBase :: Modulo 0x1fffffffffffffff Int -> PrintableString -> Bool
 prop_naiveWithBase
   (getModulo -> base)
-  (C.pack . getPrintableString -> bs) =
-    rollingHashWith base bs == rollingHashNaiveWith base bs
+  (C.pack . getPrintableString -> bs) = case someNatVal (fromIntegral base) of
+    Just (SomeNat proxy) ->
+      getRollingHash (rollingHashWith bs `asRollingHashOf` proxy)
+        == rollingHashNaiveWith base bs
+    Nothing -> False
 
 rollingHashNaiveWith :: Int -> B.ByteString -> Int
 rollingHashNaiveWith base = fromInteger . B.foldl' step 0
