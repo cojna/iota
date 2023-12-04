@@ -33,8 +33,10 @@ newtype RollingHashBuilder b = RHB (Affine (RollingHash b))
 instance (KnownNat b) => IsString (RollingHashBuilder b) where
   fromString = F.foldMap' (singletonRHB . ord)
 
-newtype instance U.MVector s (RollingHashBuilder b) = MV_RollingHashBuilder (U.MVector s Int)
-newtype instance U.Vector (RollingHashBuilder b) = V_RollingHashBuilder (U.Vector Int)
+newtype instance U.MVector s (RollingHashBuilder b)
+  = MV_RollingHashBuilder (U.MVector s (Affine (RollingHash b)))
+newtype instance U.Vector (RollingHashBuilder b)
+  = V_RollingHashBuilder (U.Vector (Affine (RollingHash b)))
 deriving newtype instance GM.MVector U.MVector (RollingHashBuilder b)
 deriving newtype instance G.Vector U.Vector (RollingHashBuilder b)
 instance U.Unbox (RollingHashBuilder b)
