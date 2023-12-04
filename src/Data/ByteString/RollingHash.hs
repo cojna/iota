@@ -30,9 +30,13 @@ rollingHash = RollingHash . B.foldl' step 0
         qr# -> case qr# <# 0# of
           b# -> I# (qr# -# b# +# uncheckedIShiftL# b# 61#)
 
-{- | @base@ should be a primitive root of (@2^61-1@)
+{- | @b@ should be a primitive root of (@2^61-1@)
 
+>>> import qualified Data.ByteString.Char8 as C
+>>> isPrimitiveRootRH 123
+True
 >>> rollingHashWith @123 $ C.pack "abc"
+1479666
 -}
 rollingHashWith :: forall b. (KnownNat b) => B.ByteString -> RollingHash b
 rollingHashWith = B.foldl' (\acc w -> acc * base + RollingHash (fromIntegral w)) 0

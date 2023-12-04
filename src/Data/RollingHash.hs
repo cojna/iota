@@ -12,7 +12,13 @@ import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import GHC.Exts
 import GHC.TypeLits
+import System.Random.Stateful
 
+{- |
+modulo @2^61-1@
+
+@b@ should be a primitive root of @2^61-1@
+-}
 newtype RollingHash (b :: Nat) = RollingHash {getRollingHash :: Int}
   deriving newtype (Eq, Ord, Show)
 
@@ -62,3 +68,32 @@ isPrimitiveRootRH g = all ok [2, 3, 5, 7, 11, 13, 31, 41, 61, 151, 331, 1321]
   where
     ok :: Int -> Bool
     ok p = fromIntegral g ^ quot 0x1ffffffffffffffe p /= (1 :: RollingHash 2047)
+
+{- |
+Generate a primitive root of @2^61-1@.
+
+>>> genPrimitiveRootRH (mkStdGen 123)
+1600615663002506808
+>>> isPrimitiveRootRH 1600615663002506808
+True
+-}
+genPrimitiveRootRH :: (RandomGen g) => g -> Int
+genPrimitiveRootRH =
+  head
+    . filter isPrimitiveRootRH
+    . randomRs (2, 0x1ffffffffffffffe)
+
+{- |
+>>> withPrimitiveRootRH (mkStdGen 123) $ \proxy -> getRollingHash $ 456 `asRollingHashOf` proxy
+456
+-}
+withPrimitiveRootRH ::
+  (RandomGen g) =>
+  g ->
+  (forall b. (KnownNat b) => Proxy b -> a) ->
+  a
+withPrimitiveRootRH gen f =
+  case someNatVal (fromIntegral $ genPrimitiveRootRH gen) of
+    Just (SomeNat proxy) -> f proxy
+    Nothing -> error "withPrimitiveRootRH failed"
+{-# INLINE withPrimitiveRootRH #-}
