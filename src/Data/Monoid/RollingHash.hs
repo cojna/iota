@@ -18,6 +18,8 @@ import Data.Monoid.Affine
 import Data.RollingHash
 
 {- |
+@b@ should be a primitive root of @2^61-1@
+
 >>> :set -XDataKinds -XOverloadedStrings
 >>> runRollingHashBuilder @2047 $ "abc" <> "def"
 1182147938584434692

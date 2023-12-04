@@ -13,6 +13,11 @@ import qualified Data.Vector.Unboxed as U
 import GHC.Exts
 import GHC.TypeLits
 
+{- |
+modulo @2^61-1@
+
+@b@ should be a primitive root of @2^61-1@
+-}
 newtype RollingHash (b :: Nat) = RollingHash {getRollingHash :: Int}
   deriving newtype (Eq, Ord, Show)
 
