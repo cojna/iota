@@ -24,7 +24,7 @@ pattern GF# x# = GF (I# x#)
 {-# COMPLETE GF# #-}
 
 mkGF :: forall p. (KnownNat p) => Int -> GF p
-mkGF x = GF (x `mod` natValAsInt (Proxy @p))
+mkGF x = GF (x `mod` fromIntegral (natVal' (proxy# @p)))
 
 validateGF :: forall p. (KnownNat p) => GF p -> Bool
 validateGF (GF x) = 0 <= x && x < natValAsInt (Proxy @p)
@@ -53,18 +53,18 @@ asGFOf = const
 
 instance (KnownNat p) => Bounded (GF p) where
   minBound = GF 0
-  maxBound = GF (natValAsInt (Proxy @p) - 1)
+  maxBound = GF (fromIntegral (natVal' (proxy# @p)) - 1)
 
 instance (KnownNat p) => Num (GF p) where
   (GF# x#) + (GF# y#) = case x# +# y# of
     xy# -> GF# (xy# -# ((xy# >=# m#) *# m#))
     where
-      !(I# m#) = natValAsInt (Proxy @p)
+      !(I# m#) = fromIntegral $ natVal' (proxy# @p)
   {-# INLINE (+) #-}
   (GF# x#) - (GF# y#) = case x# -# y# of
     xy# -> GF# (xy# +# ((xy# <# 0#) *# m#))
     where
-      !(I# m#) = natValAsInt (Proxy @p)
+      !(I# m#) = fromIntegral $ natVal' (proxy# @p)
   {-# INLINE (-) #-}
   (GF# x#) * (GF# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
     z# -> case timesWord2# z# im# of
@@ -73,19 +73,19 @@ instance (KnownNat p) => Num (GF p) where
           | isTrue# (geWord# v# m#) -> GF# (word2Int# (plusWord# v# m#))
           | otherwise -> GF# (word2Int# v#)
     where
-      !(W# m#) = natValAsWord (Proxy @p)
+      !(W# m#) = fromIntegral $ natVal' (proxy# @p)
       im# = plusWord# (quotWord# 0xffffffffffffffff## m#) 1##
   {-# INLINE (*) #-}
   abs = id
   signum = const (GF 1)
   fromInteger x = GF . fromIntegral $ x `mod` m
     where
-      m = natVal (Proxy @p)
+      m = natVal' (proxy# @p)
 
 instance (KnownNat p) => Fractional (GF p) where
   (GF# x#) / (GF# y#) = go# y# m# 1# 0#
     where
-      !(I# m#) = natValAsInt (Proxy @p)
+      !(I# m#) = fromIntegral $ natVal' (proxy# @p)
       go# a# b# u# v#
         | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
             q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
