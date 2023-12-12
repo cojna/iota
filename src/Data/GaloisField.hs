@@ -1,5 +1,5 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -7,6 +7,7 @@
 
 module Data.GaloisField where
 
+import Data.Int
 import Data.Proxy
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -92,8 +93,14 @@ instance (KnownNat p) => Fractional (GF p) where
         | otherwise = GF# ((x# *# (u# +# m#)) `remInt#` m#)
   fromRational _ = undefined
 
-newtype instance UM.MVector s (GF p) = MV_GF (UM.MVector s Int)
-newtype instance U.Vector (GF p) = V_GF (U.Vector Int)
-deriving newtype instance GM.MVector U.MVector (GF p)
-deriving newtype instance G.Vector U.Vector (GF p)
+instance U.IsoUnbox (GF p) Int32 where
+  toURepr = coerce (fromIntegral @Int @Int32)
+  {-# INLINE toURepr #-}
+  fromURepr = coerce (fromIntegral @Int32 @Int)
+  {-# INLINE fromURepr #-}
+
+newtype instance UM.MVector s (GF p) = MV_GF (UM.MVector s Int32)
+newtype instance U.Vector (GF p) = V_GF (U.Vector Int32)
+deriving via (GF p `U.As` Int32) instance GM.MVector U.MVector (GF p)
+deriving via (GF p `U.As` Int32) instance G.Vector U.Vector (GF p)
 instance U.Unbox (GF p)
