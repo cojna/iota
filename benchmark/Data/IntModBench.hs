@@ -12,6 +12,8 @@ import qualified Data.Vector.Unboxed as U
 import GHC.Exts
 import System.Random hiding (randoms)
 
+#define MOD 998244353
+
 benchMain :: Benchmark
 benchMain =
   bgroup
@@ -50,6 +52,12 @@ benchMain =
         , bench "timesMod6" $ whnf (U.foldl' timesMod6 1) randoms
         , bench "timesMod7" $ whnf (U.foldl' timesMod7 1) randoms
         ]
+    , bgroup
+        "(/%)"
+        [ bench "divModGF" $ whnf (U.foldl' divModGF 1) randoms
+        , bench "divMod1" $ whnf (U.foldl' divMod1 1) randoms
+        , bench "divMod2" $ whnf (U.foldl' divMod2 1) randoms
+        ]
     ]
   where
     n = 10000
@@ -57,8 +65,6 @@ benchMain =
     randoms =
       U.map fromIntegral
         $ U.unfoldrExactN n (genWord64R (modulus - 1)) (mkStdGen 123456789)
-
-#define MOD 1000000007
 
 addModGF :: Int -> Int -> Int
 addModGF = coerce ((+) @(GF MOD))
@@ -170,3 +176,20 @@ timesMod7 (I# x#) (I# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
   where
     m# = int2Word# MOD#
     im# = plusWord# (quotWord# 0xffffffffffffffff## m#) 1##
+
+divModGF :: Int -> Int -> Int
+divModGF = coerce ((/) @(GF MOD))
+
+divMod1 :: Int -> Int -> Int
+divMod1 (I# x#) (I# y#) = go# y# m# 1# 0#
+  where
+    !(I# m#) = MOD
+    go# a# b# u# v#
+      | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
+          q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
+      | otherwise = I# ((x# *# (u# +# m#)) `remInt#` m#)
+
+divMod2 :: Int -> Int -> Int
+divMod2 x y = coerce f
+  where
+    f = (GF x :: GF MOD) * (GF y ^ (MOD - 2 :: Int))

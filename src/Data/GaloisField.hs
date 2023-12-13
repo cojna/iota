@@ -14,6 +14,7 @@ import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import GHC.Exts
+import GHC.Real (Ratio (..))
 import GHC.TypeLits
 
 newtype GF (p :: Nat) = GF {unGF :: Int}
@@ -83,15 +84,18 @@ instance (KnownNat p) => Num (GF p) where
     where
       m = natVal' (proxy# @p)
 
+{- |
+>>> recip @(GF 998244353) 0
+0
+>>> recip @(GF 2) 0
+0
+-}
 instance (KnownNat p) => Fractional (GF p) where
-  (GF# x#) / (GF# y#) = go# y# m# 1# 0#
-    where
-      !(I# m#) = fromIntegral $ natVal' (proxy# @p)
-      go# a# b# u# v#
-        | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
-            q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
-        | otherwise = GF# ((x# *# (u# +# m#)) `remInt#` m#)
-  fromRational _ = undefined
+  recip = case natVal' (proxy# @p) of
+    2 -> id
+    p -> (^ (fromIntegral p - 2 :: Int))
+  {-# INLINE recip #-}
+  fromRational (p :% q) = fromInteger p / fromInteger q
 
 instance U.IsoUnbox (GF p) Int32 where
   toURepr = coerce (fromIntegral @Int @Int32)
