@@ -58,6 +58,7 @@ instance (KnownNat p) => Bounded (GF p) where
   maxBound = GF (fromIntegral (natVal' (proxy# @p)) - 1)
 
 instance (KnownNat p) => Num (GF p) where
+  {-# SPECIALIZE instance Num (GF 998244353) #-}
   (GF# x#) + (GF# y#) = case x# +# y# of
     xy# -> GF# (xy# -# ((xy# >=# m#) *# m#))
     where
@@ -91,6 +92,7 @@ instance (KnownNat p) => Num (GF p) where
 0
 -}
 instance (KnownNat p) => Fractional (GF p) where
+  {-# SPECIALIZE instance Fractional (GF 998244353) #-}
   recip = case natVal' (proxy# @p) of
     2 -> id
     p -> (^ (fromIntegral p - 2 :: Int))
