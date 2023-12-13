@@ -1,5 +1,5 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -7,12 +7,14 @@
 
 module Data.GaloisField where
 
+import Data.Int
 import Data.Proxy
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import GHC.Exts
+import GHC.Real (Ratio (..))
 import GHC.TypeLits
 
 newtype GF (p :: Nat) = GF {unGF :: Int}
@@ -24,7 +26,7 @@ pattern GF# x# = GF (I# x#)
 {-# COMPLETE GF# #-}
 
 mkGF :: forall p. (KnownNat p) => Int -> GF p
-mkGF x = GF (x `mod` natValAsInt (Proxy @p))
+mkGF x = GF (x `mod` fromIntegral (natVal' (proxy# @p)))
 
 validateGF :: forall p. (KnownNat p) => GF p -> Bool
 validateGF (GF x) = 0 <= x && x < natValAsInt (Proxy @p)
@@ -53,18 +55,19 @@ asGFOf = const
 
 instance (KnownNat p) => Bounded (GF p) where
   minBound = GF 0
-  maxBound = GF (natValAsInt (Proxy @p) - 1)
+  maxBound = GF (fromIntegral (natVal' (proxy# @p)) - 1)
 
 instance (KnownNat p) => Num (GF p) where
+  {-# SPECIALIZE instance Num (GF 998244353) #-}
   (GF# x#) + (GF# y#) = case x# +# y# of
     xy# -> GF# (xy# -# ((xy# >=# m#) *# m#))
     where
-      !(I# m#) = natValAsInt (Proxy @p)
+      !(I# m#) = fromIntegral $ natVal' (proxy# @p)
   {-# INLINE (+) #-}
   (GF# x#) - (GF# y#) = case x# -# y# of
     xy# -> GF# (xy# +# ((xy# <# 0#) *# m#))
     where
-      !(I# m#) = natValAsInt (Proxy @p)
+      !(I# m#) = fromIntegral $ natVal' (proxy# @p)
   {-# INLINE (-) #-}
   (GF# x#) * (GF# y#) = case timesWord# (int2Word# x#) (int2Word# y#) of
     z# -> case timesWord2# z# im# of
@@ -73,27 +76,37 @@ instance (KnownNat p) => Num (GF p) where
           | isTrue# (geWord# v# m#) -> GF# (word2Int# (plusWord# v# m#))
           | otherwise -> GF# (word2Int# v#)
     where
-      !(W# m#) = natValAsWord (Proxy @p)
+      !(W# m#) = fromIntegral $ natVal' (proxy# @p)
       im# = plusWord# (quotWord# 0xffffffffffffffff## m#) 1##
   {-# INLINE (*) #-}
   abs = id
   signum = const (GF 1)
   fromInteger x = GF . fromIntegral $ x `mod` m
     where
-      m = natVal (Proxy @p)
+      m = natVal' (proxy# @p)
 
+{- |
+>>> recip @(GF 998244353) 0
+0
+>>> recip @(GF 2) 0
+0
+-}
 instance (KnownNat p) => Fractional (GF p) where
-  (GF# x#) / (GF# y#) = go# y# m# 1# 0#
-    where
-      !(I# m#) = natValAsInt (Proxy @p)
-      go# a# b# u# v#
-        | isTrue# (b# ># 0#) = case a# `quotInt#` b# of
-            q# -> go# b# (a# -# (q# *# b#)) v# (u# -# (q# *# v#))
-        | otherwise = GF# ((x# *# (u# +# m#)) `remInt#` m#)
-  fromRational _ = undefined
+  {-# SPECIALIZE instance Fractional (GF 998244353) #-}
+  recip = case natVal' (proxy# @p) of
+    2 -> id
+    p -> (^ (fromIntegral p - 2 :: Int))
+  {-# INLINE recip #-}
+  fromRational (p :% q) = fromInteger p / fromInteger q
 
-newtype instance UM.MVector s (GF p) = MV_GF (UM.MVector s Int)
-newtype instance U.Vector (GF p) = V_GF (U.Vector Int)
-deriving newtype instance GM.MVector U.MVector (GF p)
-deriving newtype instance G.Vector U.Vector (GF p)
+instance U.IsoUnbox (GF p) Int32 where
+  toURepr = coerce (fromIntegral @Int @Int32)
+  {-# INLINE toURepr #-}
+  fromURepr = coerce (fromIntegral @Int32 @Int)
+  {-# INLINE fromURepr #-}
+
+newtype instance UM.MVector s (GF p) = MV_GF (UM.MVector s Int32)
+newtype instance U.Vector (GF p) = V_GF (U.Vector Int32)
+deriving via (GF p `U.As` Int32) instance GM.MVector U.MVector (GF p)
+deriving via (GF p `U.As` Int32) instance G.Vector U.Vector (GF p)
 instance U.Unbox (GF p)
