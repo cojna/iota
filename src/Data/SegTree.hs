@@ -135,8 +135,8 @@ mappendFromTo st l0 r0 = do
             loop
               accL'
               accR'
-              (unsafeShiftR (l' + l' .&. 1) 1)
-              (unsafeShiftR (r' - r' .&. 1) 1)
+              (unsafeShiftR (l' + 1) 1)
+              (unsafeShiftR r' 1)
           else return $! accL <> accR
     )
     mempty
@@ -201,8 +201,8 @@ appFromTo st l0 r0 f = when (l0 < r0) $ do
         when (r' .&. 1 == 1) $ do
           evalAt st (r' - 1) f
         loop
-          (unsafeShiftR (l' + l' .&. 1) 1)
-          (unsafeShiftR (r' - r' .&. 1) 1)
+          (unsafeShiftR (l' + 1) 1)
+          (unsafeShiftR r' 1)
     )
     l
     r
