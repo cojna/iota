@@ -37,8 +37,8 @@ buildSegTree vec = do
   G.unsafeCopy (GM.unsafeSlice n (G.length vec) tree) vec
   flip fix (n - 1) $ \loop !i -> when (i >= 1) $ do
     mappend
-      <$> GM.unsafeRead tree (unsafeShiftL i 1)
-      <*> GM.unsafeRead tree (unsafeShiftL i 1 .|. 1)
+      <$> GM.unsafeRead tree (i !<<. 1)
+      <*> GM.unsafeRead tree ((i !<<. 1) .|. 1)
       >>= GM.unsafeWrite tree i
     loop (i - 1)
   return $ SegTree tree
@@ -131,8 +131,8 @@ mappendFromTo segtree l0 r0 = do
             loop
               accL'
               accR'
-              (unsafeShiftR (l + 1) 1)
-              (unsafeShiftR r 1)
+              ((l + 1) !>>. 1)
+              (r !>>. 1)
           else return $! accL <> accR
     )
     mempty
