@@ -11,8 +11,11 @@ import qualified GHC.LanguageExtensions.Type as X
 import qualified GHC.Parser.Lexer
 import qualified GHC.Types.SrcLoc
 import qualified GHC.Utils.Error
-#if __GLASGOW_HASKELL__ >= 906
+#if __GLASGOW_HASKELL__ == 906
 import qualified GHC.Parser.Errors.Types
+#endif
+#if __GLASGOW_HASKELL__ >= 908
+import qualified GHC.Types.Error
 #endif
 import qualified GHC.Utils.Outputable
 import qualified Language.Haskell.GhclibParserEx.GHC.Parser as GHC.Parser.Ex
@@ -146,8 +149,10 @@ renderParseErrors =
   GHC.Utils.Outputable.renderWithContext
     (GHC.Driver.Session.initDefaultSDocContext dynFlags)
     . GHC.Utils.Error.pprMessages
-#if __GLASGOW_HASKELL__ >= 906
+#if __GLASGOW_HASKELL__ == 906
         (GHC.Utils.Error.defaultDiagnosticOpts @GHC.Parser.Errors.Types.PsMessage)
+#elif __GLASGOW_HASKELL__ >= 908
+        GHC.Types.Error.NoDiagnosticOpts
 #endif
     . snd
     . GHC.Parser.Lexer.getPsMessages
