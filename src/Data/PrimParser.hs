@@ -83,7 +83,7 @@ viewPrimParserAsByteString :: PrimParser B.ByteString
 viewPrimParserAsByteString = PrimParser $ \e p ->
   let n = I# (minusAddr# e p)
       bs = B.unsafeCreate n $ \dst ->
-        B.memcpy dst (Ptr p) n
+        copyBytes dst (Ptr p) n
    in (# p, bs #)
 
 wordP# :: Addr# -> Word# -> (# Addr#, Word# #)
@@ -216,7 +216,7 @@ byteStringTo w = PrimParser $ \e p ->
   let !end = memchrP# e p w
       len = I# (minusAddr# end p)
       bs = B.unsafeCreate len $ \dst ->
-        B.memcpy dst (Ptr p) len
+        copyBytes dst (Ptr p) len
    in (# plusAddr# end 1#, bs #)
 {-# INLINE byteStringTo #-}
 
@@ -231,7 +231,7 @@ byteStringSp = byteStringTo 0x20
 byteStringN :: Int -> PrimParser B.ByteString
 byteStringN n@(I# n#) = PrimParser $ \_ p ->
   let bs = B.unsafeCreate n $ \dst ->
-        B.memcpy dst (Ptr p) n
+        copyBytes dst (Ptr p) n
    in (# plusAddr# p n#, bs #)
 {-# INLINE byteStringN #-}
 
@@ -240,7 +240,7 @@ byteStringHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
   let bs = B.unsafeCreate (h * w) $ \dst0 ->
         fix
           ( \loop !dst !src !i -> when (i < h) $ do
-              B.memcpy dst src w
+              copyBytes dst src w
               loop (plusPtr dst w) (plusPtr src (w + 1)) (i + 1)
           )
           dst0
