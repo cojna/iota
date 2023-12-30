@@ -2,6 +2,7 @@ module Math.Prime where
 
 import qualified Data.IntMap as IM
 import qualified Data.List as L
+import qualified Data.List.NonEmpty as NE
 
 smallPrimes :: (Integral i) => [i]
 smallPrimes = 2 : [n | n <- [3, 5 .. 46337], all ((> 0) . rem n) $ takeWhile (\x -> x * x <= n) smallPrimes]
@@ -68,7 +69,7 @@ prop> \n -> not (n >= 0) || totient n == length [x|x<-[1..n], gcd n x == 1]
 totient :: Int -> Int
 totient n = n `quot` product ps * product (map (subtract 1) ps)
   where
-    ps = map head . L.group $ primeFactors n
+    ps = map NE.head . NE.group $ primeFactors n
 
 {- |
 >>> divisors 12

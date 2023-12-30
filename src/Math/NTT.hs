@@ -5,7 +5,8 @@ module Math.NTT where
 import Control.Monad
 import Control.Monad.Primitive
 import Data.Bits
-import qualified Data.List as L
+import Data.Function
+import qualified Data.List.NonEmpty as NE
 import Data.Proxy (Proxy (..))
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Unboxed as U
@@ -76,7 +77,7 @@ convolute xs ys = U.create $ do
   where
     n = U.length xs
     m = U.length ys
-    !h = head [i | i <- [0 ..], n + m - 1 <= unsafeShiftL 1 i]
+    !h = countTrailingZeros $ extendToPowerOfTwo (n + m - 1)
     !len = unsafeShiftL 1 h
     !ilen = recip (GF len)
 {-# INLINE convolute #-}
@@ -126,7 +127,7 @@ butterfly mvec = do
         (0 ..< w)
   where
     n = UM.length mvec
-    !h = head [i | i <- [0 ..], n <= unsafeShiftL 1 i]
+    !h = countTrailingZeros $ extendToPowerOfTwo n
     NTTRunner{..} = nttRunner
 {-# INLINE butterfly #-}
 
@@ -153,7 +154,7 @@ invButterfly mvec = void $ do
       (0 ..< w)
   where
     n = UM.length mvec
-    !h = head [i | i <- [0 ..], n <= unsafeShiftL 1 i]
+    !h = countTrailingZeros $ extendToPowerOfTwo n
     NTTRunner{..} = nttRunner
 {-# INLINE invButterfly #-}
 
@@ -189,9 +190,12 @@ primitiveRoot ::
   Int
 primitiveRoot 2 = 1
 primitiveRoot prime = reifyNat prime $ \proxy ->
-  head [g | g <- [2 ..], all (check (toGF proxy g)) ps]
+  flip fix 2 $ \loop !g ->
+    if all (check (toGF proxy g)) ps
+    then g
+    else loop (g + 1)
   where
-    !ps = map head . L.group $ primeFactors (prime - 1)
+    !ps = map NE.head . NE.group $ primeFactors (prime - 1)
 
     toGF :: Proxy p -> Int -> GF p
     toGF _ = GF

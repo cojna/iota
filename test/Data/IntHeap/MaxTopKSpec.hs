@@ -92,10 +92,10 @@ naiveExchange old new k xs
   | old `notElem` xs = (Nothing, buildMaxTopK k xs)
   | oldList == newList = (Nothing, buildMaxTopK k xs')
   | otherwise =
-    ( Just
-        ( head $ newList L.\\ oldList
-        , head $ oldList L.\\ newList
-        )
+    ( do
+      (ins,_) <- L.uncons $ newList L.\\ oldList
+      (del,_) <- L.uncons $ oldList L.\\ newList
+      return (ins, del)
     , buildMaxTopK k xs'
     )
   where
