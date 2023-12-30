@@ -15,6 +15,7 @@ jobs:
       matrix:
         stack-lts:
           - lts-21.0  # GHC 9.4.5
+          - lts-22.0  # GHC 9.6.3
       fail-fast: false
     steps:
       - name: Checkout

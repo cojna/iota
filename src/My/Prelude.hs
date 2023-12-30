@@ -1,8 +1,10 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 
 module My.Prelude where
 
+import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Control.Monad.State.Strict
@@ -12,6 +14,9 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Foldable as F
+#if MIN_VERSION_mtl(2,3,0)
+import Data.Function (fix)
+#endif
 import Data.Functor.Identity
 import Data.Primitive
 import qualified Data.Vector as V
