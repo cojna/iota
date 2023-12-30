@@ -16,6 +16,7 @@ jobs:
         stack-lts:
           - lts-21.0  # GHC 9.4.5
           - lts-22.0  # GHC 9.6.3
+          - nightly-2023-12-27 # GHC 9.8.1
       fail-fast: false
     steps:
       - name: Checkout

@@ -78,10 +78,13 @@ Generate a primitive root of @2^61-1@.
 True
 -}
 genPrimitiveRootRH :: (RandomGen g) => g -> Int
-genPrimitiveRootRH =
-  head
-    . filter isPrimitiveRootRH
-    . randomRs (2, 0x1ffffffffffffffe)
+genPrimitiveRootRH = go
+  where
+    go !g
+      | isPrimitiveRootRH x = x
+      | otherwise = go g'
+      where
+        (x, g') = randomR (2, 0x1ffffffffffffffe) g
 
 {- |
 >>> withPrimitiveRootRH (mkStdGen 123) $ \proxy -> getRollingHash $ 456 `asRollingHashOf` proxy

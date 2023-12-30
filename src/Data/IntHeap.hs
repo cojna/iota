@@ -5,6 +5,7 @@ module Data.IntHeap where
 import Data.Coerce
 import qualified Data.IntMap.Strict as IM
 import qualified Data.List as L
+import qualified Data.List.NonEmpty as NE
 import GHC.Exts
 
 newtype IntHeap = IntHeap {getIntHeap :: IM.IntMap Int}
@@ -53,8 +54,8 @@ fromAscListIH :: [Int] -> IntHeap
 fromAscListIH =
   IntHeap
     . IM.fromDistinctAscList
-    . map (\g -> (head g, length g))
-    . L.group
+    . map (\g -> (NE.head g, NE.length g))
+    . NE.group
 
 {- | /O(n)/
 
@@ -75,8 +76,8 @@ fromDescListIH =
   IntHeap
     . IM.fromDistinctAscList
     . reverse
-    . map (\g -> (head g, length g))
-    . L.group
+    . map (\g -> (NE.head g, NE.length g))
+    . NE.group
 
 {- | /O(n)/
 
