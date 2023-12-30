@@ -4,7 +4,7 @@
 
 module Data.PrimParser where
 
-import Control.Applicative
+import Control.Applicative (Applicative (..))
 import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
@@ -13,6 +13,7 @@ import Foreign
 import GHC.Exts
 import GHC.Word
 import System.IO
+import Prelude hiding (Applicative (..))
 
 newtype PrimParser a = PrimParser
   { runPrimParser# ::

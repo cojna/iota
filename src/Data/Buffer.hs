@@ -2,11 +2,12 @@
 
 module Data.Buffer where
 
-import Control.Applicative
+import Control.Applicative (Applicative (..))
 import Control.Exception (assert)
 import Control.Monad.Primitive
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import Prelude hiding (Applicative (..))
 
 data Buffer s a = Buffer
   { bufferVars :: !(UM.MVector s Int)
