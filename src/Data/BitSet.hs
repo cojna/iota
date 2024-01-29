@@ -203,6 +203,20 @@ strictPowersetBS s0 = MS.Stream step s0
 toListBS :: BitSet -> [Int]
 toListBS = L.unfoldr minViewBS
 
+{- |
+>>> import Data.Functor.Identity
+>>> runIdentity . MS.toList $ toStreamBS [3,1,4]
+[1,3,4]
+-}
+toStreamBS :: (Monad m) => BitSet -> MS.Stream m Int
+toStreamBS = MS.Stream step
+  where
+    step s
+      | s /= BitSet 0 = return $ MS.Yield (findMinBS s) (deleteMinBS s)
+      | otherwise = return MS.Done
+    {-# INLINE [0] step #-}
+{-# INLINE [1] toStreamBS #-}
+
 newtype instance U.MVector s BitSet = MV_BitSet (U.MVector s Int)
 newtype instance U.Vector BitSet = V_BitSet (U.Vector Int)
 deriving newtype instance GM.MVector U.MVector BitSet

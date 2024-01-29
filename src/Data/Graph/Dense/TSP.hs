@@ -12,7 +12,7 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.BitSet
 import Data.Graph.Dense
-import My.Prelude (rep, rev, (..<), (>..))
+import My.Prelude (rep, (..<), (>..))
 
 data TSPResult a = TSPResult
   { resultTSP :: !a
@@ -39,16 +39,15 @@ runTSP gr = runST $ do
     UM.unsafeWrite dp (ixTSP (singletonBS v) v) $ matDG gr origin v
 
   rep (shiftL 1 n) . (. BitSet) $ \visited ->
-    rev n $ \v -> when (memberBS v visited) $ do
-      let !o = ixTSP (deleteBS v visited) 0
-      when (o > 0) $ do
+    when (popCount visited > 1) $ do
+      flip MS.mapM_ (toStreamBS visited) $ \v -> do
         MS.foldM'
           ( \acc pv -> do
-              !dpv <- UM.unsafeRead dp (o + pv)
+              dpv <- UM.unsafeRead dp (ixTSP (deleteBS v visited) pv)
               return $ min acc (dpv + matDG gr pv v)
           )
           inf
-          (n >.. 0)
+          (n >.. 0) -- faster than (0 ..< n)
           >>= UM.unsafeWrite dp (ixTSP visited v)
 
   !res <-
