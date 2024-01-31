@@ -4,7 +4,6 @@ import Control.Monad
 import Control.Monad.ST
 import Data.Bits
 import Data.Coerce
-import Data.Semigroup
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import Data.Vector.Fusion.Util
 import qualified Data.Vector.Unboxed as U
@@ -12,11 +11,10 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import Data.BitSet
 import Data.Graph.Dense
-import My.Prelude (rep, rev, (..<), (>..))
+import My.Prelude (rep, (..<), (>..))
 
 data TSPResult a = TSPResult
   { resultTSP :: !a
-  , infTSP :: !a
   , freezedTSP :: U.Vector a
   }
 
@@ -24,31 +22,39 @@ data TSPResult a = TSPResult
 
 /O(n^2 2^n)/
 
->>> resultTSP . runTSP $ fromListDG @Int [[0,1,999],[999,0,2],[4,999,0]]
+>>> resultTSP . runTSP 0x3f3f3f3f $ fromListDG @Int [[0,1,999],[999,0,2],[4,999,0]]
 7
->>> resultTSP . runTSP $ fromListDG @Int [[0,1,1],[1,0,8],[1,999,0]]
+>>> resultTSP . runTSP 0x3f3f3f3f $ fromListDG @Int [[0,1,1],[1,0,8],[1,999,0]]
 10
->>> resultTSP . runTSP $ fromListDG @Int [[0]]
+>>> resultTSP . runTSP 0x3f3f3f3f $ fromListDG @Int [[0]]
 0
+>>> resultTSP . runTSP 999 $ fromListDG @Int [[0,-1,999],[999,0,1],[1,999,0]]
+1
+>>> resultTSP . runTSP 999 $ fromListDG @Int [[0,-1,999],[999,0,-1],[999,999,0]]
+997
 -}
-runTSP :: (U.Unbox w, Num w, Eq w, Ord w) => DenseGraph w -> TSPResult w
-runTSP gr = runST $ do
+runTSP ::
+  (U.Unbox w, Num w, Eq w, Ord w) =>
+  -- | inf @(2 * inf <= maxBound)@
+  w ->
+  DenseGraph w ->
+  TSPResult w
+runTSP inf gr = runST $ do
   dp <- UM.replicate (shiftL 1 n * n) inf
 
   rep n $ \v -> do
     UM.unsafeWrite dp (ixTSP (singletonBS v) v) $ matDG gr origin v
 
   rep (shiftL 1 n) . (. BitSet) $ \visited ->
-    rev n $ \v -> when (memberBS v visited) $ do
-      let !o = ixTSP (deleteBS v visited) 0
-      when (o > 0) $ do
+    when (popCount visited > 1) $ do
+      flip MS.mapM_ (toStreamBS visited) $ \v -> do
         MS.foldM'
           ( \acc pv -> do
-              !dpv <- UM.unsafeRead dp (o + pv)
+              dpv <- UM.unsafeRead dp (ixTSP (deleteBS v visited) pv)
               return $ min acc (dpv + matDG gr pv v)
           )
           inf
-          (n >.. 0)
+          (n >.. 0) -- faster than (0 ..< n)
           >>= UM.unsafeWrite dp (ixTSP visited v)
 
   !res <-
@@ -57,15 +63,14 @@ runTSP gr = runST $ do
           dv <- UM.unsafeRead dp (ixTSP visitedAll v)
           return $ min acc (dv + matDG gr v origin)
       )
-      inf
+      (if n > 1 then inf else 0)
       $ 0 ..< n
 
-  TSPResult res inf <$> U.unsafeFreeze dp
+  TSPResult res <$> U.unsafeFreeze dp
   where
     !n = numVerticesDG gr - 1
     origin = n
     visitedAll = BitSet (shiftL 1 n - 1)
-    !inf = getProduct . stimes (n + 1) . Product . U.maximum $ adjacentDG gr
 
     ixTSP :: BitSet -> Int -> Int
     ixTSP visited lastPos = coerce @BitSet @Int visited * n + lastPos
