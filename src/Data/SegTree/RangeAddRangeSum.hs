@@ -6,6 +6,6 @@ import Data.Monoid.RangedSum
 import Data.SegTree
 import Data.Semigroup
 
-instance (Num a) => MonoidAction (Sum a) (RangedSum a) where
-  appMonoid (Sum x) (RangedSum len y) = RangedSum len (x * len + y)
-  {-# INLINE appMonoid #-}
+instance (Num a) => AsSemigroupEndo (Sum a) (RangedSum a) where
+  sendo (Sum x) (RangedSum len y) = RangedSum len (x * len + y)
+  {-# INLINE sendo #-}

@@ -5,12 +5,12 @@ import Data.Monoid.RangedSumSpec ()
 import Data.SegTree.RangeAddRangeSum ()
 import Data.Semigroup
 import Test.Prelude
-import Test.Prop.MonoidAction (monoidActionSpec)
+import Test.Prop.AsSemigroupEndo (asSemigroupEndoSpec)
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "MonoidAction (Sum Int) (RangedSum Int)" $ do
-    monoidActionSpec (Proxy @(Sum Int)) (Proxy @(RangedSum Int))
+  describe "AsSemigroupEndo (Sum Int) (RangedSum Int)" $ do
+    asSemigroupEndoSpec (Proxy @(Sum Int)) (Proxy @(RangedSum Int))

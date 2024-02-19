@@ -5,12 +5,12 @@ import Data.Monoid.LastMinSpec ()
 import Data.SegTree.RangeUpdateRangeMin ()
 import Data.Semigroup
 import Test.Prelude
-import Test.Prop.MonoidAction (monoidActionSpec)
+import Test.Prop.AsSemigroupEndo (asSemigroupEndoSpec)
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "MonoidAction (Dual (LastMin a)) (Min a)" $ do
-    monoidActionSpec (Proxy @(Dual (LastMin Int))) (Proxy @(Min Int))
+  describe "AsSemigroupEndo (Dual (LastMin a)) (Min a)" $ do
+    asSemigroupEndoSpec (Proxy @(Dual (LastMin Int))) (Proxy @(Min Int))
