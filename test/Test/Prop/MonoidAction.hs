@@ -1,6 +1,6 @@
 module Test.Prop.MonoidAction (monoidActionSpec) where
 
-import Data.SegTree (MonoidAction (..))
+import Data.Monoid.Action (MonoidAction (..))
 import Test.Prelude
 
 monoidActionSpec ::
@@ -18,12 +18,10 @@ monoidActionSpec ::
   Proxy a ->
   Spec
 monoidActionSpec _ _ = do
-  describe "Monoid Action on Semigroup" $ do
-    prop "appMonoid mempty = id" $ prop_appMempty @f @a (Proxy @f)
-    prop "appMonoid (f <> g) x == appMonoid f (appMonoid g x)" $
-      prop_appMappend @f @a
-    prop "appMonoid f (x <> y) = appMonoid f x <> appMonoid f y" $
-      prop_monoidHomomorphismMappend @f @a
+  describe "Monoid Action (monoid morphsm to Endo)" $ do
+    prop "mact mempty = id" $ prop_appMempty @f @a (Proxy @f)
+    prop "mact (f <> g) x == mact f (mact g x)"
+      $ prop_appMappend @f @a
 
 prop_appMempty ::
   forall f a.
@@ -31,7 +29,7 @@ prop_appMempty ::
   Proxy f ->
   a ->
   Bool
-prop_appMempty _ x = appMonoid @f @a mempty x == x
+prop_appMempty _ x = mact @f @a mempty x == x
 
 prop_appMappend ::
   forall f a.
@@ -40,9 +38,4 @@ prop_appMappend ::
   f ->
   a ->
   Bool
-prop_appMappend f g x = appMonoid (f <> g) x == appMonoid f (appMonoid g x)
-
-prop_monoidHomomorphismMappend ::
-  (MonoidAction f a, Monoid a, Eq a) => f -> a -> a -> Bool
-prop_monoidHomomorphismMappend f x y =
-  appMonoid f (x <> y) == appMonoid f x <> appMonoid f y
+prop_appMappend f g x = mact (f <> g) x == mact f (mact g x)

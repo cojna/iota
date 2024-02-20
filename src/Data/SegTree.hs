@@ -9,16 +9,6 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import My.Prelude (rep1, rev1, unsafeShiftRL)
 
-{- | * @appMonoid mempty = id@
-   * @appMonoid (f <> g) = appMonoid f . appMonoid g@
--}
-class (Monoid f) => MonoidAction f a where
-  appMonoid :: f -> a -> a
-
-instance MonoidAction () m where
-  appMonoid = const id
-  {-# INLINE appMonoid #-}
-
 {- | * @sendo@ is a monoid homomorphism (left monoid action)
    * @sendo f@ is a semigroup endomorphism
 -}

@@ -10,7 +10,7 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import My.Prelude
 
-import Data.SegTree (MonoidAction (..))
+import Data.Monoid.Action (MonoidAction (..))
 
 -- | @a@ need not to be Semigroup
 data DualSegTree s f a = DualSegTree
@@ -56,7 +56,7 @@ freezeDualSegTree
 
     flip UM.imapM_ pseg $ \i x -> do
       f <- UM.unsafeRead dseg $ (i + dsize) !>>. 1
-      UM.unsafeWrite pseg i (appMonoid f x)
+      UM.unsafeWrite pseg i (mact f x)
 
     UM.set dseg mempty
     U.freeze pseg
@@ -132,7 +132,7 @@ appAt ::
   Int ->
   f ->
   m ()
-appAt st k f = modifyDualSegTree st (appMonoid f) k
+appAt st k f = modifyDualSegTree st (mact f) k
 {-# INLINE appAt #-}
 
 {- | mapM_ (modify f) [l..r)
@@ -194,7 +194,7 @@ evalAt
       else do
         let !k' = k - dsize
         when (k' < psize) $ do
-          UM.unsafeModify pseg (appMonoid f) k'
+          UM.unsafeModify pseg (mact f) k'
 {-# INLINE evalAt #-}
 
 -- | /O(1)/
