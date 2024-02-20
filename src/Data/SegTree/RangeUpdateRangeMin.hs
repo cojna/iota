@@ -8,10 +8,10 @@ import Data.SegTree
 import Data.Semigroup
 
 instance
-  (Eq a, Bounded a) =>
-  MonoidAction (Dual (LastMin a)) (Min a)
+  (Ord a, Bounded a) =>
+  AsSemigroupEndo (Dual (LastMin a)) (Min a)
   where
-  appMonoid x y
+  sendo x y
     | x == mempty = y
     | otherwise = coerce x
-  {-# INLINE appMonoid #-}
+  {-# INLINE sendo #-}

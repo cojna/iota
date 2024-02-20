@@ -9,20 +9,12 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 
 import My.Prelude (rep1, rev1, unsafeShiftRL)
 
-{- | * @appMonoid mempty = id@
-   * @appMonoid (f <> g) = appMonoid f . appMonoid g@
+{- | * @sendo@ is a monoid homomorphism (left monoid action)
+   * @sendo f@ is a semigroup endomorphism
 -}
-class (Monoid f) => MonoidAction f a where
-  appMonoid :: f -> a -> a
+class (Monoid f, Semigroup s) => AsSemigroupEndo f s where
+  sendo :: f -> (s -> s)
 
-instance MonoidAction () m where
-  appMonoid = const id
-  {-# INLINE appMonoid #-}
-
-{- | * @appMonoid f (x <> y) = appMonoid f x <> appMonoid f y@
-   * @appMonoid (f <> g) = appMonoid f . appMonoid g@
-   * @appMonoid mempty = id@
--}
 data SegTree s f a = SegTree
   { getSegTree :: !(UM.MVector s a)
   , getDualSegTree :: !(UM.MVector s f)
@@ -59,7 +51,7 @@ buildSegTree xs = do
 
 -- | /O(log n)/
 readSegTree ::
-  (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   m a
@@ -72,7 +64,7 @@ readSegTree st k0 = do
 
 -- | /O(log n)/
 writeSegTree ::
-  (MonoidAction f a, Semigroup a, U.Unbox a, U.Unbox f, PrimMonad m) =>
+  (AsSemigroupEndo f a, Semigroup a, U.Unbox a, U.Unbox f, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   a ->
@@ -80,15 +72,15 @@ writeSegTree ::
 writeSegTree st k0 v = do
   let !k = k0 + sizeSegTree st
   rev1 (heightSegTree st) $ \i -> do
-    pushSegTree st (unsafeShiftR k i)
+    pushSegTree st (k !>>. i)
   UM.unsafeWrite (getSegTree st) k v
   rep1 (heightSegTree st) $ \i -> do
-    pullSegTree st (unsafeShiftR k i)
+    pullSegTree st (k !>>. i)
 {-# INLINE writeSegTree #-}
 
 -- | /O(log n)/
 modifySegTree ::
-  (MonoidAction f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   (a -> a) ->
   Int ->
@@ -96,17 +88,17 @@ modifySegTree ::
 modifySegTree st f k0 = do
   let !k = k0 + sizeSegTree st
   rev1 (heightSegTree st) $ \i -> do
-    pushSegTree st (unsafeShiftR k i)
+    pushSegTree st (k !>>. i)
   UM.unsafeModify (getSegTree st) f k
   rep1 (heightSegTree st) $ \i -> do
-    pullSegTree st (unsafeShiftR k i)
+    pullSegTree st (k !>>. i)
 {-# INLINE modifySegTree #-}
 
 {- | mappend [l..r)
  /O(log n)/
 -}
 mappendFromTo ::
-  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   Int ->
@@ -115,9 +107,9 @@ mappendFromTo st l0 r0 = do
   let !l = l0 + sizeSegTree st
       !r = r0 + sizeSegTree st
   rev1 (heightSegTree st) $ \i -> do
-    when (unsafeShiftR l i `unsafeShiftL` i /= l) $ do
+    when ((l !>>. i) !<<. i /= l) $ do
       pushSegTree st (unsafeShiftR l i)
-    when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
+    when ((r !>>. i) !<<. i /= r) $ do
       pushSegTree st (unsafeShiftR r i)
 
   fix
@@ -135,8 +127,8 @@ mappendFromTo st l0 r0 = do
             loop
               accL'
               accR'
-              (unsafeShiftR (l' + l' .&. 1) 1)
-              (unsafeShiftR (r' - r' .&. 1) 1)
+              ((l' + 1) !>>. 1)
+              (r' !>>. 1)
           else return $! accL <> accR
     )
     mempty
@@ -149,7 +141,7 @@ mappendFromTo st l0 r0 = do
  /O(log n)/
 -}
 mappendTo ::
-  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   m a
@@ -167,19 +159,19 @@ mappendAll st = UM.unsafeRead (getSegTree st) 1
  /O(log n)/
 -}
 appAt ::
-  (MonoidAction f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   f ->
   m ()
-appAt st k f = modifySegTree st (appMonoid f) k
+appAt st k f = modifySegTree st (sendo f) k
 {-# INLINE appAt #-}
 
 {- | mapM_ (modify f) [l..r)
  /O(log n)/
 -}
 appFromTo ::
-  (MonoidAction f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Semigroup a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   Int ->
@@ -189,10 +181,10 @@ appFromTo st l0 r0 f = when (l0 < r0) $ do
   let !l = l0 + sizeSegTree st
       !r = r0 + sizeSegTree st
   rev1 (heightSegTree st) $ \i -> do
-    when (unsafeShiftR l i `unsafeShiftL` i /= l) $ do
-      pushSegTree st (unsafeShiftRL l i)
-    when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
-      pushSegTree st (unsafeShiftRL (r - 1) i)
+    when ((l !>>. i) !<<. i /= l) $ do
+      pushSegTree st (l !>>. i)
+    when ((r !>>. i) !<<. i /= r) $ do
+      pushSegTree st ((r - 1) !>>. i)
 
   fix
     ( \loop !l' !r' -> when (l' < r') $ do
@@ -201,22 +193,22 @@ appFromTo st l0 r0 f = when (l0 < r0) $ do
         when (r' .&. 1 == 1) $ do
           evalAt st (r' - 1) f
         loop
-          (unsafeShiftR (l' + l' .&. 1) 1)
-          (unsafeShiftR (r' - r' .&. 1) 1)
+          ((l' + 1) !>>. 1)
+          (r' !>>. 1)
     )
     l
     r
 
   rep1 (heightSegTree st) $ \i -> do
-    when (unsafeShiftR l i `unsafeShiftL` i /= l) $ do
-      pullSegTree st (unsafeShiftRL l i)
-    when (unsafeShiftR r i `unsafeShiftL` i /= r) $ do
-      pullSegTree st (unsafeShiftRL (r - 1) i)
+    when ((l !>>. i) !<<. i /= l) $ do
+      pullSegTree st (l !>>. i)
+    when ((r !>>. i) !<<. i /= r) $ do
+      pullSegTree st ((r - 1) !>>. i)
 {-# INLINE appFromTo #-}
 
 -- | max r s.t. f (mappendFromTo seg l r) == True
 upperBoundFrom ::
-  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   -- | left
   Int ->
@@ -226,11 +218,11 @@ upperBoundFrom ::
 upperBoundFrom st l p = do
   let !n = sizeSegTree st
   rev1 (heightSegTree st) $ \i -> do
-    pushSegTree st (unsafeShiftR (l + n) i)
+    pushSegTree st ((l + n) !>>. i)
   violationNode <-
     fix
       ( \loopUp !acc !cur -> do
-          let rightParent = unsafeShiftR cur (countTrailingZeros cur)
+          let rightParent = cur !>>. countTrailingZeros cur
           !acc' <- (acc <>) <$> UM.unsafeRead (getSegTree st) rightParent
           if p acc'
             then do
@@ -263,7 +255,7 @@ upperBoundFrom st l p = do
 
 -- | min l s.t. f (mappendFromTo seg l r) == True
 lowerBoundTo ::
-  (MonoidAction f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, Monoid a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   -- | right
   Int ->
@@ -273,12 +265,12 @@ lowerBoundTo ::
 lowerBoundTo st r p = do
   let !n = sizeSegTree st
   rev1 (heightSegTree st) $ \i -> do
-    pushSegTree st (unsafeShiftR (r + n - 1) i)
+    pushSegTree st ((r + n - 1) !>>. i)
   violationNode <-
     fix
       ( \loopUp !acc !cur -> do
           let leftParent =
-                case unsafeShiftR cur (countTrailingZeros (complement cur)) of
+                case cur !>>. countTrailingZeros (complement cur) of
                   0 -> 1 -- cur: 2 ^ n
                   v -> v
           !acc' <- (<> acc) <$> UM.unsafeRead (getSegTree st) leftParent
@@ -312,20 +304,20 @@ lowerBoundTo st r p = do
 
 -- | /O(1)/
 evalAt ::
-  (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   f ->
   m ()
 evalAt st k f = do
-  UM.unsafeModify (getSegTree st) (appMonoid f) k
+  UM.unsafeModify (getSegTree st) (sendo f) k
   when (k < sizeSegTree st) $ do
     UM.unsafeModify (getDualSegTree st) (f <>) k
 {-# INLINE evalAt #-}
 
 -- | /O(1)/
 pushSegTree ::
-  (MonoidAction f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
+  (AsSemigroupEndo f a, U.Unbox f, U.Unbox a, PrimMonad m) =>
   SegTree (PrimState m) f a ->
   Int ->
   m ()

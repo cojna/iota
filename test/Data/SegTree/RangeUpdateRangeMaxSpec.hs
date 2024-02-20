@@ -5,12 +5,12 @@ import Data.Monoid.LastMaxSpec ()
 import Data.SegTree.RangeUpdateRangeMax ()
 import Data.Semigroup
 import Test.Prelude
-import Test.Prop.MonoidAction (monoidActionSpec)
+import Test.Prop.AsSemigroupEndo (asSemigroupEndoSpec)
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "MonoidAction (Dual (LastMax a)) (Max a)" $ do
-    monoidActionSpec (Proxy @(Dual (LastMax Int))) (Proxy @(Max Int))
+  describe "AsSemigroupEndo (Dual (LastMax a)) (Max a)" $ do
+    asSemigroupEndoSpec (Proxy @(Dual (LastMax Int))) (Proxy @(Max Int))

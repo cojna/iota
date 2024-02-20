@@ -7,7 +7,7 @@ import Data.Semigroup
 
 instance
   (Ord a, Bounded a) =>
-  MonoidAction (Max a) (Max a)
+  AsSemigroupEndo (Max a) (Max a)
   where
-  appMonoid = (<>)
-  {-# INLINE appMonoid #-}
+  sendo = (<>)
+  {-# INLINE sendo #-}

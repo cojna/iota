@@ -7,9 +7,9 @@ import Data.Semigroup
 
 instance
   (Num a, Ord a, Bounded a) =>
-  MonoidAction (Sum a) (Max a)
+  AsSemigroupEndo (Sum a) (Max a)
   where
-  appMonoid (Sum x) (Max y)
+  sendo (Sum x) (Max y)
     | y /= minBound = Max (x + y)
     | otherwise = Max minBound
-  {-# INLINE appMonoid #-}
+  {-# INLINE sendo #-}

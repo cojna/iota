@@ -3,12 +3,12 @@ module Data.SegTree.RangeAddRangeMaxSpec where
 import Data.SegTree.RangeAddRangeMax ()
 import Data.Semigroup
 import Test.Prelude
-import Test.Prop.MonoidAction (monoidActionSpec)
+import Test.Prop.AsSemigroupEndo (asSemigroupEndoSpec)
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "MonoidAction (Sum Int) (Max Int)" $ do
-    monoidActionSpec (Proxy @(Sum Int)) (Proxy @(Max Int))
+  describe "AsSemigroupEndo (Sum Int) (Max Int)" $ do
+    asSemigroupEndoSpec (Proxy @(Sum Int)) (Proxy @(Max Int))

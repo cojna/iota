@@ -7,7 +7,7 @@ import Data.Semigroup
 
 instance
   (Ord a, Bounded a) =>
-  MonoidAction (Min a) (Min a)
+  AsSemigroupEndo (Min a) (Min a)
   where
-  appMonoid = (<>)
-  {-# INLINE appMonoid #-}
+  sendo = (<>)
+  {-# INLINE sendo #-}
