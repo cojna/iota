@@ -37,6 +37,8 @@ indexSA = coerce U.unsafeIndex
 [6,4,2,0,5,3,1]
 >>> buildSuffixArray ""
 [0]
+>>> buildSuffixArray "sentinel\0"
+[-1,8,6,1,4,7,5,2,0,3]
 -}
 buildSuffixArray :: B.ByteString -> SuffixArray Int32
 buildSuffixArray bs = SuffixArray $ U.create $ do
