@@ -84,3 +84,23 @@ buildLCPArray bs sa = LCPArray $
       rep (n + 1) $ \i -> do
         UM.unsafeWrite buf (fromIntegral $ indexSA sa i) i
       return buf
+
+{- | /O(n)/
+
+>>> :set -XOverloadedStrings
+>>> naiveLCP "abc0" "abc1"
+3
+>>> naiveLCP "ab" "a"
+1
+>>> naiveLCP "" ""
+0
+-}
+naiveLCP :: B.ByteString -> B.ByteString -> Int
+naiveLCP xs ys = go 0
+  where
+    !n = min (B.length xs) (B.length ys)
+    go !i
+      | i < n
+      , B.unsafeIndex xs i == B.unsafeIndex ys i =
+          go (i + 1)
+      | otherwise = i
