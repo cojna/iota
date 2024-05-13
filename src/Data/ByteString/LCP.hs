@@ -1,6 +1,7 @@
 module Data.ByteString.LCP where
 
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 import Data.Function
 import Data.Int
@@ -10,7 +11,37 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.ByteString.SuffixArray
 import My.Prelude
 
-newtype LCPArray = LCPArray {getLCPArray :: U.Vector Int} deriving (Show)
+newtype LCPArray = LCPArray {getLCPArray :: U.Vector Int}
+
+instance Show LCPArray where
+  show = show . getLCPArray
+
+{- |
+>>> :set -XOverloadedStrings
+>>> sa = buildSuffixArray "abab"
+>>> viewSuffixArray "abab" sa
+["","ab","abab","b","bab"]
+>>> lcp = buildLCPArray "abab" sa
+>>> lcp
+[0,2,0,1]
+>>> viewLCPArray "abab" sa lcp
+["","ab","","b"]
+
+>>> :set -XOverloadedStrings
+>>> bs = " ab ab a"
+>>> n = length $ C.words bs
+>>> sa = buildSuffixArray bs
+>>> take n . tail $ viewSuffixArray bs sa
+[" a"," ab a"," ab ab a"]
+>>> lcp = buildLCPArray bs sa
+>>> take (n - 1) . tail $ viewLCPArray bs sa lcp
+[" a"," ab a"]
+-}
+viewLCPArray :: B.ByteString -> SuffixArray Int32 -> LCPArray -> [String]
+viewLCPArray bs (SuffixArray sa) (LCPArray lcp) =
+  map (\(i, l) -> C.unpack . C.take l $ C.drop (fromIntegral $ sa U.! i) bs)
+    . U.toList
+    $ U.indexed lcp
 
 {- | /O(n)/
 
@@ -20,7 +51,7 @@ newtype LCPArray = LCPArray {getLCPArray :: U.Vector Int} deriving (Show)
 >>> :set -XOverloadedStrings
 >>> bs = "abracadabra"
 >>> buildLCPArray bs $ buildSuffixArray bs
-LCPArray {getLCPArray = [0,1,4,1,1,0,3,0,0,0,2]}
+[0,1,4,1,1,0,3,0,0,0,2]
 -}
 buildLCPArray :: B.ByteString -> SuffixArray Int32 -> LCPArray
 buildLCPArray bs sa = LCPArray $
@@ -53,3 +84,23 @@ buildLCPArray bs sa = LCPArray $
       rep (n + 1) $ \i -> do
         UM.unsafeWrite buf (fromIntegral $ indexSA sa i) i
       return buf
+
+{- | /O(n)/
+
+>>> :set -XOverloadedStrings
+>>> naiveLCP "abc0" "abc1"
+3
+>>> naiveLCP "ab" "a"
+1
+>>> naiveLCP "" ""
+0
+-}
+naiveLCP :: B.ByteString -> B.ByteString -> Int
+naiveLCP xs ys = go 0
+  where
+    !n = min (B.length xs) (B.length ys)
+    go !i
+      | i < n
+      , B.unsafeIndex xs i == B.unsafeIndex ys i =
+          go (i + 1)
+      | otherwise = i

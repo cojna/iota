@@ -4,6 +4,7 @@ import Control.Monad
 import Control.Monad.ST
 import Data.Bits
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 import Data.Coerce
 import Data.Function
@@ -36,6 +37,8 @@ indexSA = coerce U.unsafeIndex
 [6,4,2,0,5,3,1]
 >>> buildSuffixArray ""
 [0]
+>>> buildSuffixArray "sentinel\0"
+[-1,8,6,1,4,7,5,2,0,3]
 -}
 buildSuffixArray :: B.ByteString -> SuffixArray Int32
 buildSuffixArray bs = SuffixArray $ U.create $ do
@@ -48,6 +51,18 @@ buildSuffixArray bs = SuffixArray $ U.create $ do
   return sa
   where
     n = B.length bs
+
+{- |
+>>> :set -XOverloadedStrings
+>>> viewSuffixArray "abc" $ buildSuffixArray "abc"
+["","abc","bc","c"]
+>>> viewSuffixArray " a b c" $ buildSuffixArray " a b c"
+[""," a b c"," b c"," c","a b c","b c","c"]
+-}
+viewSuffixArray :: C.ByteString -> SuffixArray Int32 -> [String]
+viewSuffixArray bs (SuffixArray sa) =
+  map (C.unpack . (`C.drop` bs) . fromIntegral) $
+    U.toList sa
 
 class (Ord a, Num a, Integral a) => LSInt a where
   isL :: a -> Bool
