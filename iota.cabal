@@ -1,0 +1,320 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 4d1cb74c76894fb6924b7928fe5048bf52854be36451eb4d77ad8b14519da5c9
+
+name:           iota
+version:        0.1.0.0
+description:    Please see the README on Github at <https://github.com/cojna/iota/blob/master/README.md>
+homepage:       https://github.com/cojna/iota#readme
+bug-reports:    https://github.com/cojna/iota/issues
+author:         @cojna
+maintainer:     @cojna
+license:        OtherLicense
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/cojna/iota
+
+library
+  exposed-modules:
+      Algorithm.BinarySearch
+      Algorithm.GoldenSectionSearch
+      Algorithm.LIS
+      Algorithm.Mo
+      Algorithm.Search.SternBrocot
+      Algorithm.TwoSat
+      Control.GCJ
+      Control.Memo.Fix
+      Control.Monad.Interactive
+      Data.BitSet
+      Data.Buffer
+      Data.ByteString.LCP
+      Data.ByteString.Manacher
+      Data.ByteString.RollingHash
+      Data.ByteString.SuffixArray
+      Data.ByteString.Tiny
+      Data.ByteString.ZAlgorithm
+      Data.CSR
+      Data.Doubling
+      Data.EPS
+      Data.FenwickTree
+      Data.GaloisField
+      Data.Graph.BellmanFord
+      Data.Graph.BipartiteMatching
+      Data.Graph.Dense
+      Data.Graph.Dense.Dijkstra
+      Data.Graph.Dense.Prim
+      Data.Graph.Dense.TSP
+      Data.Graph.Dense.WarshallFloyd
+      Data.Graph.Grid
+      Data.Graph.MaxFlow
+      Data.Graph.MinCostFlow
+      Data.Graph.Sparse
+      Data.Graph.Sparse.BFS
+      Data.Graph.Sparse.BFS01
+      Data.Graph.Sparse.Dijkstra
+      Data.Graph.Sparse.Lowlink
+      Data.Graph.Sparse.SCC
+      Data.Graph.Sparse.TopSort
+      Data.Graph.Tree.DFS
+      Data.Graph.Tree.HLD
+      Data.Graph.Tree.LCA
+      Data.Graph.Tree.LCT
+      Data.Graph.Tree.Rerooting
+      Data.Heap.Binary
+      Data.Heap.PairingHeap.Max
+      Data.Heap.PairingHeap.Min
+      Data.IntHeap
+      Data.IntHeap.MaxTopK
+      Data.IntMod
+      Data.Lattice
+      Data.Mat3x3
+      Data.Monoid.Action
+      Data.Monoid.Affine
+      Data.Monoid.BitAnd
+      Data.Monoid.BitOr
+      Data.Monoid.BitXor
+      Data.Monoid.GCD
+      Data.Monoid.LastMax
+      Data.Monoid.LastMin
+      Data.Monoid.LCM
+      Data.Monoid.RangedSum
+      Data.Monoid.RollingHash
+      Data.PrimParser
+      Data.Queue
+      Data.RollingHash
+      Data.SegTree
+      Data.SegTree.Dual
+      Data.SegTree.Primal
+      Data.SegTree.RangeAddRangeMax
+      Data.SegTree.RangeAddRangeMin
+      Data.SegTree.RangeAddRangeSum
+      Data.SegTree.RangeAffineRangeSum
+      Data.SegTree.RangeMaxRangeMax
+      Data.SegTree.RangeMinRangeMin
+      Data.SegTree.RangeMulRangeSum
+      Data.SegTree.RangeUpdateRangeMax
+      Data.SegTree.RangeUpdateRangeMin
+      Data.Semiring
+      Data.SparseTable
+      Data.Trie.Binary.Magma
+      Data.UnionFind
+      Data.UnionFind.Diff
+      Data.Vector.Compress
+      Data.Vector.Sort.Bucket
+      Data.Vector.Sort.Merge
+      Data.Vector.Sort.Quick
+      Data.Vector.Sort.Radix
+      Data.Vector.Utils
+      Data.Word64
+      Geometry
+      Geometry.Circle
+      Geometry.ConvexHull
+      Geometry.SmallestEnclosingCircle
+      GHC.RTS.Flags.Utils
+      Math.Combinatrics
+      Math.Combinatrics.Double
+      Math.Linear.GF2
+      Math.Matrix
+      Math.Modulus
+      Math.Modulus.Log
+      Math.Modulus.Sqrt
+      Math.NTT
+      Math.Prime
+      Math.Prime.Sieve
+      Math.Utils
+      My.Prelude
+      System.Random.Utils
+  other-modules:
+      Paths_iota
+  hs-source-dirs:
+      src
+  default-extensions:
+      NoImportQualifiedPost
+  ghc-options: -Wall
+  build-depends:
+      base
+    , bytestring
+    , containers
+    , deepseq
+    , mtl
+    , primitive >=0.8
+    , process
+    , random >=1.2
+    , time
+    , vector >=0.13
+  default-language: GHC2021
+
+executable iota
+  main-is: Main.hs
+  other-modules:
+      Paths_iota
+  hs-source-dirs:
+      app
+  default-extensions:
+      NoImportQualifiedPost
+  ghc-options: -Wall
+  build-depends:
+      base
+    , bytestring
+    , containers
+    , deepseq
+    , directory
+    , ghc-lib-parser
+    , ghc-lib-parser-ex
+    , mtl
+    , primitive >=0.8
+    , process
+    , random >=1.2
+    , template-haskell
+    , temporary
+    , time
+    , vector >=0.13
+  default-language: GHC2021
+
+test-suite iota-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Algorithm.BinarySearchSpec
+      Algorithm.GoldenSectionSearchSpec
+      Algorithm.LISSpec
+      Control.Memo.FixSpec
+      Control.Monad.InteractiveSpec
+      Data.BitSetSpec
+      Data.ByteString.ManacherSpec
+      Data.ByteString.RollingHashSpec
+      Data.ByteString.SuffixArraySpec
+      Data.ByteString.TinySpec
+      Data.ByteString.ZAlgorithmSpec
+      Data.DoublingSpec
+      Data.FenwickTreeSpec
+      Data.GaloisFieldSpec
+      Data.Graph.BellmanFordSpec
+      Data.Graph.MaxFlowSpec
+      Data.Graph.MinCostFlowSpec
+      Data.Graph.Sparse.BFSSpec
+      Data.Graph.Sparse.TopSortSpec
+      Data.Graph.Tree.DFSSpec
+      Data.Graph.Tree.HLDSpec
+      Data.Graph.Tree.LCASpec
+      Data.Heap.BinarySpec
+      Data.Heap.PairingHeap.MaxSpec
+      Data.Heap.PairingHeap.MinSpec
+      Data.IntHeap.MaxTopKSpec
+      Data.IntHeapSpec
+      Data.IntModSpec
+      Data.LatticeSpec
+      Data.Mat3x3Spec
+      Data.Monoid.ActionSpec
+      Data.Monoid.AffineSpec
+      Data.Monoid.BitAndSpec
+      Data.Monoid.BitOrSpec
+      Data.Monoid.BitXorSpec
+      Data.Monoid.GCDSpec
+      Data.Monoid.LastMaxSpec
+      Data.Monoid.LastMinSpec
+      Data.Monoid.LCMSpec
+      Data.Monoid.RangedSumSpec
+      Data.Monoid.RollingHashSpec
+      Data.PrimParserSpec
+      Data.QueueSpec
+      Data.RollingHashSpec
+      Data.SegTree.PrimalSpec
+      Data.SegTree.RangeAddRangeMaxSpec
+      Data.SegTree.RangeAddRangeMinSpec
+      Data.SegTree.RangeAddRangeSumSpec
+      Data.SegTree.RangeAffineRangeSumSpec
+      Data.SegTree.RangeMaxRangeMaxSpec
+      Data.SegTree.RangeMinRangeMinSpec
+      Data.SegTree.RangeMulRangeSumSpec
+      Data.SegTree.RangeUpdateRangeMaxSpec
+      Data.SegTree.RangeUpdateRangeMinSpec
+      Data.SegTreeSpec
+      Data.SparseTableSpec
+      Data.UnionFindSpec
+      Data.Vector.CompressSpec
+      Data.Vector.Sort.BucketSpec
+      Data.Vector.Sort.MergeSpec
+      Data.Vector.Sort.QuickSpec
+      Data.Vector.Sort.RadixSpec
+      Data.Vector.UtilsSpec
+      Data.Word64Spec
+      Geometry.ConvexHullSpec
+      Geometry.Instances
+      Geometry.SmallestEnclosingCircleSpec
+      Math.Combinatrics.DoubleSpec
+      Math.CombinatricsSpec
+      Math.Linear.GF2Spec
+      Math.Modulus.LogSpec
+      Math.Modulus.SqrtSpec
+      Math.ModulusSpec
+      Math.NTTSpec
+      Math.Prime.SieveSpec
+      Math.PrimeSpec
+      Math.UtilsSpec
+      My.PreludeSpec
+      Test.Prelude
+      Test.Prop.AsSemigroupEndo
+      Test.Prop.Fractional
+      Test.Prop.Integral
+      Test.Prop.Monoid
+      Test.Prop.MonoidAction
+      Test.Prop.Num
+      Test.Prop.VectorSpace
+      Paths_iota
+  hs-source-dirs:
+      test
+  default-extensions:
+      NoImportQualifiedPost
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  build-depends:
+      QuickCheck
+    , base
+    , bytestring
+    , containers
+    , deepseq
+    , hspec
+    , iota
+    , mtl
+    , primitive >=0.8
+    , process
+    , random >=1.2
+    , time
+    , vector
+  default-language: GHC2021
+
+benchmark iota-benchmark
+  type: exitcode-stdio-1.0
+  main-is: Bench.hs
+  other-modules:
+      Data.BSRBench
+      Data.IntModBench
+      Paths_iota
+  hs-source-dirs:
+      benchmark
+  default-extensions:
+      NoImportQualifiedPost
+  ghc-options: -O2 -Wall
+  build-depends:
+      base
+    , bytestring
+    , containers
+    , criterion
+    , deepseq
+    , iota
+    , mtl
+    , primitive >=0.8
+    , process
+    , random >=1.2
+    , time
+    , vector
+  default-language: GHC2021
