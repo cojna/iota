@@ -1,5 +1,4 @@
 .stack-work/
-iota.cabal
 *~
 *.yaml.lock
 doc/
