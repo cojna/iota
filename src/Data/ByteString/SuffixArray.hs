@@ -24,6 +24,31 @@ indexSA :: (U.Unbox a) => SuffixArray a -> Int -> a
 indexSA = coerce U.unsafeIndex
 {-# INLINE indexSA #-}
 
+{- |
+/O(Tlog S)/
+
+>>> :set -XOverloadedStrings
+>>> bs = "ababab"
+>>> sa = buildSuffixArray bs
+>>> findSubstringsSA bs sa "ab"
+[4,2,0]
+>>> findSubstringsSA bs sa "xxx"
+[]
+>>> findSubstringsSA bs sa ""
+[6,4,2,0,5,3,1]
+-}
+findSubstringsSA :: B.ByteString -> SuffixArray Int32 -> B.ByteString -> U.Vector Int32
+findSubstringsSA haystack (SuffixArray sa) needle = U.unsafeSlice l (r - l) sa
+  where
+    !n = B.length haystack
+    !m = B.length needle
+    !l = binarySearch 0 (n + 1) $ \i -> do
+      let !sai = fromIntegral $ U.unsafeIndex sa i
+      needle <= B.take m (B.unsafeDrop sai haystack)
+    !r = binarySearch l (n + 1) $ \i -> do
+      let !sai = fromIntegral $ U.unsafeIndex sa i
+      needle < B.take m (B.unsafeDrop sai haystack)
+
 {- | SA-IS /O(n)/
 
 >>> :set -XOverloadedStrings
