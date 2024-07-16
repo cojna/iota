@@ -49,5 +49,4 @@ jobs:
           iota:test:iota-test
           --resolver ${{ matrix.stack-lts }}
           --pedantic
-          --ghc-options="-fno-ignore-asserts"
-
+          --ghc-options="-fno-ignore-asserts -fcheck-prim-bounds"
