@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4d1cb74c76894fb6924b7928fe5048bf52854be36451eb4d77ad8b14519da5c9
+-- hash: fda0d611479fd6be17197d42e231d8bcf51d5271220afb5e70e42d9ae8f7413a
 
 name:           iota
 version:        0.1.0.0
@@ -64,6 +64,7 @@ library
       Data.Graph.Sparse.Lowlink
       Data.Graph.Sparse.SCC
       Data.Graph.Sparse.TopSort
+      Data.Graph.Tree.CentroidDecomposition
       Data.Graph.Tree.DFS
       Data.Graph.Tree.HLD
       Data.Graph.Tree.LCA
