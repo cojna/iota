@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bcdf50ad35b74952d6143a3dfebd00926d2a529faea136a05df893b36a92a979
+-- hash: 4699889cc7de07dd5c280b150742c3404ca4f349bf0e1b86d064818e03d3b42f
 
 name:           iota
 version:        0.1.0.0
@@ -89,6 +89,7 @@ library
       Data.Monoid.LCM
       Data.Monoid.RangedSum
       Data.Monoid.RollingHash
+      Data.Multiset
       Data.MultisetHash
       Data.PrimParser
       Data.Queue
