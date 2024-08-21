@@ -27,14 +27,16 @@ spec = do
     describe "SetOrd" $ latticeSpec (Proxy @(SetOrd Int))
     describe "DivOrd" $ latticeSpec (Proxy @(DivOrd Int))
   describe "fast zeta/moebius transform" $ do
-    describe "SetOrd" $
-      withNatProxy @5 $ \natProxy -> do
+    describe "SetOrd"
+      $ withNatProxy @5
+      $ \natProxy -> do
         prop "same to naive zeta" $ prop_naiveZetaSetOrd natProxy
         prop "same to naive moebius" $ prop_naiveMoebiusSetOrd natProxy
         prop "moebius . zeta = id" $ prop_zetaMoebiusSetOrd natProxy
         prop "zeta . moebius = id" $ prop_moebiusZetaSetOrd natProxy
-    describe "DivOrd" $
-      withPrimes MAX_PRIME $ \primes -> do
+    describe "DivOrd"
+      $ withPrimes MAX_PRIME
+      $ \primes -> do
         prop "same to naive zeta" $ prop_naiveZetaDivOrd primes
         prop "same to naive moebius" $ prop_naiveMoebiusDivOrd primes
         prop "moebius . zeta = id" $ prop_zetaMoebiusDivOrd primes
@@ -180,12 +182,14 @@ naiveMoebiusDivOrd xs = U.generate n $ \v ->
     n = U.length xs
 
 prop_naiveZetaDivOrd :: Primes -> [Int] -> Bool
-prop_naiveZetaDivOrd primes (U.fromList -> xs) =
-  U.modify (fastZeta DivOrd primes) xs == naiveZetaDivOrd xs
+prop_naiveZetaDivOrd primes xs =
+  U.modify (fastZeta DivOrd primes) (U.fromList xs)
+    == naiveZetaDivOrd (U.fromList xs)
 
 prop_naiveMoebiusDivOrd :: Primes -> [Int] -> Bool
-prop_naiveMoebiusDivOrd primes (U.fromList -> xs) =
-  U.modify (fastMoebius DivOrd primes) xs == naiveMoebiusDivOrd xs
+prop_naiveMoebiusDivOrd primes xs =
+  U.modify (fastMoebius DivOrd primes) (U.fromList xs)
+    == naiveMoebiusDivOrd (U.fromList xs)
 
 prop_zetaMoebiusDivOrd :: Primes -> [Int] -> Bool
 prop_zetaMoebiusDivOrd primes xs = xs == transformed
