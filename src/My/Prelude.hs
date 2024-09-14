@@ -436,10 +436,10 @@ gvector f = do
   (e, o) <- viewPrimParser
   pure
     $ G.unfoldr
-      ( \p -> case runPrimParser f e p of
-          (x, p')
-            | p' <= e -> Just (x, p')
-            | otherwise -> Nothing
+      ( \p ->
+        if p < e
+        then Just $ runPrimParser f e p
+        else Nothing
       )
       o
 {-# INLINE gvector #-}
