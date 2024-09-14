@@ -438,7 +438,7 @@ gvector f = do
     $ G.unfoldr
       ( \p -> case runPrimParser f e p of
           (x, p')
-            | p' < e -> Just (x, p')
+            | p' <= e -> Just (x, p')
             | otherwise -> Nothing
       )
       o
