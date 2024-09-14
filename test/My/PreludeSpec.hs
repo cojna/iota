@@ -15,6 +15,19 @@ main = hspec spec
 
 spec :: Spec
 spec = do
+  describe "uvector" $ do
+    it "uvector \"123 456\" == [123]" $
+      unsafeWithByteString "123 456" (uvector int)
+        `shouldBe` [123]
+    it "uvector \"123 456\\n\" == [123, 456]" $
+      unsafeWithByteString "123 456\n" (uvector int)
+        `shouldBe` [123, 456]
+    it "uvector \"abc\" == ['a', 'b', 'c']" $
+      unsafeWithByteString "abc" (uvector char)
+        `shouldBe` ['a', 'b', 'c']
+    it "uvector \"abc\\n\" == ['a', 'b', 'c', '\\n']" $
+      unsafeWithByteString "abc\n" (uvector char)
+        `shouldBe` ['a', 'b', 'c', '\n']
   describe "byteArrayN" $ do
     it "byteArrayN 3 \"abcdef\" == \"abc\"" $
       unsafeWithByteString "abcdef" (byteArrayN 3)
