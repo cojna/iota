@@ -5,7 +5,8 @@ module Data.Mat3x3Spec (main, spec) where
 import Control.Monad
 import Data.IntMod
 import Data.Mat3x3
-import Data.Primitive
+import Data.Primitive (Prim)
+import GHC.Exts (IsList (fromList))
 import Test.Prelude
 import Test.Prop.Num
 
