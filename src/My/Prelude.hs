@@ -444,6 +444,23 @@ gvector f = do
       o
 {-# INLINE gvector #-}
 
+gvectorLn :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
+gvectorLn f = PrimParser $ \e p ->
+  case memchrP# e p 0xa of
+    pos ->
+      (#
+        plusAddr# pos 1#
+        , G.unfoldrExactN
+            (I# (minusAddr# pos p))
+            (runPrimParser f (Ptr pos))
+            (Ptr p)
+      #)
+{-# INLINE gvectorLn #-}
+
+uvectorLn :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
+uvectorLn = gvectorLn
+{-# INLINE uvectorLn #-}
+
 byteArrayN :: Int -> PrimParser ByteArray
 byteArrayN n@(I# n#) = PrimParser $ \_ p ->
   let !ba = runST $ do
