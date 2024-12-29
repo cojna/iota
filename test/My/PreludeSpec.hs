@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -15,6 +16,7 @@ main = hspec spec
 
 spec :: Spec
 spec = do
+#if __GLASGOW_HASKELL__ > 904
   describe "uvectorLn" $ do
     it "uvectorLn \"abc\\n\" == ['a', 'b', 'c']" $
       unsafeWithByteString "abc\n" (uvectorLn char)
@@ -28,6 +30,7 @@ spec = do
     it "line $ uvectorLn \"abc\\n\\n\" == ['a', 'b', 'c']" $
       unsafeWithByteString "abc\n\n" (line $ uvectorLn char)
         `shouldBe` ['a', 'b', 'c']
+#endif
   describe "byteArrayN" $ do
     it "byteArrayN 3 \"abcdef\" == \"abc\"" $
       unsafeWithByteString "abcdef" (byteArrayN 3)
