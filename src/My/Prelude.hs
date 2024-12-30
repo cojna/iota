@@ -494,11 +494,11 @@ concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 concatB = G.foldMap
 
 {- |
->>> matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+>>> matrixB B.intDec (2, 3, U.fromListN 6 [1, 2, 3, 4, 5, 6])
 "1 2 3\n4 5 6\n"
 -}
-matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
-matrixB h w f !mat =
+matrixB :: (G.Vector v a) => (a -> B.Builder) -> (Int, Int, v a) -> B.Builder
+matrixB f (!h, !w, !mat) =
   U.foldMap
     ( \i ->
         unwordsB f (G.slice (i * w) w mat) <> lfB
@@ -506,13 +506,13 @@ matrixB h w f !mat =
     $ U.generate h id
 
 {- |
->>> gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
+>>> gridB B.char7 (2, 3, U.fromListN 6 ".#.#.#")
 ".#.\n#.#\n"
->>> gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+>>> gridB B.intDec (2, 3, U.fromListN 6 [1, 2, 3, 4, 5, 6])
 "123\n456\n"
 -}
-gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
-gridB h w f mat =
+gridB :: (G.Vector v a) => (a -> B.Builder) -> (Int, Int, v a) -> B.Builder
+gridB f (!h, !w, !mat) =
   U.foldMap
     ( \i ->
         G.foldMap f (G.slice (i * w) w mat) <> lfB

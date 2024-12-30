@@ -63,10 +63,10 @@ spec = do
       $ B.toLazyByteString (unlinesB @V.Vector (pairB B.intDec B.intDec) [(1, 2), (3, 4)])
       `shouldBe` "1 2\n3 4\n"
   describe "matrixB" $ do
-    it "matrixB 2 3 [1..6] == \"1 2 3\\n4 5 6\\n\""
-      $ B.toLazyByteString (matrixB @V.Vector 2 3 B.intDec [1, 2, 3, 4, 5, 6])
+    it "matrixB (2, 3, [1..6]) == \"1 2 3\\n4 5 6\\n\""
+      $ B.toLazyByteString (matrixB @V.Vector B.intDec (2, 3, [1, 2, 3, 4, 5, 6]))
       `shouldBe` "1 2 3\n4 5 6\n"
   describe "gridB" $ do
-    it "matrixB 2 3 [1..6] == \"123\\n456\\n\""
-      $ B.toLazyByteString (gridB @V.Vector 2 3 B.intDec [1, 2, 3, 4, 5, 6])
+    it "gridB (2, 3, [1..6]) == \"123\\n456\\n\""
+      $ B.toLazyByteString (gridB @V.Vector B.intDec (2, 3, [1, 2, 3, 4, 5, 6]))
       `shouldBe` "123\n456\n"
