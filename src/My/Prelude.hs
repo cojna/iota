@@ -9,9 +9,13 @@ import Control.Monad.Primitive
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
+import qualified Data.ByteString.Internal as B
+import qualified Data.ByteString.Short as B (ShortByteString, toShort)
+import qualified Data.ByteString.Short as B.Short
 import qualified Data.Foldable as F
 import Data.Functor.Identity
 import Data.Primitive
@@ -23,7 +27,9 @@ import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import Data.Vector.Fusion.Util
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
+import qualified Data.Vector.Primitive as P
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Base as U (Vector (..))
 import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Word
 import Foreign.Ptr
@@ -439,6 +445,23 @@ gvectorLn f = PrimParser $ \e p ->
 uvectorLn :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
 uvectorLn = gvectorLn
 {-# INLINE uvectorLn #-}
+
+-- * ByteString utils
+bsToBytes :: B.ByteString -> U.Vector Word8
+bsToBytes bs = case B.toShort bs of
+  B.Short.SBS ba# -> baToBytes (ByteArray ba#)
+
+bsToChars :: B.ByteString -> U.Vector Char
+bsToChars = U.map B.w2c . bsToBytes
+
+baToBytes :: ByteArray -> U.Vector Word8
+baToBytes ba = U.V_Word8 (P.Vector 0 (sizeofByteArray ba) ba)
+
+baToChars :: ByteArray -> U.Vector Char
+baToChars = U.map B.w2c . baToBytes
+
+baToSBS :: ByteArray -> B.ShortByteString
+baToSBS (ByteArray ba#) = B.Short.SBS ba#
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
