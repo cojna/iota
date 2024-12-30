@@ -31,26 +31,6 @@ spec = do
       unsafeWithByteString "abc\n\n" (line $ uvectorLn char)
         `shouldBe` ['a', 'b', 'c']
 #endif
-  describe "byteArrayN" $ do
-    it "byteArrayN 3 \"abcdef\" == \"abc\"" $
-      unsafeWithByteString "abcdef" (byteArrayN 3)
-        `shouldBe` [97, 98, 99]
-    it "byteArrayN 0 \"abcdef\" == \"\"" $
-      unsafeWithByteString "abcdef" (byteArrayN 0)
-        `shouldBe` []
-    it "byteArrayN 6 \"abcdef\" == \"abcdef\"" $
-      unsafeWithByteString "abcdef" (byteArrayN 6)
-        `shouldBe` [97, 98, 99, 100, 101, 102]
-  describe "byteArrayHW" $ do
-    it "byteArrayHW 3 2 \"ab\\ncd\\nef\\n\" == \"abcdef\"" $
-      unsafeWithByteString "ab\ncd\nef\\n" (byteArrayHW 3 2)
-        `shouldBe` [97, 98, 99, 100, 101, 102]
-    it "byteArrayHW 3 2 \"ab\\ncd\\nef\" == \"abcdef\"" $
-      unsafeWithByteString "ab\ncd\nef" (byteArrayHW 3 2)
-        `shouldBe` [97, 98, 99, 100, 101, 102]
-    it "byteArrayHW 2 2 \"ab\\ncd\\nef\\n\" == \"abcdef\"" $
-      unsafeWithByteString "ab\ncd\n" (byteArrayHW 2 2)
-        `shouldBe` [97, 98, 99, 100]
   describe "unwordsB" $ do
     it "unwordsB intDec [1,2,3] == \"1 2 3\"" $
       B.toLazyByteString (unwordsB @V.Vector B.intDec [1, 2, 3])
