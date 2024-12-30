@@ -6,7 +6,6 @@ module My.Prelude where
 
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
@@ -14,9 +13,6 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Foldable as F
-#if MIN_VERSION_mtl(2,3,0)
-import Data.Function (fix)
-#endif
 import Data.Functor.Identity
 import Data.Primitive
 import qualified Data.Vector as V
@@ -443,41 +439,6 @@ gvectorLn f = PrimParser $ \e p ->
 uvectorLn :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
 uvectorLn = gvectorLn
 {-# INLINE uvectorLn #-}
-
-byteArrayN :: Int -> PrimParser ByteArray
-byteArrayN n@(I# n#) = PrimParser $ \_ p ->
-  let !ba = runST $ do
-        buf <- newByteArray n
-        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
-        freezeByteArray buf 0 n
-   in (# plusAddr# p n#, ba #)
-{-# INLINE byteArrayN #-}
-
-byteArrayHW :: Int -> Int -> PrimParser ByteArray
-byteArrayHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
-  let !ba = runST $ do
-        buf <- newByteArray (h * w)
-        fix
-          ( \loop !src !i -> when (i < h) $ do
-              copyPtrToMutableByteArray @_ @Word8 buf (i * w) src w
-              loop (plusPtr src (w + 1)) (i + 1)
-          )
-          (Ptr p)
-          0
-        freezeByteArray buf 0 (h * w)
-   in (# plusAddr# p (h# *# (w# +# 1#)), ba #)
-{-# INLINE byteArrayHW #-}
-
-byteArrayLn :: PrimParser ByteArray
-byteArrayLn = PrimParser $ \e p ->
-  let !end = memchrP# e p 0xa
-      n = I# (minusAddr# end p)
-      ba = runST $ do
-        buf <- newByteArray n
-        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
-        freezeByteArray buf 0 n
-   in (# plusAddr# end 1#, ba #)
-{-# INLINE byteArrayLn #-}
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
