@@ -468,6 +468,17 @@ byteArrayHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
    in (# plusAddr# p (h# *# (w# +# 1#)), ba #)
 {-# INLINE byteArrayHW #-}
 
+byteArrayLn :: PrimParser ByteArray
+byteArrayLn = PrimParser $ \e p ->
+  let !end = memchrP# e p 0xa
+      n = I# (minusAddr# end p)
+      ba = runST $ do
+        buf <- newByteArray n
+        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
+        freezeByteArray buf 0 n
+   in (# plusAddr# end 1#, ba #)
+{-# INLINE byteArrayLn #-}
+
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 unlinesB f = G.foldMap ((<> lfB) . f)
