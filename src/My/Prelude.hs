@@ -427,23 +427,6 @@ streamN n f = do
   pure $ MS.unfoldrExactN n (runPrimParser f e) o
 {-# INLINE streamN #-}
 
-uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
-uvector = gvector
-{-# INLINE uvector #-}
-
-gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
-gvector f = do
-  (e, o) <- viewPrimParser
-  pure
-    $ G.unfoldr
-      ( \p -> case runPrimParser f e p of
-          (x, p')
-            | p' < e -> Just (x, p')
-            | otherwise -> Nothing
-      )
-      o
-{-# INLINE gvector #-}
-
 gvectorLn :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
 gvectorLn f = PrimParser $ \e p ->
   case memchrP# e p 0xa of
