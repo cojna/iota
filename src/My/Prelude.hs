@@ -575,15 +575,36 @@ putBuilderLn :: (MonadIO m) => B.Builder -> m ()
 putBuilderLn b = putBuilder b *> putBuilder lfB
 
 -- * Misc
-neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
-neighbor4 h w xy f =
-  when (x /= 0) (f $ xy - w)
-    *> when (y /= 0) (f $ xy - 1)
-    *> when (y /= w - 1) (f $ xy + 1)
-    *> when (x /= h - 1) (f $ xy + w)
-  where
-    (!x, !y) = quotRem xy w
-{-# INLINE neighbor4 #-}
+inGrid :: Int -> Int -> Int -> Int -> Bool
+inGrid h w x y = 0 <= x && x < h && 0 <= y && y < w
+{-# INLINE inGrid #-}
+
+forNeighbor4_ :: (Applicative f) => Int -> Int -> Int -> Int -> (Int -> Int -> f ()) -> f ()
+forNeighbor4_ h w x y f =
+  when (x /= 0) (f (x - 1) y)
+    *> when (y /= 0) (f x (y - 1))
+    *> when (y /= w - 1) (f x (y + 1))
+    *> when (x /= h - 1) (f (x + 1) y)
+{-# INLINE forNeighbor4_ #-}
+
+forNeighbor8_ :: (Applicative f) => Int -> Int -> Int -> Int -> (Int -> Int -> f ()) -> f ()
+forNeighbor8_ h w x y f =
+  when
+    (x /= 0)
+    ( when (y /= 0) (f (x - 1) (y - 1))
+        *> f (x - 1) y
+        *> when (y /= w - 1) (f (x - 1) (y + 1))
+    )
+    *> ( when (y /= 0) (f x (y - 1))
+          *> when (y /= w - 1) (f x (y + 1))
+       )
+    *> when
+      (x /= h - 1)
+      ( when (y /= 0) (f (x + 1) (y - 1))
+          *> f (x + 1) y
+          *> when (y /= w - 1) (f (x + 1) (y + 1))
+      )
+{-# INLINE forNeighbor8_ #-}
 
 binarySearchM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
 binarySearchM low0 high0 p = go low0 high0

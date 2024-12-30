@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4699889cc7de07dd5c280b150742c3404ca4f349bf0e1b86d064818e03d3b42f
+-- hash: e964e3404c69a3d63957966d4b6452cd81d584efbe1d8c8beddec05ec3182e11
 
 name:           iota
 version:        0.1.0.0
@@ -54,7 +54,6 @@ library
       Data.Graph.Dense.Prim
       Data.Graph.Dense.TSP
       Data.Graph.Dense.WarshallFloyd
-      Data.Graph.Grid
       Data.Graph.MaxFlow
       Data.Graph.MinCostFlow
       Data.Graph.Sparse
