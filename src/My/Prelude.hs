@@ -575,6 +575,12 @@ putBuilderLn :: (MonadIO m) => B.Builder -> m ()
 putBuilderLn b = putBuilder b *> putBuilder lfB
 
 -- * Misc
+newtype YesNo = YesNo Bool
+
+instance Show YesNo where
+  show (YesNo True) = "Yes"
+  show (YesNo False) = "No"
+
 inGrid :: Int -> Int -> Int -> Int -> Bool
 inGrid h w x y = 0 <= x && x < h && 0 <= y && y < w
 {-# INLINE inGrid #-}
