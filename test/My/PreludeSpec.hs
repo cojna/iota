@@ -6,9 +6,10 @@
 module My.PreludeSpec (main, spec) where
 
 import Data.Bits
-import Data.ByteString ()
 import qualified Data.ByteString.Builder as B
+#if __GLASGOW_HASKELL__ > 904
 import Data.PrimParser
+#endif
 import qualified Data.Vector as V
 import My.Prelude
 import Test.Prelude
