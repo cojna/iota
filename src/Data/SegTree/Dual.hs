@@ -33,7 +33,7 @@ buildDualSegTree xs = do
   primalsDST <- U.thaw xs
   return $ DualSegTree{..}
   where
-    !dualSizeDST = extendToPowerOfTwo $ U.length xs
+    !dualSizeDST = ceilingPowerOf2 $ U.length xs
     primalSizeDST = U.length xs
     heightDST = countTrailingZeros dualSizeDST
 {-# INLINE buildDualSegTree #-}
@@ -209,8 +209,3 @@ pushSegTree seg@DualSegTree{dualSegTreeDST = dseg} k = do
   evalAt seg (2 * k) fk
   evalAt seg (2 * k + 1) fk
 {-# INLINE pushSegTree #-}
-
-extendToPowerOfTwo :: Int -> Int
-extendToPowerOfTwo x
-  | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
-  | otherwise = 1

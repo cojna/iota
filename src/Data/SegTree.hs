@@ -7,7 +7,7 @@ import Data.Function
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 
-import My.Prelude (rep1, rev1, unsafeShiftRL)
+import My.Prelude (ceilingPowerOf2, rep1, rev1)
 
 {- | * @sendo@ is a monoid homomorphism (left monoid action)
    * @sendo f@ is a semigroup endomorphism
@@ -31,7 +31,7 @@ newSegTree n0 = do
   dseg <- UM.replicate n mempty
   return $ SegTree seg dseg n (63 - countLeadingZeros n)
   where
-    !n = extendToPowerOfTwo n0
+    !n = ceilingPowerOf2 n0
 
 -- | /O(n)/
 buildSegTree ::
@@ -47,7 +47,7 @@ buildSegTree xs = do
     pullSegTree st i
   return st
   where
-    !n = extendToPowerOfTwo $ U.length xs
+    !n = ceilingPowerOf2 $ U.length xs
 
 -- | /O(log n)/
 readSegTree ::
@@ -340,8 +340,3 @@ pullSegTree st k = do
     <*> UM.unsafeRead (getSegTree st) (2 * k + 1)
     >>= UM.unsafeWrite (getSegTree st) k
 {-# INLINE pullSegTree #-}
-
-extendToPowerOfTwo :: Int -> Int
-extendToPowerOfTwo x
-  | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
-  | otherwise = 1

@@ -421,12 +421,56 @@ BSR (Bit Scan Reverse)
 9
 >>> floorLog2 1024
 10
+>>> floorLog2 1025
+10
 >>> floorLog2 maxBound
 62
 -}
 floorLog2 :: Int -> Int
 floorLog2 x = 63 - countLeadingZeros x
 {-# INLINE floorLog2 #-}
+
+{- |
+>>> floorPowerOf2 0
+-9223372036854775808
+>>> floorPowerOf2 1
+1
+>>> floorPowerOf2 2
+2
+>>> floorPowerOf2 1023
+512
+>>> floorPowerOf2 1024
+1024
+>>> floorPowerOf2 1025
+1024
+>>> floorPowerOf2 maxBound
+4611686018427387904
+-}
+floorPowerOf2 :: Int -> Int
+floorPowerOf2 x = 1 !<<. floorLog2 x
+{-# INLINE floorPowerOf2 #-}
+
+{- |
+>>> ceilingPowerOf2 0
+1
+>>> ceilingPowerOf2 1
+1
+>>> ceilingPowerOf2 2
+2
+>>> ceilingPowerOf2 1023
+1024
+>>> ceilingPowerOf2 1024
+1024
+>>> ceilingPowerOf2 1025
+2048
+>>> ceilingPowerOf2 maxBound
+-9223372036854775808
+-}
+ceilingPowerOf2 :: Int -> Int
+ceilingPowerOf2 x
+  | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
+  | otherwise = 1
+{-# INLINE ceilingPowerOf2 #-}
 
 -- * Parser utils
 uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)

@@ -11,7 +11,7 @@ import Data.Bits
 import Data.Function
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
-import Unsafe.Coerce
+import My.Prelude (ceilingPowerOf2)
 
 newtype SegTree mv s a = SegTree {getSegTree :: mv s a}
 
@@ -24,7 +24,7 @@ newSegTree ::
   (Monoid a, GM.MVector mv a, PrimMonad m) =>
   Int ->
   m (SegTree mv (PrimState m) a)
-newSegTree n = SegTree <$> GM.replicate (2 * extendToPowerOfTwo n) mempty
+newSegTree n = SegTree <$> GM.replicate (2 * ceilingPowerOf2 n) mempty
 
 -- | /O(n)/
 buildSegTree ::
@@ -32,7 +32,7 @@ buildSegTree ::
   v a ->
   m (SegTree (G.Mutable v) (PrimState m) a)
 buildSegTree vec = do
-  let n = extendToPowerOfTwo $ G.length vec
+  let n = ceilingPowerOf2 $ G.length vec
   tree <- GM.replicate (2 * n) mempty
   G.unsafeCopy (GM.unsafeSlice n (G.length vec) tree) vec
   flip fix (n - 1) $ \loop !i -> when (i >= 1) $ do
@@ -264,14 +264,3 @@ lowerBoundTo segtree r p = do
         acc0
         cur0
 {-# INLINE lowerBoundTo #-}
-
-{- |
->>> extendToPowerOfTwo 0
-1
--}
-extendToPowerOfTwo :: Int -> Int
-extendToPowerOfTwo x
-  | x > 1 =
-      unsafeCoerce @Word @Int $
-        unsafeShiftR (complement zeroBits) (countLeadingZeros (x - 1)) + 1
-  | otherwise = 1
