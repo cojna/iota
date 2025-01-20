@@ -431,6 +431,28 @@ floorLog2 x = 63 - countLeadingZeros x
 {-# INLINE floorLog2 #-}
 
 {- |
+>>> ceilingLog2 0
+0
+>>> ceilingLog2 1
+0
+>>> ceilingLog2 2
+1
+>>> ceilingLog2 1023
+10
+>>> ceilingLog2 1024
+10
+>>> ceilingLog2 1025
+11
+>>> ceilingLog2 maxBound
+63
+-}
+ceilingLog2 :: Int -> Int
+ceilingLog2 x
+  | x > 1 = 64 - countLeadingZeros (x - 1)
+  | otherwise = 0
+{-# INLINE ceilingLog2 #-}
+
+{- |
 >>> floorPowerOf2 0
 -9223372036854775808
 >>> floorPowerOf2 1

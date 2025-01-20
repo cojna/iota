@@ -16,6 +16,7 @@ import GHC.TypeLits (KnownNat)
 import Data.GaloisField (GF (GF), natValAsInt, reifyNat)
 import Math.Prime (primeFactors)
 import My.Prelude (
+  ceilingLog2,
   ceilingPowerOf2,
   rep,
   unsafeShiftRL,
@@ -78,7 +79,7 @@ convolute xs ys = U.create $ do
   where
     n = U.length xs
     m = U.length ys
-    !h = countTrailingZeros $ ceilingPowerOf2 (n + m - 1)
+    !h = ceilingLog2 (n + m - 1)
     !len = unsafeShiftL 1 h
     !ilen = recip (GF len)
 {-# INLINE convolute #-}
@@ -128,7 +129,7 @@ butterfly mvec = do
         (0 ..< w)
   where
     n = UM.length mvec
-    !h = countTrailingZeros $ ceilingPowerOf2 n
+    !h = ceilingLog2 n
     NTTRunner{..} = nttRunner
 {-# INLINE butterfly #-}
 

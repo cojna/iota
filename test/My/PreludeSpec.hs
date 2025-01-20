@@ -34,6 +34,27 @@ spec = do
     it "floorLog2 maxBound = 62" $ do
       floorLog2 maxBound `shouldBe` 62
     prop "2 ^ n <= floorLog2 n < 2 ^ (n + 1)" prop_floorLog2
+  describe "ceilingLog2" $ do
+    it "ceilingLog2 1 = 0" $ do
+      ceilingLog2 1 `shouldBe` 0
+    it "ceilingLog2 2 = 1" $ do
+      ceilingLog2 2 `shouldBe` 1
+    it "ceilingLog2 3 = 2" $ do
+      ceilingLog2 3 `shouldBe` 2
+    it "ceilingLog2 1023 = 10" $ do
+      ceilingLog2 1023 `shouldBe` 10
+    it "ceilingLog2 1024 = 10" $ do
+      ceilingLog2 1024 `shouldBe` 10
+    it "ceilingLog2 1025 = 11" $ do
+      ceilingLog2 1025 `shouldBe` 11
+    it "ceilingLog2 maxBound = 63" $ do
+      ceilingLog2 maxBound `shouldBe` 63
+    prop "floorLog2 x <= ceilingLog2 x"
+      $ \(getNonNegative -> x) -> floorLog2 x <= ceilingLog2 x
+    prop "x <= 2 ^ ceilingLog2 x"
+      $ \(getNonNegative -> x) -> x <= 2 ^ ceilingLog2 x
+    prop "2 ^ ceilingLog2 x < 2 * x (x > 0)"
+      $ \(getPositive -> x) -> 2 ^ ceilingLog2 x < 2 * x
   describe "floorPowerOf2" $ do
     it "floorPowerOf2 1 = 1" $ do
       floorPowerOf2 1 `shouldBe` 1
