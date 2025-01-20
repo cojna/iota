@@ -9,7 +9,6 @@ monoidActionSpec ::
   , Monoid f
   , Show f
   , Arbitrary a
-  , Monoid a
   , Show a
   , Eq a
   , MonoidAction f a
