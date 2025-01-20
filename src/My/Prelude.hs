@@ -6,17 +6,17 @@ module My.Prelude where
 
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.Bits
 import Data.Bool
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
+import qualified Data.ByteString.Internal as B
+import qualified Data.ByteString.Short as B (ShortByteString, toShort)
+import qualified Data.ByteString.Short as B.Short
 import qualified Data.Foldable as F
-#if MIN_VERSION_mtl(2,3,0)
-import Data.Function (fix)
-#endif
 import Data.Functor.Identity
 import Data.Primitive
 import qualified Data.Vector as V
@@ -27,7 +27,9 @@ import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import Data.Vector.Fusion.Util
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
+import qualified Data.Vector.Primitive as P
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Base as U (Vector (..))
 import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Word
 import Foreign.Ptr
@@ -406,6 +408,92 @@ unsafeShiftRL (I# x#) (I# i#) = I# (uncheckedIShiftRL# x# i#)
 (!>>>.) = unsafeShiftRL
 {-# INLINE (!>>>.) #-}
 
+{- |
+BSR (Bit Scan Reverse)
+
+>>> floorLog2 0
+-1
+>>> floorLog2 1
+0
+>>> floorLog2 2
+1
+>>> floorLog2 1023
+9
+>>> floorLog2 1024
+10
+>>> floorLog2 1025
+10
+>>> floorLog2 maxBound
+62
+-}
+floorLog2 :: Int -> Int
+floorLog2 x = 63 - countLeadingZeros x
+{-# INLINE floorLog2 #-}
+
+{- |
+>>> ceilingLog2 0
+0
+>>> ceilingLog2 1
+0
+>>> ceilingLog2 2
+1
+>>> ceilingLog2 1023
+10
+>>> ceilingLog2 1024
+10
+>>> ceilingLog2 1025
+11
+>>> ceilingLog2 maxBound
+63
+-}
+ceilingLog2 :: Int -> Int
+ceilingLog2 x
+  | x > 1 = 64 - countLeadingZeros (x - 1)
+  | otherwise = 0
+{-# INLINE ceilingLog2 #-}
+
+{- |
+>>> floorPowerOf2 0
+-9223372036854775808
+>>> floorPowerOf2 1
+1
+>>> floorPowerOf2 2
+2
+>>> floorPowerOf2 1023
+512
+>>> floorPowerOf2 1024
+1024
+>>> floorPowerOf2 1025
+1024
+>>> floorPowerOf2 maxBound
+4611686018427387904
+-}
+floorPowerOf2 :: Int -> Int
+floorPowerOf2 x = 1 !<<. floorLog2 x
+{-# INLINE floorPowerOf2 #-}
+
+{- |
+>>> ceilingPowerOf2 0
+1
+>>> ceilingPowerOf2 1
+1
+>>> ceilingPowerOf2 2
+2
+>>> ceilingPowerOf2 1023
+1024
+>>> ceilingPowerOf2 1024
+1024
+>>> ceilingPowerOf2 1025
+2048
+>>> ceilingPowerOf2 maxBound
+-9223372036854775808
+-}
+ceilingPowerOf2 :: Int -> Int
+ceilingPowerOf2 x
+  | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
+  | otherwise = 1
+{-# INLINE ceilingPowerOf2 #-}
+
 -- * Parser utils
 uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
 uvectorN = gvectorN
@@ -427,46 +515,39 @@ streamN n f = do
   pure $ MS.unfoldrExactN n (runPrimParser f e) o
 {-# INLINE streamN #-}
 
-uvector :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
-uvector = gvector
-{-# INLINE uvector #-}
+gvectorLn :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
+gvectorLn f = PrimParser $ \e p ->
+  case memchrP# e p 0xa of
+    pos ->
+      (#
+        plusAddr# pos 1#
+        , G.unfoldrExactN
+            (I# (minusAddr# pos p))
+            (runPrimParser f (Ptr pos))
+            (Ptr p)
+      #)
+{-# INLINE gvectorLn #-}
 
-gvector :: (G.Vector v a) => PrimParser a -> PrimParser (v a)
-gvector f = do
-  (e, o) <- viewPrimParser
-  pure
-    $ G.unfoldr
-      ( \p -> case runPrimParser f e p of
-          (x, p')
-            | p' < e -> Just (x, p')
-            | otherwise -> Nothing
-      )
-      o
-{-# INLINE gvector #-}
+uvectorLn :: (U.Unbox a) => PrimParser a -> PrimParser (U.Vector a)
+uvectorLn = gvectorLn
+{-# INLINE uvectorLn #-}
 
-byteArrayN :: Int -> PrimParser ByteArray
-byteArrayN n@(I# n#) = PrimParser $ \_ p ->
-  let !ba = runST $ do
-        buf <- newByteArray n
-        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
-        freezeByteArray buf 0 n
-   in (# plusAddr# p n#, ba #)
-{-# INLINE byteArrayN #-}
+-- * ByteString utils
+bsToBytes :: B.ByteString -> U.Vector Word8
+bsToBytes bs = case B.toShort bs of
+  B.Short.SBS ba# -> baToBytes (ByteArray ba#)
 
-byteArrayHW :: Int -> Int -> PrimParser ByteArray
-byteArrayHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
-  let !ba = runST $ do
-        buf <- newByteArray (h * w)
-        fix
-          ( \loop !src !i -> when (i < h) $ do
-              copyPtrToMutableByteArray @_ @Word8 buf (i * w) src w
-              loop (plusPtr src (w + 1)) (i + 1)
-          )
-          (Ptr p)
-          0
-        freezeByteArray buf 0 (h * w)
-   in (# plusAddr# p (h# *# (w# +# 1#)), ba #)
-{-# INLINE byteArrayHW #-}
+bsToChars :: B.ByteString -> U.Vector Char
+bsToChars = U.map B.w2c . bsToBytes
+
+baToBytes :: ByteArray -> U.Vector Word8
+baToBytes ba = U.V_Word8 (P.Vector 0 (sizeofByteArray ba) ba)
+
+baToChars :: ByteArray -> U.Vector Char
+baToChars = U.map B.w2c . baToBytes
+
+baToSBS :: ByteArray -> B.ShortByteString
+baToSBS (ByteArray ba#) = B.Short.SBS ba#
 
 -- * Builder utils
 unlinesB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
@@ -483,11 +564,11 @@ concatB :: (G.Vector v a) => (a -> B.Builder) -> v a -> B.Builder
 concatB = G.foldMap
 
 {- |
->>> matrixB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+>>> matrixB B.intDec (2, 3, U.fromListN 6 [1, 2, 3, 4, 5, 6])
 "1 2 3\n4 5 6\n"
 -}
-matrixB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
-matrixB h w f !mat =
+matrixB :: (G.Vector v a) => (a -> B.Builder) -> (Int, Int, v a) -> B.Builder
+matrixB f (!h, !w, !mat) =
   U.foldMap
     ( \i ->
         unwordsB f (G.slice (i * w) w mat) <> lfB
@@ -495,13 +576,13 @@ matrixB h w f !mat =
     $ U.generate h id
 
 {- |
->>> gridB 2 3 B.char7 $ U.fromListN 6 ".#.#.#"
+>>> gridB B.char7 (2, 3, U.fromListN 6 ".#.#.#")
 ".#.\n#.#\n"
->>> gridB 2 3 B.intDec $ U.fromListN 6 [1, 2, 3, 4, 5, 6]
+>>> gridB B.intDec (2, 3, U.fromListN 6 [1, 2, 3, 4, 5, 6])
 "123\n456\n"
 -}
-gridB :: (G.Vector v a) => Int -> Int -> (a -> B.Builder) -> v a -> B.Builder
-gridB h w f mat =
+gridB :: (G.Vector v a) => (a -> B.Builder) -> (Int, Int, v a) -> B.Builder
+gridB f (!h, !w, !mat) =
   U.foldMap
     ( \i ->
         G.foldMap f (G.slice (i * w) w mat) <> lfB
@@ -564,15 +645,42 @@ putBuilderLn :: (MonadIO m) => B.Builder -> m ()
 putBuilderLn b = putBuilder b *> putBuilder lfB
 
 -- * Misc
-neighbor4 :: (Applicative f) => Int -> Int -> Int -> (Int -> f ()) -> f ()
-neighbor4 h w xy f =
-  when (x /= 0) (f $ xy - w)
-    *> when (y /= 0) (f $ xy - 1)
-    *> when (y /= w - 1) (f $ xy + 1)
-    *> when (x /= h - 1) (f $ xy + w)
-  where
-    (!x, !y) = quotRem xy w
-{-# INLINE neighbor4 #-}
+newtype YesNo = YesNo Bool
+
+instance Show YesNo where
+  show (YesNo True) = "Yes"
+  show (YesNo False) = "No"
+
+inGrid :: Int -> Int -> Int -> Int -> Bool
+inGrid h w x y = 0 <= x && x < h && 0 <= y && y < w
+{-# INLINE inGrid #-}
+
+forNeighbor4_ :: (Applicative f) => Int -> Int -> Int -> Int -> (Int -> Int -> f ()) -> f ()
+forNeighbor4_ h w x y f =
+  when (x /= 0) (f (x - 1) y)
+    *> when (y /= 0) (f x (y - 1))
+    *> when (y /= w - 1) (f x (y + 1))
+    *> when (x /= h - 1) (f (x + 1) y)
+{-# INLINE forNeighbor4_ #-}
+
+forNeighbor8_ :: (Applicative f) => Int -> Int -> Int -> Int -> (Int -> Int -> f ()) -> f ()
+forNeighbor8_ h w x y f =
+  when
+    (x /= 0)
+    ( when (y /= 0) (f (x - 1) (y - 1))
+        *> f (x - 1) y
+        *> when (y /= w - 1) (f (x - 1) (y + 1))
+    )
+    *> ( when (y /= 0) (f x (y - 1))
+          *> when (y /= w - 1) (f x (y + 1))
+       )
+    *> when
+      (x /= h - 1)
+      ( when (y /= 0) (f (x + 1) (y - 1))
+          *> f (x + 1) y
+          *> when (y /= w - 1) (f (x + 1) (y + 1))
+      )
+{-# INLINE forNeighbor8_ #-}
 
 binarySearchM :: (Monad m) => Int -> Int -> (Int -> m Bool) -> m Int
 binarySearchM low0 high0 p = go low0 high0

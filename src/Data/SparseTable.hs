@@ -7,7 +7,7 @@ import Data.Semigroup
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 
-import Math.Utils (floorLog2)
+import My.Prelude (floorLog2)
 
 type RMQ a = SparseTable Min a
 

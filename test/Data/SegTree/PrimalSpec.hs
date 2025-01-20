@@ -4,7 +4,6 @@
 
 module Data.SegTree.PrimalSpec (main, spec) where
 
-import Data.Bits
 import Data.SegTree.Primal
 import Data.Semigroup
 import qualified Data.Vector as V
@@ -151,15 +150,6 @@ spec = do
               lowerBoundTo seg 10 (< Sum 1024)
         action `shouldReturn` 0
 
-  describe "extendToPowerOfTwo" $ do
-    it "f 0 == 1" $ extendToPowerOfTwo 0 `shouldBe` 1
-    it "f 1 == 1" $ extendToPowerOfTwo 1 `shouldBe` 1
-    it "f 2 == 2" $ extendToPowerOfTwo 2 `shouldBe` 2
-    it "f 3 == 4" $ extendToPowerOfTwo 3 `shouldBe` 4
-    prop "popCount (f x) == 1" prop_powerOfTwo
-    prop "x <= f x" prop_greaterThanOrEqual
-    prop "popCount (f x / 2) /= 1 || f x / 2 < x" prop_least
-
 data SegTreeQuery a
   = SegUpdate !Int !a
   | SegQuery !Int !Int
@@ -244,16 +234,3 @@ prop_buildSegTree (getNonEmpty -> xs) = monadicIO $ do
     seg1' <- V.freeze (getSegTree seg1)
     return (seg0', seg1')
   assert (seg0' == seg1')
-
-prop_powerOfTwo :: NonNegative Int -> Bool
-prop_powerOfTwo (getNonNegative -> x) =
-  popCount (extendToPowerOfTwo x) == 1
-
-prop_greaterThanOrEqual :: NonNegative Int -> Bool
-prop_greaterThanOrEqual (getNonNegative -> x) = x <= extendToPowerOfTwo x
-
-prop_least :: NonNegative Int -> Bool
-prop_least (getNonNegative -> x) = not $ x <= prev && popCount prev == 1
-  where
-    res = extendToPowerOfTwo x
-    prev = res `shiftR` 1

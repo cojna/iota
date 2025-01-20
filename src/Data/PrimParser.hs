@@ -6,9 +6,13 @@ module Data.PrimParser where
 
 import Control.Applicative (Applicative (..))
 import Control.Monad
+import Control.Monad.ST
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
+import qualified Data.ByteString.Short as B (ShortByteString)
+import qualified Data.ByteString.Short as B.Short
 import Data.Function
+import Data.Primitive
 import Foreign
 import GHC.Exts
 import GHC.Word
@@ -58,8 +62,8 @@ withByteString bs k f = case B.toForeignPtr bs of
 
 unsafeWithByteString :: B.ByteString -> PrimParser a -> a
 unsafeWithByteString bs f =
-  B.accursedUnutterablePerformIO
-    $ withByteString bs return f
+  B.accursedUnutterablePerformIO $
+    withByteString bs return f
 
 withInputHandle :: Handle -> (a -> IO r) -> PrimParser a -> IO r
 withInputHandle h k f = do
@@ -200,8 +204,8 @@ upperC = PrimParser $ \_ p ->
 memchrP# :: Addr# -> Addr# -> Word8 -> Addr#
 memchrP# e p w8 =
   let !(Ptr pos) =
-        B.accursedUnutterablePerformIO
-          $ B.memchr (Ptr p) w8 (fromIntegral (I# (minusAddr# e p)))
+        B.accursedUnutterablePerformIO $
+          B.memchr (Ptr p) w8 (fromIntegral (I# (minusAddr# e p)))
    in pos
 
 memchrNthP# :: Int# -> Addr# -> Addr# -> Word8 -> Addr#
@@ -248,6 +252,68 @@ byteStringHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
           0
    in (# plusAddr# p (h# *# (w# +# 1#)), bs #)
 {-# INLINE byteStringHW #-}
+
+byteArrayTo :: Word8 -> PrimParser ByteArray
+byteArrayTo w = PrimParser $ \e p ->
+  let !end = memchrP# e p w
+      n = I# (minusAddr# end p)
+      ba = runST $ do
+        buf <- newByteArray n
+        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
+        freezeByteArray buf 0 n
+   in (# plusAddr# end 1#, ba #)
+{-# INLINE byteArrayTo #-}
+
+byteArrayLn :: PrimParser ByteArray
+byteArrayLn = byteArrayTo 0xa
+{-# INLINE byteArrayLn #-}
+
+byteArraySp :: PrimParser ByteArray
+byteArraySp = byteArrayTo 0x20
+{-# INLINE byteArraySp #-}
+
+byteArrayN :: Int -> PrimParser ByteArray
+byteArrayN n@(I# n#) = PrimParser $ \_ p ->
+  let !ba = runST $ do
+        buf <- newByteArray n
+        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
+        freezeByteArray buf 0 n
+   in (# plusAddr# p n#, ba #)
+{-# INLINE byteArrayN #-}
+
+byteArrayHW :: Int -> Int -> PrimParser ByteArray
+byteArrayHW h@(I# h#) w@(I# w#) = PrimParser $ \_ p ->
+  let !ba = runST $ do
+        buf <- newByteArray (h * w)
+        fix
+          ( \loop !src !i -> when (i < h) $ do
+              copyPtrToMutableByteArray @_ @Word8 buf (i * w) src w
+              loop (plusPtr src (w + 1)) (i + 1)
+          )
+          (Ptr p)
+          0
+        freezeByteArray buf 0 (h * w)
+   in (# plusAddr# p (h# *# (w# +# 1#)), ba #)
+{-# INLINE byteArrayHW #-}
+
+shortByteStringTo :: Word8 -> PrimParser B.ShortByteString
+shortByteStringTo w = PrimParser $ \e p ->
+  let !end = memchrP# e p w
+      n = I# (minusAddr# end p)
+      !(ByteArray ba#) = runST $ do
+        buf <- newByteArray n
+        copyPtrToMutableByteArray @_ @Word8 buf 0 (Ptr p) n
+        freezeByteArray buf 0 n
+   in (# plusAddr# end 1#, B.Short.SBS ba# #)
+{-# INLINE shortByteStringTo #-}
+
+shortByteStringLn :: PrimParser B.ShortByteString
+shortByteStringLn = shortByteStringTo 0xa
+{-# INLINE shortByteStringLn #-}
+
+shortByteStringSp :: PrimParser B.ShortByteString
+shortByteStringSp = shortByteStringTo 0x20
+{-# INLINE shortByteStringSp #-}
 
 line :: PrimParser a -> PrimParser a
 line f = PrimParser $ \e p ->

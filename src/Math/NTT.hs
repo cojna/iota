@@ -16,6 +16,8 @@ import GHC.TypeLits (KnownNat)
 import Data.GaloisField (GF (GF), natValAsInt, reifyNat)
 import Math.Prime (primeFactors)
 import My.Prelude (
+  ceilingLog2,
+  ceilingPowerOf2,
   rep,
   unsafeShiftRL,
   (..<),
@@ -77,7 +79,7 @@ convolute xs ys = U.create $ do
   where
     n = U.length xs
     m = U.length ys
-    !h = countTrailingZeros $ extendToPowerOfTwo (n + m - 1)
+    !h = ceilingLog2 (n + m - 1)
     !len = unsafeShiftL 1 h
     !ilen = recip (GF len)
 {-# INLINE convolute #-}
@@ -127,7 +129,7 @@ butterfly mvec = do
         (0 ..< w)
   where
     n = UM.length mvec
-    !h = countTrailingZeros $ extendToPowerOfTwo n
+    !h = ceilingLog2 n
     NTTRunner{..} = nttRunner
 {-# INLINE butterfly #-}
 
@@ -154,7 +156,7 @@ invButterfly mvec = void $ do
       (0 ..< w)
   where
     n = UM.length mvec
-    !h = countTrailingZeros $ extendToPowerOfTwo n
+    !h = countTrailingZeros $ ceilingPowerOf2 n
     NTTRunner{..} = nttRunner
 {-# INLINE invButterfly #-}
 
@@ -170,15 +172,6 @@ growToPowerOfTwo v
       v U.++ U.replicate (n - U.length v) 0
 
 {- |
->>> extendToPowerOfTwo 0
-1
--}
-extendToPowerOfTwo :: Int -> Int
-extendToPowerOfTwo x
-  | x > 1 = unsafeShiftRL (-1) (countLeadingZeros (x - 1)) + 1
-  | otherwise = 1
-
-{- |
 >>> primitiveRoot 2
 1
 >>> primitiveRoot 998244353
@@ -192,8 +185,8 @@ primitiveRoot 2 = 1
 primitiveRoot prime = reifyNat prime $ \proxy ->
   flip fix 2 $ \loop !g ->
     if all (check (toGF proxy g)) ps
-    then g
-    else loop (g + 1)
+      then g
+      else loop (g + 1)
   where
     !ps = map NE.head . NE.group $ primeFactors (prime - 1)
 
