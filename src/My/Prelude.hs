@@ -408,6 +408,26 @@ unsafeShiftRL (I# x#) (I# i#) = I# (uncheckedIShiftRL# x# i#)
 (!>>>.) = unsafeShiftRL
 {-# INLINE (!>>>.) #-}
 
+{- |
+BSR (Bit Scan Reverse)
+
+>>> floorLog2 0
+-1
+>>> floorLog2 1
+0
+>>> floorLog2 2
+1
+>>> floorLog2 1023
+9
+>>> floorLog2 1024
+10
+>>> floorLog2 maxBound
+62
+-}
+floorLog2 :: Int -> Int
+floorLog2 x = 63 - countLeadingZeros x
+{-# INLINE floorLog2 #-}
+
 -- * Parser utils
 uvectorN :: (U.Unbox a) => Int -> PrimParser a -> PrimParser (U.Vector a)
 uvectorN = gvectorN

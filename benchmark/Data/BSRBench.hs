@@ -4,7 +4,7 @@ import Criterion (Benchmark, bench, bgroup, whnf)
 import Data.Bits
 import Data.Word (Word64)
 import GHC.Float (castDoubleToWord64)
-import Math.Utils (floorLog2)
+import My.Prelude (floorLog2)
 import Unsafe.Coerce (unsafeCoerce)
 
 benchMain :: Benchmark
