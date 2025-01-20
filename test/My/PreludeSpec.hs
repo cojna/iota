@@ -33,7 +33,7 @@ spec = do
       floorLog2 1025 `shouldBe` 10
     it "floorLog2 maxBound = 62" $ do
       floorLog2 maxBound `shouldBe` 62
-    prop "2 ^ n <= floorLog2 n < 2 ^ (n + 1)" prop_floorLog2
+    prop "2 ^ floorLog2 n <= n < 2 ^ (floorLog2 n + 1)" prop_floorLog2
   describe "ceilingLog2" $ do
     it "ceilingLog2 1 = 0" $ do
       ceilingLog2 1 `shouldBe` 0
