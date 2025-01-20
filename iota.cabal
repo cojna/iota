@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e964e3404c69a3d63957966d4b6452cd81d584efbe1d8c8beddec05ec3182e11
+-- hash: 1933cd89488a53e5c090ecd92c6820db29eaf997b7cb861635c69a093ccf0c89
 
 name:           iota
 version:        0.1.0.0
@@ -46,6 +46,7 @@ library
       Data.Doubling
       Data.EPS
       Data.FenwickTree
+      Data.FenwickTree.Sum
       Data.GaloisField
       Data.Graph.BellmanFord
       Data.Graph.BipartiteMatching
