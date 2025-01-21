@@ -55,7 +55,7 @@ sumTo (SumFenwickTree ft) = go 0
 
 {- | sum[l..r)
 
-/O(lof n)/
+/O(log n)/
 -}
 sumFromTo ::
   (PrimMonad m, U.Unbox a, Num a) =>
