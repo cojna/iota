@@ -93,20 +93,20 @@ addAt (SumFenwickTree ft) k v = flip fix (k + 1) $ \loop !i -> do
 {-# INLINE addAt #-}
 
 -- | /O(log n)/
-readSumFenwickTree ::
+readSFT ::
   (Num a, U.Unbox a, PrimMonad m) =>
   SumFenwickTree (PrimState m) a ->
   Int ->
   m a
-readSumFenwickTree ft i = sumFromTo ft i (i + 1)
-{-# INLINE readSumFenwickTree #-}
+readSFT ft i = sumFromTo ft i (i + 1)
+{-# INLINE readSFT #-}
 
 -- | /O(log n)/
-writeSumFenwickTree ::
+writeSFT ::
   (Num a, U.Unbox a, PrimMonad m) =>
   SumFenwickTree (PrimState m) a ->
   Int ->
   a ->
   m ()
-writeSumFenwickTree ft i x = readSumFenwickTree ft i >>= addAt ft i . (x -)
-{-# INLINE writeSumFenwickTree #-}
+writeSFT ft i x = readSFT ft i >>= addAt ft i . (x -)
+{-# INLINE writeSFT #-}
