@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 65500da96815de4ab041ea6ad335e6ef6af97f01d0dca9857c967d9839b89894
+-- hash: 38acac6b49bcba0b444cbc2207d19338728f3008607f7c4e033ccee9514b0855
 
 name:           iota
 version:        0.1.0.0
@@ -107,6 +107,7 @@ library
       Data.SegTree.RangeMulRangeSum
       Data.SegTree.RangeUpdateRangeMax
       Data.SegTree.RangeUpdateRangeMin
+      Data.SegTree.RangeUpdateRangeSum
       Data.Semiring
       Data.SparseTable
       Data.Trie.Binary.Magma
