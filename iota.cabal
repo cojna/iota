@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 42b162aad9a6ca9fdd8caf16a550b801331818ef599852679cdfe61daa256609
+-- hash: 4db1476af7cef09d94ca10c3b381f7b2be002fe2bb699909cdfce3d500f732a5
 
 name:           iota
 version:        0.1.0.0
@@ -135,6 +135,7 @@ library
       Math.Modulus.Sqrt
       Math.NTT
       Math.Prime
+      Math.Prime.LinearSieve
       Math.Prime.Sieve
       Math.Utils
       My.Prelude
