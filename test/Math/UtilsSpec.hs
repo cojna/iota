@@ -21,6 +21,18 @@ spec = do
     it "floorSqrt maxBound = 3037000499" $ do
       floorSqrt maxBound `shouldBe` 3037000499
     prop "floor (sqrt x)" prop_floorSqrt
+  describe "integerFloorSqrt" $ do
+    it "integerFloorSqrt 0 = 0" $ do
+      integerFloorSqrt 0 `shouldBe` 0
+    it "integerFloorSqrt 1 = 1" $ do
+      integerFloorSqrt 1 `shouldBe` 1
+    it "integerFloorSqrt 2 = 1" $ do
+      integerFloorSqrt 2 `shouldBe` 1
+    it "integerFloorSqrt 4 = 2" $ do
+      integerFloorSqrt 4 `shouldBe` 2
+    prop "integerFloorSqrt == floorSqrt" $ \n ->
+      fromIntegral (integerFloorSqrt (fromIntegral n))
+        == floorSqrt n
 
 prop_floorSqrt :: NonNegative Int -> Bool
 prop_floorSqrt (getNonNegative -> n) =
