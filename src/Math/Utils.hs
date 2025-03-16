@@ -17,10 +17,12 @@ import Data.Bits
 67108864
 >>> floorSqrt maxBound
 3037000499
+>>> floorSqrt (-1)
+0
 -}
 floorSqrt :: Int -> Int
 floorSqrt n
-  | n <= 1 = n
+  | n <= 0 = 0
   | otherwise =
       let !k = 32 - unsafeShiftR (countLeadingZeros (n - 1)) 1
           !x0 = unsafeShiftL 1 k
