@@ -62,7 +62,7 @@ equivUF :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> Int -> m Bool
 equivUF uf x y = (==) `liftM` findUF uf x `ap` findUF uf y
 {-# INLINE equivUF #-}
 
--- | O(n)
+-- | /O(n)/
 countGroupUF :: (PrimMonad m) => UnionFind (PrimState m) -> m Int
 countGroupUF uf = U.length . U.filter (< 0) <$> freezeUnionFind uf
 {-# INLINE countGroupUF #-}
