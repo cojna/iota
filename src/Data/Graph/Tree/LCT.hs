@@ -292,7 +292,7 @@ lv  rv           rv  rpv
 rotateRightLCT ::
   (U.Unbox a, Monoid a, PrimMonad m) =>
   LCT (PrimState m) a ->
-  -- | has pasrent node
+  -- | has parent node
   SplayNodeId ->
   m ()
 rotateRightLCT lct v = do
