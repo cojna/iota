@@ -1,5 +1,6 @@
 module Math.QuadEq where
 
+import Control.Monad
 import Math.Utils
 
 {- |
@@ -57,12 +58,13 @@ solveQuadEqInteger :: Integer -> Integer -> Integer -> [Integer]
 solveQuadEqInteger a b c
   | a == 0 = error $ "solveQuadEqInteger: " <> show (a, b, c)
   | a < 0 = solveQuadEqInteger (-a) (-b) (-c)
+solveQuadEqInteger a b c
   | d < 0 = []
   | d == 0, (x, 0) <- quotRem (-b) (2 * a) = [x]
-  | sqrtD * sqrtD /= d = []
   | otherwise = do
+      let !sqrtD = integerFloorSqrt d
+      guard $ sqrtD * sqrtD == d
       (!x, 0) <- map (`quotRem` (2 * a)) [-b - sqrtD, -b + sqrtD]
       pure x
   where
     !d = b * b - 4 * a * c
-    !sqrtD = integerFloorSqrt d
