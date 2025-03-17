@@ -220,6 +220,7 @@ sizeMS :: Multiset a -> Int
 sizeMS = coerce (M.foldl' @Int (+) 0)
 
 {- | /O(1)/
+
 >>> distinctSizeMS (fromList [1,1,1,2,2,3])
 3
 -}
