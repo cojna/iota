@@ -20,7 +20,7 @@ import GHC.Exts
 
 newtype BitSet = BitSet {getBitSet :: Int}
   deriving (Eq, Ord)
-  deriving newtype (Num, Bits)
+  deriving newtype (Num, Bits, FiniteBits)
 
 instance Show BitSet where
   showsPrec p xs =
