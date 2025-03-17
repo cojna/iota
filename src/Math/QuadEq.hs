@@ -27,8 +27,8 @@ solveQuadEq a b c
   | d < 0 = []
   | d == 0 = [-b' / (2 * a')]
   | b < 0
-  , x1 <- (-b' + sqrt d') / (2 * a')
-  , x0 <- 2 * c' / (-b' + sqrt d') =
+  , x0 <- 2 * c' / (-b' + sqrt d')
+  , x1 <- (-b' + sqrt d') / (2 * a') =
       if a > 0 then [x0, x1] else [x1, x0]
   | x0 <- (-b' - sqrt d') / (2 * a')
   , x1 <- 2 * c' / (-b' - sqrt d') =
