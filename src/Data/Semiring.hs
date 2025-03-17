@@ -9,6 +9,12 @@ import Data.Primitive
 newtype MaxPlus a = MaxPlus {getMaxPlus :: a}
   deriving newtype (Eq, Ord, Show, Prim)
 
+{- |
+>>> MaxPlus (1 :: Int) - MaxPlus 0
+*** Exception: Prelude.undefined
+>>> negate (MaxPlus (1 :: Int))
+*** Exception: Prelude.undefined
+-}
 instance (Ord a, Bounded a, Num a) => Num (MaxPlus a) where
   {-# SPECIALIZE instance Num (MaxPlus Int) #-}
   (+) = max
@@ -30,6 +36,12 @@ instance (Ord a, Bounded a, Num a) => Num (MaxPlus a) where
 newtype MinPlus a = MinPlus {getMinPlus :: a}
   deriving newtype (Eq, Ord, Show, Prim)
 
+{- |
+>>> MinPlus (1 :: Int) - MinPlus 0
+*** Exception: Prelude.undefined
+>>> negate (MinPlus (1 :: Int))
+*** Exception: Prelude.undefined
+-}
 instance (Ord a, Bounded a, Num a) => Num (MinPlus a) where
   {-# SPECIALIZE instance Num (MinPlus Int) #-}
   (+) = min
