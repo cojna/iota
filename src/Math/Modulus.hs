@@ -94,6 +94,14 @@ Just (1,0)
 Just (2,-1)
 >>> linearDiophantine 4 6 3
 Nothing
+>>> linearDiophantine 3 5 0
+Just (0,0)
+>>> linearDiophantine 0 0 1
+Nothing
+>>> linearDiophantine 0 2 4
+Just (0,2)
+>>> linearDiophantine 2 0 4
+Just (2,0)
 prop> \a b c -> maybe True (\(x, y) -> a * x + b * y == c) $ linearDiophantine a b c
 +++ OK, passed 100 tests.
 -}
