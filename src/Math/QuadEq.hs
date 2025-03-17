@@ -4,6 +4,9 @@ import Control.Monad
 import Math.Utils
 
 {- |
+
+\(ax^2+bx+c=0, a\neq 0\)
+
 >>> solveQuadEq 1 (-3) 2
 [1.0,2.0]
 >>> solveQuadEq 1 (-2) 1
@@ -41,6 +44,9 @@ solveQuadEq a b c
     d' = fromIntegral d
 
 {- |
+
+\(ax^2+bx+c=0, a\neq 0\)
+
 >>> solveQuadEqInteger 1 (-3) 2
 [1,2]
 >>> solveQuadEqInteger 1 (-2) 1
