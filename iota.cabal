@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9a5b03ec52c45b8420293e8754d19113eebb99f61b451274eaaa5203796204cb
+-- hash: a535b58aec7ad0fa8da96b6ce7933fdd74fd778a5ad316e50a9682409dc93d80
 
 name:           iota
 version:        0.1.0.0
@@ -114,6 +114,7 @@ library
       Data.Trie.Binary.Magma
       Data.UnionFind
       Data.UnionFind.Diff
+      Data.UnionFind.Merge
       Data.Vector.Compress
       Data.Vector.Sort.Bucket
       Data.Vector.Sort.Merge
