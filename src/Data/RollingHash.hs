@@ -6,6 +6,8 @@
 
 module Data.RollingHash where
 
+import Data.Char
+import qualified Data.Foldable as F
 import Data.Proxy
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -46,6 +48,17 @@ instance Num (RollingHash b) where
   fromInteger x = RollingHash $ fromIntegral (mod x 0x1fffffffffffffff)
   {-# INLINE fromInteger #-}
 
+{- |
+>>> fromString @(RollingHash 2047) "abc"
+406650978
+>>> fromString @(RollingHash 2047) "cba"
+415031394
+>>> fromString @(RollingHash 100) "abc"
+979899
+-}
+instance (KnownNat b) => IsString (RollingHash b) where
+  fromString = F.foldl' snocRH emptyRH
+
 newtype instance U.MVector s (RollingHash b) = MV_RollingHash (U.MVector s Int)
 newtype instance U.Vector (RollingHash b) = V_RollingHash (U.Vector Int)
 deriving newtype instance GM.MVector U.MVector (RollingHash b)
@@ -54,6 +67,26 @@ instance U.Unbox (RollingHash b)
 
 asRollingHashOf :: RollingHash b -> Proxy b -> RollingHash b
 asRollingHashOf = const
+
+emptyRH :: RollingHash b
+emptyRH = RollingHash 0
+
+singletonRH :: Int -> RollingHash b
+singletonRH = RollingHash
+
+{- |
+>>> F.foldl' (snocRH @2047) emptyRH "abc"
+406650978
+-}
+snocRH ::
+  forall (b :: Nat).
+  (KnownNat b) =>
+  RollingHash b ->
+  Char ->
+  RollingHash b
+snocRH h c = h * base + RollingHash (ord c)
+  where
+    base = RollingHash (fromIntegral (natVal' @b proxy#))
 
 {- |
 check if @g@ is a primitive root of @2^61-1@.
