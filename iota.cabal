@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b4007b47c32930769e4e8f48a5fefc0461eaa0c055b83d56e4dad86d7e4001e3
+-- hash: 4cd3e08d7b7c639ba634ac4c1ef835345697ec5521c8910f0f0dd7baf2680674
 
 name:           iota
 version:        0.1.0.0
@@ -71,6 +71,7 @@ library
       Data.Graph.Tree.LCA
       Data.Graph.Tree.LCT
       Data.Graph.Tree.Rerooting
+      Data.Graph.Unicyclic
       Data.Heap.Binary
       Data.Heap.PairingHeap.Max
       Data.Heap.PairingHeap.Min
