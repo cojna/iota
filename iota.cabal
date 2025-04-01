@@ -3,8 +3,6 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: 4cd3e08d7b7c639ba634ac4c1ef835345697ec5521c8910f0f0dd7baf2680674
 
 name:           iota
 version:        0.1.0.0
@@ -75,6 +73,7 @@ library
       Data.Heap.Binary
       Data.Heap.PairingHeap.Max
       Data.Heap.PairingHeap.Min
+      Data.IntervalSet
       Data.IntHeap
       Data.IntHeap.MaxTopK
       Data.IntMod
@@ -221,6 +220,7 @@ test-suite iota-test
       Data.Heap.BinarySpec
       Data.Heap.PairingHeap.MaxSpec
       Data.Heap.PairingHeap.MinSpec
+      Data.IntervalSetSpec
       Data.IntHeap.MaxTopKSpec
       Data.IntHeapSpec
       Data.IntModSpec
@@ -295,6 +295,7 @@ test-suite iota-test
     , containers
     , deepseq
     , hspec
+    , hspec-core
     , iota
     , mtl
     , primitive >=0.8
