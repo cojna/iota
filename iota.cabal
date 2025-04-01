@@ -295,6 +295,7 @@ test-suite iota-test
     , containers
     , deepseq
     , hspec
+    , hspec-core
     , iota
     , mtl
     , primitive >=0.8
