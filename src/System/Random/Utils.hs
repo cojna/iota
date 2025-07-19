@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -52,9 +53,26 @@ instance
   {-# INLINE uniformWord32 #-}
   uniformWord64 = applyPrimGen genWord64
   {-# INLINE uniformWord64 #-}
+#if !MIN_VERSION_random(1,3,0)
   uniformShortByteString = applyPrimGen . genShortByteString
   {-# INLINE uniformShortByteString #-}
+#endif
 
+#if MIN_VERSION_random(1,3,0)
+instance
+  (RandomGen g, PrimMonad m) =>
+  FrozenGen (PrimGen g) m
+  where
+  type MutableGen (PrimGen g) m = PrimGenM g (PrimState m)
+  freezeGen (PrimGenM ref) = PrimGen <$> readMutVar ref
+  overwriteGen (PrimGenM ref) = writeMutVar ref . unPrimGen
+
+instance
+  (RandomGen g, PrimMonad m) =>
+  ThawedGen (PrimGen g) m
+  where
+  thawGen (PrimGen g) = newPrimGenM g
+#else
 instance
   (RandomGen g, s ~ PrimState m, PrimMonad m) =>
   RandomGenM (PrimGenM g s) g m
@@ -68,6 +86,7 @@ instance
   type MutableGen (PrimGen g) m = PrimGenM g (PrimState m)
   freezeGen (PrimGenM ref) = PrimGen <$> readMutVar ref
   thawGen (PrimGen g) = newPrimGenM g
+#endif
 
 withGlobalStdGen ::
   (PrimMonad m) =>
