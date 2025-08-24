@@ -69,6 +69,14 @@ sizeUF UF{parentOrNegativeSizeUF = uf} = fix $ \loop x -> do
 
 {- |
 @equivUF uf x y ==> readUF uf x == readUF uf y@
+
+>>> import Data.Monoid
+>>> uf <- buildUnionFind @_ @(Sum Int) $ U.replicate 3 1
+>>> readUF uf 0
+Sum {getSum = 1}
+>>> uniteUF_ uf 0 1 >> uniteUF_ uf 1 2
+>>> readUF uf 0
+Sum {getSum = 3}
 -}
 readUF ::
   (G.Vector v a, PrimMonad m) =>
@@ -85,6 +93,15 @@ readUF uf x = findUF uf x >>= GM.unsafeRead (mconcatUF uf)
 >>> writeUF uf 0 "X"
 >>> mapM (readUF uf) [0..2]
 ["X","","X"]
+
+>>> import Data.Monoid
+>>> uf <- buildUnionFind @_ @(Sum Int) $ U.replicate 3 1
+>>> uniteUF_ uf 0 1 >> uniteUF_ uf 1 2
+>>> readUF uf 0
+Sum {getSum = 3}
+>>> writeUF uf 2 2
+>>> readUF uf 0
+Sum {getSum = 2}
 -}
 writeUF ::
   (G.Vector v a, PrimMonad m) =>
@@ -95,6 +112,16 @@ writeUF ::
 writeUF uf i x = findUF uf i >>= flip (GM.unsafeWrite (mconcatUF uf)) x
 {-# INLINE writeUF #-}
 
+{- |
+>>> import Data.Monoid
+>>> uf <- buildUnionFind @_ @(Sum Int) $ U.replicate 3 1
+>>> uniteUF_ uf 0 1 >> uniteUF_ uf 1 2
+>>> readUF uf 0
+Sum {getSum = 3}
+>>> modifyUF uf (1-) 2
+>>> readUF uf 0
+Sum {getSum = -2}
+-}
 modifyUF ::
   (G.Vector v a, PrimMonad m) =>
   UnionFind (G.Mutable v) (PrimState m) a ->

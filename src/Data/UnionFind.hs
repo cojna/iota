@@ -35,6 +35,17 @@ sizeUF uf = fix $ \loop x -> do
     else loop px
 {-# INLINE sizeUF #-}
 
+{- |
+>>> uf <- newUnionFind 3
+>>> uniteUF uf 0 1
+True
+>>> uniteUF uf 0 1
+False
+>>> uniteUF uf 0 2
+True
+>>> uniteUF uf 1 2
+False
+-}
 uniteUF :: (PrimMonad m) => UnionFind (PrimState m) -> Int -> Int -> m Bool
 uniteUF uf x y = do
   px <- findUF uf x
