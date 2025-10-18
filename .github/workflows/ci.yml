@@ -14,8 +14,6 @@ jobs:
     strategy:
       matrix:
         stack-lts:
-          - lts-21.0  # GHC 9.4.5
-          - lts-22.0  # GHC 9.6.3
           - lts-23.0  # GHC 9.8.4
           - lts-24.0  # GHC 9.10.2
           - nightly-2025-07-15 # GHC 9.12.2
