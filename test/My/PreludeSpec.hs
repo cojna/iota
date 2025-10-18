@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -7,9 +6,7 @@ module My.PreludeSpec (main, spec) where
 
 import Data.Bits
 import qualified Data.ByteString.Builder as B
-#if __GLASGOW_HASKELL__ > 904
 import Data.PrimParser
-#endif
 import qualified Data.Vector as V
 import My.Prelude
 import Test.Prelude
@@ -94,7 +91,6 @@ spec = do
       $ \(getNonNegative -> x) -> x <= ceilingPowerOf2 x
     prop "ceilingPowerOf2 x < 2 * x (x > 0)"
       $ \(getPositive -> x) -> ceilingPowerOf2 x < 2 * x
-#if __GLASGOW_HASKELL__ > 904
   describe "uvectorLn" $ do
     it "uvectorLn \"abc\\n\" == ['a', 'b', 'c']" $
       unsafeWithByteString "abc\n" (uvectorLn char)
@@ -108,7 +104,6 @@ spec = do
     it "line $ uvectorLn \"abc\\n\\n\" == ['a', 'b', 'c']" $
       unsafeWithByteString "abc\n\n" (line $ uvectorLn char)
         `shouldBe` ['a', 'b', 'c']
-#endif
   describe "unwordsB" $ do
     it "unwordsB intDec [1,2,3] == \"1 2 3\"" $
       B.toLazyByteString (unwordsB @V.Vector B.intDec [1, 2, 3])

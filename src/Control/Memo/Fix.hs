@@ -1,12 +1,9 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Control.Memo.Fix where
 
 import Control.Monad.State
-#if MIN_VERSION_mtl(2,3,0)
 import Data.Function (fix)
-#endif
 import Data.Functor (($>))
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Map.Strict as M
