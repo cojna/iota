@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -9,14 +8,9 @@ import qualified GHC.Hs
 import qualified GHC.LanguageExtensions.Type
 import qualified GHC.LanguageExtensions.Type as X
 import qualified GHC.Parser.Lexer
+import qualified GHC.Types.Error
 import qualified GHC.Types.SrcLoc
 import qualified GHC.Utils.Error
-#if __GLASGOW_HASKELL__ == 906
-import qualified GHC.Parser.Errors.Types
-#endif
-#if __GLASGOW_HASKELL__ >= 908
-import qualified GHC.Types.Error
-#endif
 import qualified GHC.Utils.Outputable
 import qualified Language.Haskell.GhclibParserEx.GHC.Parser as GHC.Parser.Ex
 import qualified Language.Haskell.GhclibParserEx.GHC.Settings.Config as GHC.Settings.Config.Ex
@@ -103,9 +97,6 @@ dynFlags =
     GHC.Driver.Session.xopt_set
     ( GHC.Driver.Session.defaultDynFlags
         GHC.Settings.Config.Ex.fakeSettings
-#if __GLASGOW_HASKELL__ < 906
-        GHC.Settings.Config.Ex.fakeLlvmConfig
-#endif
     )
     extensions
 
@@ -124,18 +115,10 @@ withCPPProcessed path f = do
 parseFile ::
   FilePath ->
   String ->
-#if __GLASGOW_HASKELL__ < 906
-  GHC.Parser.Lexer.ParseResult (GHC.Types.SrcLoc.Located GHC.Hs.HsModule)
-#else
   GHC.Parser.Lexer.ParseResult (GHC.Types.SrcLoc.Located (GHC.Hs.HsModule GHC.Hs.GhcPs))
-#endif
 parseFile = flip GHC.Parser.Ex.parseFile dynFlags
 
-#if __GLASGOW_HASKELL__ < 906
-renderDecls :: GHC.Types.SrcLoc.Located GHC.Hs.HsModule -> String
-#else
 renderDecls :: GHC.Types.SrcLoc.Located (GHC.Hs.HsModule GHC.Hs.GhcPs) -> String
-#endif
 renderDecls =
   GHC.Utils.Outputable.renderWithContext
     (GHC.Driver.Session.initDefaultSDocContext dynFlags)
@@ -148,11 +131,6 @@ renderParseErrors :: GHC.Parser.Lexer.PState -> String
 renderParseErrors =
   GHC.Utils.Outputable.renderWithContext
     (GHC.Driver.Session.initDefaultSDocContext dynFlags)
-    . GHC.Utils.Error.pprMessages
-#if __GLASGOW_HASKELL__ == 906
-        (GHC.Utils.Error.defaultDiagnosticOpts @GHC.Parser.Errors.Types.PsMessage)
-#elif __GLASGOW_HASKELL__ >= 908
-        GHC.Types.Error.NoDiagnosticOpts
-#endif
+    . GHC.Utils.Error.pprMessages GHC.Types.Error.NoDiagnosticOpts
     . snd
     . GHC.Parser.Lexer.getPsMessages
