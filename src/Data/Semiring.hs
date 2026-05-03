@@ -4,6 +4,7 @@
 module Data.Semiring where
 
 import Data.Bits
+import Data.Coerce
 import Data.Primitive
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -13,6 +14,10 @@ newtype MaxPlus a = MaxPlus {getMaxPlus :: a}
   deriving newtype (Eq, Ord, Show, Prim)
 
 {- |
+>>> MaxPlus (1 :: Int) + MaxPlus 2
+2
+>>> MaxPlus (2 :: Int) * MaxPlus 3
+5
 >>> MaxPlus (1 :: Int) - MaxPlus 0
 *** Exception: Prelude.undefined
 >>> negate (MaxPlus (1 :: Int))
@@ -20,11 +25,11 @@ newtype MaxPlus a = MaxPlus {getMaxPlus :: a}
 -}
 instance (Ord a, Bounded a, Num a) => Num (MaxPlus a) where
   {-# SPECIALIZE instance Num (MaxPlus Int) #-}
-  (+) = max
+  (+) = coerce (max @a)
   {-# INLINE (+) #-}
   (-) = undefined
   {-# INLINE (-) #-}
-  (*) = (+)
+  (*) = coerce ((+) @a)
   {-# INLINE (*) #-}
   negate = undefined
   {-# INLINE negate #-}
@@ -46,6 +51,10 @@ newtype MinPlus a = MinPlus {getMinPlus :: a}
   deriving newtype (Eq, Ord, Show, Prim)
 
 {- |
+>>> MinPlus (1 :: Int) + MinPlus 2
+1
+>>> MinPlus (2 :: Int) * MinPlus 3
+5
 >>> MinPlus (1 :: Int) - MinPlus 0
 *** Exception: Prelude.undefined
 >>> negate (MinPlus (1 :: Int))
@@ -53,11 +62,11 @@ newtype MinPlus a = MinPlus {getMinPlus :: a}
 -}
 instance (Ord a, Bounded a, Num a) => Num (MinPlus a) where
   {-# SPECIALIZE instance Num (MinPlus Int) #-}
-  (+) = min
+  (+) = coerce (min @a)
   {-# INLINE (+) #-}
   (-) = undefined
   {-# INLINE (-) #-}
-  (*) = (+)
+  (*) = coerce ((+) @a)
   {-# INLINE (*) #-}
   negate = undefined
   {-# INLINE negate #-}
