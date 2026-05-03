@@ -22,6 +22,10 @@ newtype MaxPlus a = MaxPlus {getMaxPlus :: a}
 *** Exception: Prelude.undefined
 >>> negate (MaxPlus (1 :: Int))
 *** Exception: Prelude.undefined
+>>> 0 :: MaxPlus Int
+-9223372036854775808
+>>> 1 :: MaxPlus Int
+0
 -}
 instance (Ord a, Bounded a, Num a) => Num (MaxPlus a) where
   {-# SPECIALIZE instance Num (MaxPlus Int) #-}
@@ -59,6 +63,10 @@ newtype MinPlus a = MinPlus {getMinPlus :: a}
 *** Exception: Prelude.undefined
 >>> negate (MinPlus (1 :: Int))
 *** Exception: Prelude.undefined
+>>> 0 :: MinPlus Int
+9223372036854775807
+>>> 1 :: MinPlus Int
+0
 -}
 instance (Ord a, Bounded a, Num a) => Num (MinPlus a) where
   {-# SPECIALIZE instance Num (MinPlus Int) #-}
