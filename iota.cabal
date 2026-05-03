@@ -79,6 +79,7 @@ library
       Data.IntMod
       Data.Lattice
       Data.List.Combinatrics
+      Data.Mat2x2
       Data.Mat3x3
       Data.Monoid.Action
       Data.Monoid.Affine
