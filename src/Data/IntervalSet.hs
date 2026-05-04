@@ -12,6 +12,19 @@ newtype IntervalSet = IntervalSet (IM.IntMap Int)
 instance Show IntervalSet where
   show (IntervalSet s) = show $ IM.toAscList s
 
+nullIS :: IntervalSet -> Bool
+nullIS = coerce (IM.null @Int)
+
+{- | /O(n)/
+
+>>> sizeIS (fromList [(1,2),(4,5)])
+4
+>>> sizeIS emptyIS
+0
+-}
+sizeIS :: IntervalSet -> Int
+sizeIS (IntervalSet s) = sum . map (\(l, r) -> r - l + 1) $ IM.toList s
+
 emptyIS :: IntervalSet
 emptyIS = IntervalSet IM.empty
 
@@ -95,7 +108,7 @@ deleteIS x (IntervalSet s) = IntervalSet $ case IM.lookupLE x s of
 deleteIntervalIS :: (Int, Int) -> IntervalSet -> IntervalSet
 deleteIntervalIS (l, r) (IntervalSet s)
   | l <= r = IntervalSet $ go s
-  | otherwise = (IntervalSet s)
+  | otherwise = IntervalSet s
   where
     go !im = case IM.lookupLE r im of
       Just (l', r')
@@ -107,6 +120,44 @@ deleteIntervalIS (l, r) (IntervalSet s)
         | l <= r' -> IM.insert l' (l - 1) im
         | otherwise -> im
       Nothing -> im
+
+{- |
+>>> unionIS (fromList [(0, 1), (3, 4)]) (fromList [(2, 2)])
+[(0,4)]
+>>> unionIS (fromList [(0, 1)]) (fromList [(3, 4)])
+[(0,1),(3,4)]
+-}
+unionIS :: IntervalSet -> IntervalSet -> IntervalSet
+unionIS xs ys = F.foldl' (flip insertIntervalIS) xs $ toListIS ys
+
+{- |
+>>> differenceIS (fromList [(0,9)]) (fromList [(1,4),(6,8)])
+[(0,0),(5,5),(9,9)]
+>>> differenceIS (fromList [(0,1)]) (fromList[(0,2)])
+[]
+-}
+differenceIS :: IntervalSet -> IntervalSet -> IntervalSet
+differenceIS xs ys = F.foldl' (flip deleteIntervalIS) xs $ toListIS ys
+
+{- |
+>>> intersectionIS (fromList [(0, 1), (3, 4)]) (fromList [(1, 3)])
+[(1,1),(3,3)]
+>>> intersectionIS (fromList [(0, 1)]) (fromList [(2, 3)])
+[]
+>>> intersectionIS (fromList [(0, 1)]) (fromList [(1, 2)])
+[(1,1)]
+-}
+intersectionIS :: IntervalSet -> IntervalSet -> IntervalSet
+intersectionIS xs0 ys0 = fromList $ go (toList xs0) (toList ys0)
+  where
+    go ((lx, rx) : xs) ((ly, ry) : ys)
+      | rx < ly = go xs ((ly, ry) : ys)
+      | ry < lx = go ((lx, rx) : xs) ys
+      | !l <- max lx ly = case compare rx ry of
+          LT -> (l, rx) : go xs ((rx + 1, ry) : ys)
+          EQ -> (l, rx) : go xs ys
+          GT -> (l, ry) : go ((ry + 1, rx) : xs) ys
+    go _ _ = []
 
 {- |
 >>> memberIS 0 (fromListIS [(-1,1)])
@@ -162,12 +213,32 @@ lookupIntervalIS (l0, r0) (IntervalSet s)
         | l' <= r0 -> (l', r') : go r'
       _ -> []
 
+{- |
+>>> minimumIS (intervalIS (0,9))
+0
+>>> minimumIS emptyIS
+*** Exception: findMin: empty map has no minimal element
+-}
+minimumIS :: IntervalSet -> Int
+minimumIS = coerce (fst . IM.findMin @Int)
+
+{- |
+>>> maximumIS (intervalIS (0, 9))
+0
+>>> maximumIS emptyIS
+*** Exception: findMax: empty map has no maximal element
+-}
+maximumIS :: IntervalSet -> Int
+maximumIS = coerce (fst . IM.findMax @Int)
+
 {- | minimum excluded value
 
 >>> mex $ fromListIS [(0,1),(3,5)]
 2
 >>> mex $ intervalIS (1, 5)
 0
+>>> mex $ singletonIS 0
+1
 -}
 mex :: IntervalSet -> Int
 mex (IntervalSet s) = case IM.lookupLE 0 s of
