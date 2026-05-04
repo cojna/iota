@@ -97,6 +97,7 @@ library
       Data.MultisetHash
       Data.PrimParser
       Data.Queue
+      Data.Queue.SWAG
       Data.RollingHash
       Data.SegTree
       Data.SegTree.Dual
