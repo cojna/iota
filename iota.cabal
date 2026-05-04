@@ -41,6 +41,7 @@ library
       Data.ByteString.Tiny
       Data.ByteString.ZAlgorithm
       Data.CSR
+      Data.Dir
       Data.Doubling
       Data.EPS
       Data.FenwickTree
