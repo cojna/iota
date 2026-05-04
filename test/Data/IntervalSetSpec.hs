@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Data.IntervalSetSpec (main, spec) where
 
@@ -147,6 +148,18 @@ spec = do
         ( \(l, r) ->
             foldr @[] deleteIS [(-4, -2), (2, 4)] [l .. r]
         )
+  describe "unionIS" $ do
+    prop "associativity" $ \xs ys zs ->
+      unionIS (unionIS xs ys) zs
+        == unionIS xs (unionIS ys zs)
+  describe "intersectionIS" $ do
+    prop "associativity" $ \xs ys zs ->
+      intersectionIS (intersectionIS xs ys) zs
+        == intersectionIS xs (intersectionIS ys zs)
+
+instance Arbitrary IntervalSet where
+  arbitrary = fmap (fromListIS . map (\(x, y) -> (min x y, max x y))) arbitrary
+  shrink = map fromListIS . shrink . toListIS
 
 propNaiveByTable ::
   (HasCallStack, Show a, Show b, Eq b) =>
