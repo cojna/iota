@@ -28,6 +28,7 @@ library
       Algorithm.LIS
       Algorithm.Mo
       Algorithm.Search.SternBrocot
+      Algorithm.TwoPointers
       Algorithm.TwoSat
       Control.GCJ
       Control.Memo.Fix
