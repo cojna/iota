@@ -13,6 +13,7 @@ data Window a = Window
 
 enumerateTwoPointers ::
   (Monad m) =>
+  -- | size
   Int ->
   -- | shrinkL (@l < r@)
   (Window a -> m a) ->
@@ -24,17 +25,14 @@ enumerateTwoPointers ::
 enumerateTwoPointers n shrinkL tryExtendR x0 = do
   fix
     ( \loop !acc w@(Window l r _) -> do
-        if l < n
+        if r < n
           then do
-            if r < n
-              then do
-                tryExtendR w >>= \case
-                  Nothing
-                    | l < r -> shrinkL w >>= loop (acc + r - l) . Window (l + 1) r
-                    | otherwise -> loop acc (Window (l + 1) (l + 1) x0)
-                  Just w' -> loop acc (Window l (r + 1) w')
-              else shrinkL w >>= loop (acc + r - l) . Window (l + 1) r
-          else pure acc
+            tryExtendR w >>= \case
+              Nothing
+                | l < r -> shrinkL w >>= loop (acc + r - l) . Window (l + 1) r
+                | otherwise -> loop acc (Window (l + 1) (l + 1) x0)
+              Just w' -> loop acc (Window l (r + 1) w')
+          else pure $ acc + (r - l) * (r - l + 1) `quot` 2
     )
     0
     (Window 0 0 x0)
@@ -42,6 +40,7 @@ enumerateTwoPointers n shrinkL tryExtendR x0 = do
 
 maxLengthTwoPointers ::
   (Monad m) =>
+  -- | size
   Int ->
   -- | shrinkL (@l < r@)
   (Window a -> m a) ->
@@ -53,17 +52,14 @@ maxLengthTwoPointers ::
 maxLengthTwoPointers n shrinkL tryExtendR x0 = do
   fix
     ( \loop !acc w@(Window l r _) -> do
-        if l < n
+        if r < n
           then do
-            if r < n
-              then do
-                tryExtendR w >>= \case
-                  Nothing
-                    | l < r -> shrinkL w >>= loop (max acc $ r - l) . Window (l + 1) r
-                    | otherwise -> loop acc (Window (l + 1) (l + 1) x0)
-                  Just w' -> loop acc (Window l (r + 1) w')
-              else pure $ max acc (r - l)
-          else pure acc
+            tryExtendR w >>= \case
+              Nothing
+                | l < r -> shrinkL w >>= loop (max acc (r - l)) . Window (l + 1) r
+                | otherwise -> loop acc (Window (l + 1) (l + 1) x0)
+              Just w' -> loop acc (Window l (r + 1) w')
+          else pure $ max acc (r - l)
     )
     0
     (Window 0 0 x0)
