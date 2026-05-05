@@ -1,4 +1,6 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Algorithm.TwoPointers where
 
@@ -9,6 +11,8 @@ import qualified Data.Vector.Fusion.Bundle.Size as Bundle
 import qualified Data.Vector.Fusion.Stream.Monadic as MS
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Generic.Mutable as GM
+import qualified Data.Vector.Unboxed as U
+import GHC.Generics
 
 -- | @[l, r)@
 data Window a = Window
@@ -16,6 +20,15 @@ data Window a = Window
   , rightW :: !Int
   , contextW :: !a
   }
+  deriving (Eq, Ord, Show, Generic)
+
+instance U.IsoUnbox (Window a) (Int, Int, a)
+
+newtype instance U.MVector s (Window a) = MV_Window (U.MVector s (Int, Int, a))
+newtype instance U.Vector (Window a) = V_Window (U.Vector (Int, Int, a))
+deriving via (Window a `U.As` (Int, Int, a)) instance (U.Unbox a) => GM.MVector U.MVector (Window a)
+deriving via (Window a `U.As` (Int, Int, a)) instance (U.Unbox a) => G.Vector U.Vector (Window a)
+instance (U.Unbox a) => U.Unbox (Window a)
 
 enumerateTwoPointers ::
   (Monad m) =>
