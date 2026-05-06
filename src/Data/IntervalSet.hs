@@ -224,12 +224,12 @@ minimumIS = coerce (fst . IM.findMin @Int)
 
 {- |
 >>> maximumIS (intervalIS (0, 9))
-0
+9
 >>> maximumIS emptyIS
 *** Exception: findMax: empty map has no maximal element
 -}
 maximumIS :: IntervalSet -> Int
-maximumIS = coerce (fst . IM.findMax @Int)
+maximumIS = coerce (snd . IM.findMax @Int)
 
 {- | minimum excluded value
 
