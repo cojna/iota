@@ -216,6 +216,8 @@ lookupIntervalIS (l0, r0) (IntervalSet s)
 {- |
 >>> minimumIS (intervalIS (0,9))
 0
+>>> minimumIS (fromListIS [(0,2),(5,9)])
+0
 >>> minimumIS emptyIS
 *** Exception: findMin: empty map has no minimal element
 -}
@@ -223,13 +225,15 @@ minimumIS :: IntervalSet -> Int
 minimumIS = coerce (fst . IM.findMin @Int)
 
 {- |
->>> maximumIS (intervalIS (0, 9))
-0
+>>> maximumIS (intervalIS (0,9))
+9
+>>> maximumIS (fromListIS [(0,2),(5,9)])
+9
 >>> maximumIS emptyIS
 *** Exception: findMax: empty map has no maximal element
 -}
 maximumIS :: IntervalSet -> Int
-maximumIS = coerce (fst . IM.findMax @Int)
+maximumIS = coerce (snd . IM.findMax @Int)
 
 {- | minimum excluded value
 
