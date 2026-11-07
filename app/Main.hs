@@ -3,6 +3,8 @@
 
 module Main (main) where
 
+import Control.Monad (when)
+import Data.List (isInfixOf)
 import qualified GHC.Driver.Session
 import qualified GHC.Hs
 import qualified GHC.LanguageExtensions.Type
@@ -14,13 +16,14 @@ import qualified GHC.Utils.Error
 import qualified GHC.Utils.Outputable
 import qualified Language.Haskell.GhclibParserEx.GHC.Parser as GHC.Parser.Ex
 import qualified Language.Haskell.GhclibParserEx.GHC.Settings.Config as GHC.Settings.Config.Ex
-import System.Directory (getCurrentDirectory)
+import System.Directory (doesFileExist, getCurrentDirectory)
 import System.Environment (getArgs)
 import System.Exit (
   ExitCode (ExitFailure, ExitSuccess),
   exitFailure,
+  exitSuccess,
  )
-import System.IO (hPutStrLn, stderr)
+import System.IO (hPutStrLn, readFile', stderr)
 import System.IO.Temp (withSystemTempDirectory)
 import System.Process (rawSystem)
 import "template-haskell" Language.Haskell.TH (runIO)
@@ -28,6 +31,15 @@ import "template-haskell" Language.Haskell.TH (runIO)
 main :: IO ()
 main = do
   (name : opts) <- getArgs
+  case opts of
+    [dst] -> do
+      exists <- doesFileExist dst
+      when exists $ do
+        contents <- readFile' dst
+        when (header name `isInfixOf` contents) $ do
+          hPutStrLn stderr $ name ++ " is already appended to " ++ dst ++ "; skipping."
+          exitSuccess
+    _ -> pure ()
   let path = moduleAbsPath name
   withCPPProcessed path $ \processedPath -> do
     code <- readFile processedPath
